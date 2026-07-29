@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TLanguage, ILanguageOption } from "../types";
+import type { ILanguageOption, TLanguage } from "../types";
 
 export const FALLBACK_LANGUAGE: TLanguage = "pt-BR";
 
