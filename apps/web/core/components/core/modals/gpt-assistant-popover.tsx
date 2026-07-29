@@ -6,7 +6,6 @@
 
 import { Popover, Transition } from "@headlessui/react";
 import type { Placement } from "@popperjs/core";
-import { AlertCircle } from "lucide-react";
 import type { Ref } from "react";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form"; // services
@@ -92,12 +91,12 @@ export function GptAssistantPopover(props: Props) {
     const error = err?.data?.error;
     const errorMessage =
       err?.status === 429
-        ? error || "You have reached the maximum number of requests of 50 requests per month per user."
-        : error || "Some error occurred. Please try again.";
+        ? error || "Você atingiu o limite de 50 solicitações por mês por usuário."
+        : error || "Ocorreu um erro. Tente novamente.";
 
     setToast({
       type: TOAST_TYPE.ERROR,
-      title: "Error!",
+      title: "Erro!",
       message: errorMessage,
     });
 
@@ -123,8 +122,8 @@ export function GptAssistantPopover(props: Props) {
   const handleInvalidTask = () => {
     setToast({
       type: TOAST_TYPE.ERROR,
-      title: "Error!",
-      message: "Please enter some task to get AI assistance.",
+      title: "Erro!",
+      message: "Descreva o que a IA deve fazer.",
     });
   };
 
@@ -185,15 +184,15 @@ export function GptAssistantPopover(props: Props) {
         onClose();
       }}
     >
-      Use this response
+      Usar esta resposta
     </Button>
   );
 
   const generateResponseButtonText = isSubmitting
-    ? "Generating response..."
+    ? "Gerando resposta..."
     : response === ""
-      ? "Generate response"
-      : "Generate again";
+      ? "Gerar resposta"
+      : "Gerar novamente";
 
   return (
     <Popover as="div" className={`relative w-min text-left`}>
@@ -222,7 +221,7 @@ export function GptAssistantPopover(props: Props) {
           <div className="vertical-scroll-enable max-h-72 space-y-4 overflow-y-auto">
             {prompt && (
               <div className="text-13">
-                Content:
+                Conteúdo:
                 <RichTextEditor
                   editable={false}
                   id="ai-assistant-content"
@@ -237,7 +236,7 @@ export function GptAssistantPopover(props: Props) {
             )}
             {response !== "" && (
               <div className="page-block-section vertical-scroll-enable max-h-[18rem] overflow-y-auto text-13">
-                Response:
+                Resposta:
                 <RichTextEditor
                   editable={false}
                   id="ai-assistant-response"
@@ -251,8 +250,8 @@ export function GptAssistantPopover(props: Props) {
             )}
             {invalidResponse && (
               <div className="text-13 text-danger-primary">
-                No response could be generated. This may be due to insufficient content or task information. Please try
-                again.
+                Não foi possível gerar uma resposta. Isso pode ocorrer por falta de conteúdo ou de detalhes na
+                solicitação. Tente novamente.
               </div>
             )}
           </div>
@@ -267,32 +266,21 @@ export function GptAssistantPopover(props: Props) {
                 value={value}
                 onChange={onChange}
                 ref={ref}
-                placeholder={`${prompt && prompt !== "" ? "Tell AI what action to perform on this content..." : "Ask AI anything..."
+                placeholder={`${prompt && prompt !== "" ? "Diga à IA o que fazer com este conteúdo..." : "Pergunte qualquer coisa à IA..."
                   }`}
                 className="w-full"
                 autoFocus
               />
             )}
           />
-          <div className="flex justify-between gap-2">
-            {responseActionButton ? (
-              <>{responseActionButton}</>
-            ) : (
-              <>
-                <div className="flex items-start justify-center gap-2 text-13 text-accent-primary">
-                  <AlertCircle className="h-4 w-4" />
-                  <p>By using this feature, you consent to sharing the message with a 3rd party service. </p>
-                </div>
-              </>
-            )}
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={onClose}>
-                Close
-              </Button>
-              <Button variant="primary" onClick={handleSubmit(handleAIResponse)} loading={isSubmitting}>
-                {generateResponseButtonText}
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-2">
+            {responseActionButton && <div className="mr-auto">{responseActionButton}</div>}
+            <Button variant="secondary" onClick={onClose}>
+              Fechar
+            </Button>
+            <Button variant="primary" onClick={handleSubmit(handleAIResponse)} loading={isSubmitting}>
+              {generateResponseButtonText}
+            </Button>
           </div>
         </Popover.Panel>
       </Transition>
