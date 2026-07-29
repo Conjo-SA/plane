@@ -7,9 +7,13 @@
 #  files are copied directly from their source locations in the repo.
 #
 #  This image ASSEMBLES the official pre-built service images pinned to
-#  PLANE_VERSION — it does not compile the local working tree.
+#  PLANE_VERSION — it does not compile the local working tree. The tag
+#  MUST match this source's layout (nginx-static web/admin). v1.4.0-rc2
+#  matches package.json (1.4.0). Use "preview" to track the preview
+#  branch. Older tags like v0.27.1 use the old Next.js layout and will
+#  fail with: COPY failed: stat usr/share/nginx/html: file does not exist
 # =====================================================================
-ARG PLANE_VERSION=v0.27.1
+ARG PLANE_VERSION=v1.4.0-rc2
 
 # **************************************************
 #  STAGE 0: Image Loading

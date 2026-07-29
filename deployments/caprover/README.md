@@ -5,9 +5,16 @@ imagem **All-In-One (AIO)** — web, admin, space, API, worker, beat, live serve
 proxy Caddy, todos no mesmo container, gerenciados pelo Supervisor.
 
 > **Importante:** a imagem *monta* as imagens oficiais pré-construídas
-> (`makeplane/plane-*:v0.27.1`). Ela **não compila** o código da sua working tree.
+> (`makeplane/plane-*`). Ela **não compila** o código da sua working tree.
 > Para publicar alterações locais, você precisaria buildar e publicar cada imagem
 > de serviço antes.
+>
+> **A tag (`PLANE_VERSION`) precisa casar com o layout desta fonte.** Este branch
+> (`preview`, `package.json` 1.4.0) usa o web/admin em nginx estático, então o
+> Dockerfile fixa `PLANE_VERSION=v1.4.0-rc2`. Tags antigas como `v0.27.1` usam o
+> layout Next.js antigo e o build falha com
+> `COPY failed: stat usr/share/nginx/html: file does not exist`. Para acompanhar o
+> branch em vez de fixar, use a tag `preview`.
 
 ---
 
@@ -106,6 +113,7 @@ provisionar (podem ser outros apps no próprio CapRover, ou serviços gerenciado
 - **Migrations:** rodam automaticamente no boot (serviço `migrator` no
   `supervisor.conf`), antes de API/worker.
 - **Admin (God Mode):** acessível em `https://<DOMAIN_NAME>/god-mode`.
-- **Versão:** para fixar outra versão do Plane, passe o build-arg
-  `PLANE_VERSION` (ex.: editando o `captain-definition` para incluir
-  `dockerfilePath` + variáveis, ou alterando o `ARG PLANE_VERSION` no Dockerfile).
+- **Versão:** para fixar outra versão do Plane, altere o `ARG PLANE_VERSION` no
+  [`Dockerfile`](./Dockerfile). Use uma tag com o layout nginx estático
+  (`v1.4.0-rc2`, `preview`, `canary`, `stable`) — **não** use `v0.27.1` ou
+  anteriores.
