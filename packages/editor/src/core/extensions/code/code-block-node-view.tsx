@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
+import { CopyIcon } from "@plane/propel/icons";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
+import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import ts from "highlight.js/lib/languages/typescript";
 import { common, createLowlight } from "lowlight";
 import { CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { CopyIcon } from "@plane/propel/icons";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 // plane utils
@@ -46,6 +46,14 @@ export function CodeBlockComponent({ node }: Props) {
 
   return (
     <NodeViewWrapper key={attrs[ECodeBlockAttributeNames.ID]} className="code-block group/code relative">
+      {attrs[ECodeBlockAttributeNames.LANGUAGE] && (
+        <span
+          contentEditable={false}
+          className="absolute top-2 left-3 z-10 rounded-sm px-1.5 py-0.5 font-mono text-caption-sm-regular text-tertiary uppercase select-none"
+        >
+          {attrs[ECodeBlockAttributeNames.LANGUAGE]}
+        </span>
+      )}
       <Tooltip tooltipContent="Copy code">
         <button
           type="button"
@@ -65,7 +73,11 @@ export function CodeBlockComponent({ node }: Props) {
         </button>
       </Tooltip>
 
-      <pre className="my-2 rounded-lg bg-layer-3 p-4 text-primary">
+      <pre
+        className={cn("my-2 rounded-lg bg-layer-3 p-4 text-primary", {
+          "pt-8": !!attrs[ECodeBlockAttributeNames.LANGUAGE],
+        })}
+      >
         <NodeViewContent as="code" className="whitespace-pre-wrap" />
       </pre>
     </NodeViewWrapper>

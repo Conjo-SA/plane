@@ -18,7 +18,7 @@ import { CORE_EDITOR_META } from "@/constants/meta";
 // types
 import type { EditorRefApi, IEditorProps, TEditorCommands } from "@/types";
 // local imports
-import { getParagraphCount } from "./common";
+import { convertMarkdownToEditorHTML, getParagraphCount } from "./common";
 import { insertContentAtSavedSelection } from "./insert-content-at-cursor-position";
 import { scrollSummary, scrollToNodeViaDOMCoordinates } from "./scroll-to-node";
 
@@ -131,6 +131,17 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
         .setMeta(CORE_EDITOR_META.SKIP_FILE_DELETION, true)
         .setMeta(CORE_EDITOR_META.INTENTIONAL_DELETION, true)
         .setContent(content, emitUpdate, {
+          preserveWhitespace: true,
+        })
+        .run();
+    },
+    setMarkdownValue: (content, emitUpdate = false) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .setMeta(CORE_EDITOR_META.SKIP_FILE_DELETION, true)
+        .setMeta(CORE_EDITOR_META.INTENTIONAL_DELETION, true)
+        .setContent(convertMarkdownToEditorHTML(editor, content), emitUpdate, {
           preserveWhitespace: true,
         })
         .run();
@@ -260,6 +271,10 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       if (editor?.state.selection) {
         insertContentAtSavedSelection(editor, content);
       }
+    },
+    setMarkdownValueAtCursorPosition: (content) => {
+      if (!editor?.state.selection) return;
+      insertContentAtSavedSelection(editor, convertMarkdownToEditorHTML(editor, content));
     },
     setFocusAtPosition: (position) => {
       if (!editor || editor.isDestroyed) {

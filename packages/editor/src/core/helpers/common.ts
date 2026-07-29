@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type { EditorState, Selection } from "@tiptap/pm/state";
 // plane imports
@@ -56,6 +57,25 @@ export const findTableAncestor = (node: Node | null): HTMLTableElement | null =>
     node = node.parentNode;
   }
   return node as HTMLTableElement;
+};
+
+/**
+ * @description converts a markdown string into editor-compatible HTML using the markdown parser
+ * already configured on the editor instance. Headings, lists, tables and fenced code blocks are
+ * preserved instead of being flattened into plain text.
+ * @param {Editor} editor
+ * @param {string} content markdown content
+ * @returns {string} HTML string, or the original content when parsing is not possible
+ */
+export const convertMarkdownToEditorHTML = (editor: Editor, content: string): string => {
+  if (!content) return content;
+  try {
+    const parsedContent: unknown = editor.storage.markdown?.parser?.parse(content, { inline: false });
+    return typeof parsedContent === "string" ? parsedContent : content;
+  } catch (error) {
+    console.error("Failed to parse markdown content:", error);
+    return content;
+  }
 };
 
 export const getTrimmedHTML = (html: string) =>

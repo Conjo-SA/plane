@@ -15,26 +15,26 @@ import type { TCustomComponentsMetaData } from "@plane/utils";
 import type { TTextAlign } from "@/extensions";
 // plane editor imports
 import type {
+  ICollaborativeDocumentEditorPropsExtended,
   IEditorPropsExtended,
   TExtendedEditorCommands,
-  ICollaborativeDocumentEditorPropsExtended,
 } from "@/plane-editor/types/editor-extended";
 // types
 import type {
+  EventToPayloadMap,
   IMarking,
   TAIHandler,
   TDisplayConfig,
   TDocumentEventEmitter,
   TDocumentEventsServer,
   TEditorAsset,
+  TExtendedEditorRefApi,
   TExtensions,
   TFileHandler,
   TMentionHandler,
   TRealtimeConfig,
   TServerHandler,
   TUserDetails,
-  TExtendedEditorRefApi,
-  EventToPayloadMap,
 } from "@/types";
 
 export type TEditorCommands =
@@ -142,6 +142,15 @@ export type CoreEditorRefApi = {
   scrollToNodeViaDOMCoordinates: ({ pos, behavior }: { pos?: number; behavior?: ScrollBehavior }) => void;
   setEditorValue: (content: string, emitUpdate?: boolean) => void;
   setEditorValueAtCursorPosition: (content: string) => void;
+  /**
+   * @description replaces the editor content with parsed markdown content
+   */
+  setMarkdownValue: (content: string, emitUpdate?: boolean) => void;
+  /**
+   * @description inserts markdown content at the cursor position, converting it to rich content
+   * (headings, lists, tables, fenced code blocks) instead of plain text
+   */
+  setMarkdownValueAtCursorPosition: (content: string) => void;
   setFocusAtPosition: (position: number) => void;
   setProviderDocument: (value: Uint8Array) => void;
   undo: () => void;

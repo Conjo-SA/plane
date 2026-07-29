@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import type { Ref } from "react";
-import React, { useEffect, useState, useRef, Fragment } from "react";
+import { Popover, Transition } from "@headlessui/react";
 import type { Placement } from "@popperjs/core";
+import { AlertCircle } from "lucide-react";
+import type { Ref } from "react";
+import React, { Fragment, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form"; // services
 import { usePopper } from "react-popper";
-import { AlertCircle } from "lucide-react";
-import { Popover, Transition } from "@headlessui/react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { Button } from "@plane/propel/button";
@@ -111,7 +111,7 @@ export function GptAssistantPopover(props: Props) {
         task: formData.task,
       });
 
-      setResponse(res.response_html);
+      setResponse(res.response);
       setFocus("task");
 
       setInvalidResponse(res.response === "");
@@ -148,7 +148,7 @@ export function GptAssistantPopover(props: Props) {
   }, [editorRef, prompt]);
 
   useEffect(() => {
-    responseRef.current?.setEditorValue(`<p>${response}</p>`);
+    responseRef.current?.setMarkdownValue(response);
   }, [response, responseRef]);
 
   useEffect(() => {
@@ -236,12 +236,12 @@ export function GptAssistantPopover(props: Props) {
               </div>
             )}
             {response !== "" && (
-              <div className="page-block-section max-h-[8rem] text-13">
+              <div className="page-block-section vertical-scroll-enable max-h-[18rem] overflow-y-auto text-13">
                 Response:
                 <RichTextEditor
                   editable={false}
                   id="ai-assistant-response"
-                  initialValue={`<p>${response}</p>`}
+                  initialValue=""
                   ref={responseRef}
                   workspaceId={workspaceId}
                   workspaceSlug={workspaceSlug}
@@ -267,9 +267,8 @@ export function GptAssistantPopover(props: Props) {
                 value={value}
                 onChange={onChange}
                 ref={ref}
-                placeholder={`${
-                  prompt && prompt !== "" ? "Tell AI what action to perform on this content..." : "Ask AI anything..."
-                }`}
+                placeholder={`${prompt && prompt !== "" ? "Tell AI what action to perform on this content..." : "Ask AI anything..."
+                  }`}
                 className="w-full"
                 autoFocus
               />
