@@ -82,7 +82,7 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
         [
             {
                 "key": "LLM_API_KEY",
-                "default": os.environ.get("LLM_API_KEY", None),
+                "default": os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", None)),
             },
             {
                 "key": "LLM_PROVIDER",
@@ -90,7 +90,7 @@ def get_llm_config() -> Tuple[str | None, str | None, str | None, str | None]:
             },
             {
                 "key": "LLM_MODEL",
-                "default": os.environ.get("LLM_MODEL", None),
+                "default": os.environ.get("LLM_MODEL", os.environ.get("GPT_ENGINE", None)),
             },
             {
                 "key": "LLM_API_BASE",

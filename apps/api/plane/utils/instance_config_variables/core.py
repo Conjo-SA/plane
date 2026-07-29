@@ -216,7 +216,7 @@ smtp_config_variables = [
 llm_config_variables = [
     {
         "key": "LLM_API_KEY",
-        "value": os.environ.get("LLM_API_KEY"),
+        "value": os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY")),
         "category": "AI",
         "is_encrypted": True,
     },
@@ -228,7 +228,7 @@ llm_config_variables = [
     },
     {
         "key": "LLM_MODEL",
-        "value": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+        "value": os.environ.get("LLM_MODEL", os.environ.get("GPT_ENGINE", "gpt-4o-mini")),
         "category": "AI",
         "is_encrypted": False,
     },

@@ -120,7 +120,7 @@ class InstanceEndpoint(BaseAPIView):
                 },
                 {
                     "key": "LLM_API_KEY",
-                    "default": os.environ.get("LLM_API_KEY", ""),
+                    "default": os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", "")),
                 },
             ]
         )
