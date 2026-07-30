@@ -4,7 +4,7 @@
 
 from django.urls import path
 
-from plane.space.views import IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
+from plane.space.views import IntakePortalAssetEndpoint, IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
 
 
 urlpatterns = [
@@ -17,5 +17,15 @@ urlpatterns = [
         "intake-portal/<str:anchor>/work-items/",
         IntakePortalWorkItemEndpoint.as_view(),
         name="intake-portal-work-items",
+    ),
+    path(
+        "intake-portal/<str:anchor>/assets/",
+        IntakePortalAssetEndpoint.as_view(),
+        name="intake-portal-assets",
+    ),
+    path(
+        "intake-portal/<str:anchor>/assets/<uuid:pk>/",
+        IntakePortalAssetEndpoint.as_view(),
+        name="intake-portal-asset",
     ),
 ]

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, CloudUpload, FileText, Loader2, Paperclip, ShieldCheck, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -23,6 +23,8 @@ import { PageNotFound } from "@/components/ui/not-found";
 
 const intakePortalService = new IntakePortalService();
 
+const MAX_ATTACHMENTS = 10;
+
 const PRIORITY_OPTIONS: { value: TIntakePortalSubmission["priority"]; label: string }[] = [
     { value: "none", label: "Sem prioridade" },
     { value: "low", label: "Baixa" },
@@ -39,14 +41,31 @@ const DEFAULT_VALUES: TIntakePortalSubmission = {
     requester_email: "",
 };
 
+type TAttachment = {
+    key: string;
+    name: string;
+    size: number;
+    assetId?: string;
+    status: "uploading" | "done" | "error";
+};
+
+const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export default function IntakePortalPage() {
     // params
-    const { anchor } = useParams<{ anchor: string }>();
+    const { anchor, tag } = useParams<{ anchor: string; tag?: string }>();
     // states
     const [submittedMessage, setSubmittedMessage] = useState<string | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [attachments, setAttachments] = useState<TAttachment[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
     // refs
     const editorRef = useRef<EditorRefApi>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     // form
     const {
         control,
@@ -60,15 +79,63 @@ export default function IntakePortalPage() {
         data: portal,
         error,
         isLoading,
-    } = useSWR(anchor ? `INTAKE_PORTAL_${anchor}` : null, anchor ? () => intakePortalService.retrieveMeta(anchor) : null);
+    } = useSWR(
+        anchor ? `INTAKE_PORTAL_${anchor}_${tag ?? ""}` : null,
+        anchor ? () => intakePortalService.retrieveMeta(anchor, tag) : null
+    );
+
+    const isUploading = attachments.some((attachment) => attachment.status === "uploading");
+
+    const handleFiles = async (files: FileList | null) => {
+        if (!files || !anchor) return;
+        setSubmitError(null);
+
+        const incoming = Array.from(files).slice(0, MAX_ATTACHMENTS - attachments.length);
+        if (incoming.length === 0) {
+            setSubmitError(`Você pode anexar no máximo ${MAX_ATTACHMENTS} arquivos.`);
+            return;
+        }
+
+        for (const file of incoming) {
+            const key = `${file.name}-${file.size}-${Date.now()}-${Math.random()}`;
+            setAttachments((prev) => [...prev, { key, name: file.name, size: file.size, status: "uploading" }]);
+
+            try {
+                const assetId = await intakePortalService.uploadAsset(anchor, file);
+                setAttachments((prev) =>
+                    prev.map((item) => (item.key === key ? { ...item, assetId, status: "done" } : item))
+                );
+            } catch (err) {
+                const message = (err as { data?: { error?: string } })?.data?.error;
+                setSubmitError(message || `Não foi possível enviar o arquivo "${file.name}".`);
+                setAttachments((prev) => prev.map((item) => (item.key === key ? { ...item, status: "error" } : item)));
+            }
+        }
+    };
+
+    const handleRemoveAttachment = (key: string) =>
+        setAttachments((prev) => prev.filter((attachment) => attachment.key !== key));
 
     const onSubmit = async (formData: TIntakePortalSubmission) => {
         if (!anchor) return;
         setSubmitError(null);
+
+        if (isUploading) {
+            setSubmitError("Aguarde o envio dos anexos terminar.");
+            return;
+        }
+
         try {
-            const response = await intakePortalService.createWorkItem(anchor, formData);
+            const response = await intakePortalService.createWorkItem(anchor, {
+                ...formData,
+                tag,
+                attachment_ids: attachments
+                    .filter((attachment) => attachment.status === "done" && attachment.assetId)
+                    .map((attachment) => attachment.assetId as string),
+            });
             setSubmittedMessage(response.success_message || "Recebemos sua solicitação. Em breve entraremos em contato.");
             reset(DEFAULT_VALUES);
+            setAttachments([]);
             editorRef.current?.clearEditor();
         } catch (err) {
             const message = (err as { data?: { error?: string } })?.data?.error;
@@ -85,27 +152,59 @@ export default function IntakePortalPage() {
 
     if (error || !portal) return <PageNotFound />;
 
+    const projectInitial = portal.project_name?.charAt(0)?.toUpperCase() ?? "?";
+
     return (
         <>
-            <div className="min-h-screen w-full overflow-y-auto bg-surface-2 py-10">
-                <div className="mx-auto w-full max-w-2xl px-4">
-                    <div className="rounded-lg border border-subtle bg-surface-1 p-6">
-                        <h1 className="text-24 font-semibold text-primary">{portal.title}</h1>
-                        <p className="mt-1 text-13 text-tertiary">
-                            {portal.workspace_name} · {portal.project_name}
-                        </p>
-                        {portal.description && <p className="mt-4 text-14 text-secondary">{portal.description}</p>}
-
-                        {submittedMessage ? (
-                            <div className="mt-8 flex flex-col items-center gap-4 rounded-md border border-subtle bg-surface-2 p-8 text-center">
-                                <CheckCircle2 className="size-10 text-success-primary" />
-                                <p className="text-14 text-secondary">{submittedMessage}</p>
-                                <Button variant="secondary" onClick={() => setSubmittedMessage(null)}>
-                                    Abrir outra solicitação
-                                </Button>
+            <div className="min-h-screen w-full overflow-y-auto bg-gradient-to-b from-surface-2 via-surface-2 to-surface-1">
+                <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
+                    <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-raised-200">
+                        <div className="border-b border-subtle-1 bg-gradient-to-r from-accent-subtle to-surface-1 px-6 py-7 sm:px-9">
+                            <div className="flex items-start gap-4">
+                                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent-primary text-18 font-semibold text-white">
+                                    {projectInitial}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-11 font-medium tracking-wide text-tertiary uppercase">
+                                        {portal.workspace_name} · {portal.project_name}
+                                    </p>
+                                    <h1 className="mt-1 text-24 leading-tight font-semibold text-primary">{portal.title}</h1>
+                                    {portal.tag && (
+                                        <span
+                                            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-12 font-medium text-secondary"
+                                            title={`Esta solicitação será marcada como "${portal.tag.name}"`}
+                                        >
+                                            <span
+                                                aria-hidden
+                                                className="size-2 shrink-0 rounded-full"
+                                                style={{ backgroundColor: portal.tag.color || "#6b7280" }}
+                                            />
+                                            {portal.tag.name}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                        ) : (
-                            <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)}>
+                            {portal.description && (
+                                <p className="mt-5 text-14 leading-relaxed text-secondary">{portal.description}</p>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-7 sm:px-9">
+                            {submittedMessage ? (
+                                <div className="flex flex-col items-center gap-4 py-10 text-center">
+                                    <div className="flex size-16 items-center justify-center rounded-full bg-success-subtle">
+                                        <CheckCircle2 className="size-8 text-success-primary" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-18 font-semibold text-primary">Solicitação enviada</h2>
+                                        <p className="mt-2 max-w-md text-14 text-secondary">{submittedMessage}</p>
+                                    </div>
+                                    <Button variant="secondary" onClick={() => setSubmittedMessage(null)}>
+                                        Abrir outra solicitação
+                                    </Button>
+                                </div>
+                            ) : (
+                                <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                     <div className="space-y-1">
                                         <label className="text-13 font-medium text-secondary" htmlFor="requester_name">
@@ -185,40 +284,131 @@ export default function IntakePortalPage() {
 
                                 <div className="space-y-1">
                                     <span className="text-13 font-medium text-secondary">Descrição</span>
-                                    <Controller
-                                        name="description_html"
-                                        control={control}
-                                        render={({ field: { value, onChange } }) => (
-                                            <RichTextEditor
-                                                editable
-                                                id="intake-portal-editor"
-                                                ref={editorRef}
-                                                anchor={anchor}
-                                                workspaceId=""
-                                                initialValue={value ?? "<p></p>"}
-                                                onChange={(_description, description_html) => onChange(description_html)}
-                                                disabledExtensions={["ai", "image", "issue-embed"]}
-                                                placeholder="Descreva o problema, o passo a passo para reproduzir e o resultado esperado."
-                                                containerClassName="min-h-[160px] rounded-md border border-subtle bg-surface-1 p-3"
-                                                uploadFile={async () => {
-                                                    throw new Error("Anexos não estão habilitados neste formulário.");
-                                                }}
-                                            />
-                                        )}
-                                    />
+                                    <div className="rounded-md border border-subtle bg-surface-1 transition-colors focus-within:border-strong">
+                                        <Controller
+                                            name="description_html"
+                                            control={control}
+                                            render={({ field: { value, onChange } }) => (
+                                                <RichTextEditor
+                                                    editable
+                                                    id="intake-portal-editor"
+                                                    ref={editorRef}
+                                                    anchor={anchor}
+                                                    workspaceId=""
+                                                    initialValue={value ?? "<p></p>"}
+                                                    onChange={(_description, description_html) => onChange(description_html)}
+                                                    disabledExtensions={["ai", "image", "issue-embed"]}
+                                                    placeholder="Descreva o problema, o passo a passo para reproduzir e o resultado esperado."
+                                                    containerClassName="min-h-[180px] p-3"
+                                                    uploadFile={async () => {
+                                                        throw new Error("Use o campo de anexos abaixo para enviar arquivos.");
+                                                    }}
+                                                />
+                                            )}
+                                        />
+                                    </div>
+                                    <p className="text-11 text-tertiary">
+                                        Dica: você pode colar Markdown e blocos de código com três crases.
+                                    </p>
                                 </div>
 
-                                {submitError && (
-                                    <p className="rounded-md bg-danger-subtle px-3 py-2 text-13 text-danger-primary">{submitError}</p>
+                                {portal.is_attachment_enabled && (
+                                    <div className="space-y-2">
+                                        <span className="text-13 font-medium text-secondary">Anexos</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setIsDragging(true);
+                                            }}
+                                            onDragLeave={() => setIsDragging(false)}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                setIsDragging(false);
+                                                void handleFiles(e.dataTransfer.files);
+                                            }}
+                                            className={`flex w-full flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors ${isDragging
+                                                ? "border-accent-strong bg-accent-subtle"
+                                                : "border-subtle bg-surface-2 hover:border-strong hover:bg-layer-1"
+                                                }`}
+                                        >
+                                            <CloudUpload className="size-6 text-tertiary" />
+                                            <span className="text-13 font-medium text-secondary">
+                                                Arraste arquivos aqui ou clique para selecionar
+                                            </span>
+                                            <span className="text-11 text-tertiary">
+                                                Imagens, vídeos, PDF, planilhas e arquivos ZIP · até {MAX_ATTACHMENTS} arquivos
+                                            </span>
+                                        </button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            multiple
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                void handleFiles(e.target.files);
+                                                e.target.value = "";
+                                            }}
+                                        />
+
+                                        {attachments.length > 0 && (
+                                            <ul className="space-y-2">
+                                                {attachments.map((attachment) => (
+                                                    <li
+                                                        key={attachment.key}
+                                                        className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
+                                                    >
+                                                        {attachment.status === "uploading" ? (
+                                                            <Loader2 className="size-4 shrink-0 animate-spin text-tertiary" />
+                                                        ) : attachment.status === "error" ? (
+                                                            <Paperclip className="size-4 shrink-0 text-danger-primary" />
+                                                        ) : (
+                                                            <FileText className="size-4 shrink-0 text-tertiary" />
+                                                        )}
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="truncate text-13 text-primary">{attachment.name}</p>
+                                                            <p className="text-11 text-tertiary">
+                                                                {attachment.status === "error"
+                                                                    ? "Falha no envio"
+                                                                    : attachment.status === "uploading"
+                                                                        ? "Enviando…"
+                                                                        : formatFileSize(attachment.size)}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            aria-label={`Remover ${attachment.name}`}
+                                                            className="rounded-sm p-1 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                                                            onClick={() => handleRemoveAttachment(attachment.key)}
+                                                        >
+                                                            <X className="size-4" />
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 )}
 
-                                <div className="flex justify-end">
-                                    <Button type="submit" variant="primary" loading={isSubmitting}>
+                                {submitError && (
+                                    <p className="rounded-md border border-danger-subtle bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
+                                        {submitError}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col-reverse items-center justify-between gap-3 border-t border-subtle-1 pt-5 sm:flex-row">
+                                    <p className="flex items-center gap-1.5 text-11 text-tertiary">
+                                        <ShieldCheck className="size-3.5" />
+                                        Seus dados são usados apenas para responder esta solicitação.
+                                    </p>
+                                    <Button type="submit" variant="primary" size="lg" loading={isSubmitting} disabled={isUploading}>
                                         {isSubmitting ? "Enviando" : "Enviar solicitação"}
                                     </Button>
                                 </div>
                             </form>
                         )}
+                        </div>
                     </div>
                 </div>
             </div>

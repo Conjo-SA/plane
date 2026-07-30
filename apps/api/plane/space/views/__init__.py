@@ -20,7 +20,7 @@ from .issue import (
 
 from .intake import IntakeIssuePublicViewSet
 
-from .intake_portal import IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
+from .intake_portal import IntakePortalAssetEndpoint, IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
 
 from .cycle import ProjectCyclesEndpoint
 

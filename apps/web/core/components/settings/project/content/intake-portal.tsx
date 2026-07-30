@@ -25,6 +25,20 @@ type Props = {
 const isPortalConfigured = (portal: TIntakePortal | Record<string, never> | undefined): portal is TIntakePortal =>
     !!portal && "anchor" in portal;
 
+/**
+ * SITES_URL is relative (e.g. "/spaces") on self-hosted setups behind the bundled proxy,
+ * so it is resolved against the current origin to produce a shareable, copy-pasteable link.
+ */
+const buildPortalUrl = (anchor: string): string => {
+    const path = `${SITES_URL}/intake/${anchor}`;
+    if (typeof window === "undefined") return path;
+    try {
+        return new URL(path, window.location.origin).toString();
+    } catch {
+        return path;
+    }
+};
+
 export function IntakePortalSettings(props: Props) {
     const { projectId, workspaceSlug } = props;
     // states
@@ -39,7 +53,7 @@ export function IntakePortalSettings(props: Props) {
     );
 
     const isConfigured = isPortalConfigured(portal);
-    const portalUrl = isConfigured ? `${SITES_URL}/intake/${portal.anchor}` : "";
+    const portalUrl = isConfigured ? buildPortalUrl(portal.anchor) : "";
 
     const handleError = (fallback: string) =>
         setToast({ type: TOAST_TYPE.ERROR, title: "Erro!", message: fallback });
@@ -110,6 +124,21 @@ export function IntakePortalSettings(props: Props) {
                 />
             </div>
 
+            <div className="flex items-start justify-between gap-4 border-t border-subtle-1 pt-4">
+                <div>
+                    <h4 className="text-14 font-medium text-primary">Permitir anexos</h4>
+                    <p className="mt-1 text-13 text-tertiary">
+                        Habilita o envio de imagens, vídeos, PDFs, planilhas e arquivos ZIP junto do chamado.
+                    </p>
+                </div>
+                <ToggleSwitch
+                    value={portal.is_attachment_enabled}
+                    onChange={() => void handleUpdate({ is_attachment_enabled: !portal.is_attachment_enabled })}
+                    disabled={isSaving}
+                    size="sm"
+                />
+            </div>
+
             <div className="space-y-1">
                 <span className="text-13 font-medium text-secondary">Link público</span>
                 <div className="flex items-center gap-2">
@@ -128,6 +157,11 @@ export function IntakePortalSettings(props: Props) {
                     </Button>
                 </div>
                 <p className="text-11 text-tertiary">Gerar um novo link invalida imediatamente o link anterior.</p>
+                <p className="text-11 text-tertiary">
+                    Para classificar automaticamente, acrescente uma etiqueta do projeto ao final do link:{" "}
+                    <span className="font-mono text-secondary">{portalUrl}/suporte</span>. Os chamados abertos por esse
+                    link já entram com a etiqueta aplicada. A etiqueta precisa existir no projeto.
+                </p>
             </div>
 
             <div className="space-y-1">
