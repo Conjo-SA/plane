@@ -4,10 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, CloudUpload, FileText, Loader2, Paperclip, ShieldCheck, X } from "lucide-react";
+import { CheckCircle2, CloudUpload, FileText, Loader2, MailCheck, Paperclip, ShieldCheck, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -20,6 +21,8 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
 import { PageNotFound } from "@/components/ui/not-found";
+// helpers
+import { getPortalSession, setPortalSession } from "@/helpers/portal-session";
 
 const intakePortalService = new IntakePortalService();
 
@@ -63,6 +66,10 @@ export default function IntakePortalPage() {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [attachments, setAttachments] = useState<TAttachment[]>([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [session, setSession] = useState(() => (anchor ? getPortalSession(anchor) : null));
+    const [verificationCode, setVerificationCode] = useState("");
+    const [isCodeSent, setIsCodeSent] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
     // refs
     const editorRef = useRef<EditorRefApi>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +79,7 @@ export default function IntakePortalPage() {
         handleSubmit,
         register,
         reset,
+        watch,
         formState: { errors, isSubmitting },
     } = useForm<TIntakePortalSubmission>({ defaultValues: DEFAULT_VALUES });
     // portal meta
@@ -116,6 +124,39 @@ export default function IntakePortalPage() {
     const handleRemoveAttachment = (key: string) =>
         setAttachments((prev) => prev.filter((attachment) => attachment.key !== key));
 
+    const handleRequestCode = async (emailValue: string) => {
+        if (!anchor || !emailValue) return;
+        setSubmitError(null);
+        setIsVerifying(true);
+        try {
+            await intakePortalService.requestVerificationCode(anchor, emailValue);
+            setIsCodeSent(true);
+        } catch (err) {
+            const message = (err as { data?: { error?: string } })?.data?.error;
+            setSubmitError(message || "Não foi possível enviar o código. Tente novamente.");
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    const handleConfirmCode = async (emailValue: string) => {
+        if (!anchor || !emailValue) return;
+        setSubmitError(null);
+        setIsVerifying(true);
+        try {
+            const response = await intakePortalService.confirmVerificationCode(anchor, emailValue, verificationCode);
+            setPortalSession(anchor, response);
+            setSession(response);
+            setVerificationCode("");
+            setIsCodeSent(false);
+        } catch (err) {
+            const message = (err as { data?: { error?: string } })?.data?.error;
+            setSubmitError(message || "Código inválido. Tente novamente.");
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
     const onSubmit = async (formData: TIntakePortalSubmission) => {
         if (!anchor) return;
         setSubmitError(null);
@@ -125,14 +166,23 @@ export default function IntakePortalPage() {
             return;
         }
 
+        if (!session || session.email.toLowerCase() !== formData.requester_email.trim().toLowerCase()) {
+            setSubmitError("Confirme seu e-mail antes de enviar a solicitação.");
+            return;
+        }
+
         try {
-            const response = await intakePortalService.createWorkItem(anchor, {
-                ...formData,
-                tag,
-                attachment_ids: attachments
-                    .filter((attachment) => attachment.status === "done" && attachment.assetId)
-                    .map((attachment) => attachment.assetId as string),
-            });
+            const response = await intakePortalService.createWorkItem(
+                anchor,
+                {
+                    ...formData,
+                    tag,
+                    attachment_ids: attachments
+                        .filter((attachment) => attachment.status === "done" && attachment.assetId)
+                        .map((attachment) => attachment.assetId as string),
+                },
+                session.token
+            );
             setSubmittedMessage(response.success_message || "Recebemos sua solicitação. Em breve entraremos em contato.");
             reset(DEFAULT_VALUES);
             setAttachments([]);
@@ -199,9 +249,17 @@ export default function IntakePortalPage() {
                                         <h2 className="text-18 font-semibold text-primary">Solicitação enviada</h2>
                                         <p className="mt-2 max-w-md text-14 text-secondary">{submittedMessage}</p>
                                     </div>
-                                    <Button variant="secondary" onClick={() => setSubmittedMessage(null)}>
-                                        Abrir outra solicitação
-                                    </Button>
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <Button variant="secondary" onClick={() => setSubmittedMessage(null)}>
+                                            Abrir outra solicitação
+                                        </Button>
+                                        <Link
+                                            to={`/portal/${anchor}`}
+                                            className="rounded-md px-3 py-2 text-13 font-medium text-accent-primary hover:underline"
+                                        >
+                                            Acompanhar meus chamados
+                                        </Link>
+                                    </div>
                                 </div>
                             ) : (
                                 <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -246,6 +304,60 @@ export default function IntakePortalPage() {
                                             )}
                                         </div>
                                     </div>
+
+                                    {session ? (
+                                        <p className="flex items-center gap-1.5 rounded-md border border-success-subtle bg-success-subtle px-3 py-2 text-12 text-success-primary">
+                                            <CheckCircle2 className="size-3.5" />
+                                            E-mail confirmado: {session.email}
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-2 rounded-md border border-subtle bg-surface-2 px-3 py-3">
+                                            <p className="text-12 text-secondary">
+                                                Confirme seu e-mail para abrir o chamado e acompanhar as atualizações.
+                                            </p>
+                                            {isCodeSent ? (
+                                                <div className="flex flex-col gap-2 sm:flex-row">
+                                                    <Input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={6}
+                                                        className="w-full sm:max-w-[160px]"
+                                                        placeholder="000000"
+                                                        value={verificationCode}
+                                                        onChange={(e) => setVerificationCode(e.target.value)}
+                                                    />
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        loading={isVerifying}
+                                                        disabled={verificationCode.length < 6}
+                                                        onClick={() => void handleConfirmCode(watch("requester_email"))}
+                                                    >
+                                                        Confirmar código
+                                                    </Button>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        disabled={isVerifying}
+                                                        onClick={() => void handleRequestCode(watch("requester_email"))}
+                                                    >
+                                                        Reenviar
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    loading={isVerifying}
+                                                    disabled={!watch("requester_email")}
+                                                    onClick={() => void handleRequestCode(watch("requester_email"))}
+                                                    prependIcon={<MailCheck />}
+                                                >
+                                                    Enviar código de confirmação
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="space-y-1">
                                         <label className="text-13 font-medium text-secondary" htmlFor="name">

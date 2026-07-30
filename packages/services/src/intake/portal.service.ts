@@ -45,15 +45,83 @@ export class IntakePortalService extends APIService {
      * Submits a work item through the public request form.
      * @param {string} anchor - The portal anchor
      * @param {TIntakePortalSubmission} data - The submission payload
-     * @returns {Promise<TIntakePortalSubmissionResponse>} The created work item reference
-     * @throws {Error} If the API request fails
-     */
-    async createWorkItem(anchor: string, data: TIntakePortalSubmission): Promise<TIntakePortalSubmissionResponse> {
-        return this.post(`/api/public/intake-portal/${anchor}/work-items/`, data)
+   * @param {string} token - The verified portal session token
+   * @returns {Promise<TIntakePortalSubmissionResponse>} The created work item reference
+   * @throws {Error} If the API request fails
+   */
+    async createWorkItem(
+        anchor: string,
+        data: TIntakePortalSubmission,
+        token: string
+    ): Promise<TIntakePortalSubmissionResponse> {
+        return this.post(`/api/public/intake-portal/${anchor}/work-items/`, data, {
+            headers: { "X-Portal-Token": token },
+        })
             .then((response) => response?.data)
             .catch((error) => {
                 throw error?.response;
             });
+    }
+
+    /**
+     * Sends a one-time code to the requester email.
+     * @param {string} anchor - The portal anchor
+     * @param {string} email - The requester email
+     * @throws {Error} If the API request fails
+     */
+    async requestVerificationCode(anchor: string, email: string): Promise<void> {
+        return this.post(`/api/public/intake-portal/${anchor}/verify/`, { email })
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Confirms the one-time code and returns a portal session.
+     * @param {string} anchor - The portal anchor
+     * @param {string} email - The requester email
+     * @param {string} code - The one-time code
+     * @returns {Promise<TIntakePortalSession>} The issued session
+     * @throws {Error} If the API request fails
+     */
+    async confirmVerificationCode(anchor: string, email: string, code: string): Promise<TIntakePortalSession> {
+        return this.post(`/api/public/intake-portal/${anchor}/verify/confirm/`, { email, code })
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Lists the tickets opened by the authenticated requester.
+     * @param {string} anchor - The portal anchor
+     * @param {string} token - The portal session token
+     * @returns {Promise<TIntakePortalTicketList>} The requester tickets
+     * @throws {Error} If the API request fails
+     */
+    async listTickets(anchor: string, token: string): Promise<TIntakePortalTicketList> {
+        return this.get(`/api/public/intake-portal/${anchor}/tickets/`, {}, { headers: { "X-Portal-Token": token } })
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Retrieves a single ticket owned by the authenticated requester.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {string} token - The portal session token
+     * @returns {Promise<TIntakePortalTicketDetail>} The ticket details
+     * @throws {Error} If the API request fails
+     */
+    async retrieveTicket(anchor: string, issueId: string, token: string): Promise<TIntakePortalTicketDetail> {
+        return this.get(
+            `/api/public/intake-portal/${anchor}/tickets/${issueId}/`,
+            {},
+            { headers: { "X-Portal-Token": token } }
+        )
     }
 
     /**

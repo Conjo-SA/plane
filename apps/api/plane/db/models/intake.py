@@ -10,6 +10,7 @@ from django.db import models
 
 # Module imports
 from plane.db.models.project import ProjectBaseModel
+from plane.db.models.workspace import WorkspaceBaseModel
 
 
 def get_intake_portal_anchor():
@@ -121,3 +122,40 @@ class IntakePortal(ProjectBaseModel):
     def __str__(self):
         """Return the anchor of the portal"""
         return f"{self.anchor} <{self.project.name}>"
+
+
+class IntakePortalVerification(WorkspaceBaseModel):
+    """One-time code used to prove ownership of a requester email address."""
+
+    email = models.EmailField(db_index=True)
+    code_hash = models.CharField(max_length=255)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "IntakePortalVerification"
+        verbose_name_plural = "IntakePortalVerifications"
+        db_table = "intake_portal_verifications"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.email}"
+
+
+class IntakePortalSession(WorkspaceBaseModel):
+    """Session issued to a requester after a successful email verification."""
+
+    email = models.EmailField(db_index=True)
+    token_hash = models.CharField(max_length=255, unique=True, db_index=True)
+    expires_at = models.DateTimeField()
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "IntakePortalSession"
+        verbose_name_plural = "IntakePortalSessions"
+        db_table = "intake_portal_sessions"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.email}"

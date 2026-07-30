@@ -22,6 +22,7 @@ from rest_framework.throttling import ScopedRateThrottle
 
 # Module imports
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.intake_portal_task import send_portal_ticket_created
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.db.models import FileAsset, IntakeIssue, IntakePortal, Issue, IssueLabel, Label, State, StateGroup
 from plane.db.models.intake import SourceType
@@ -31,6 +32,7 @@ from plane.utils.path_validator import sanitize_filename
 from plane.utils.uuid import is_valid_uuid
 
 from .base import BaseAPIView
+from .portal_auth import resolve_session
 
 VALID_PRIORITIES = ["urgent", "high", "medium", "low", "none"]
 MAX_NAME_LENGTH = 255
@@ -170,6 +172,14 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         except ValidationError:
             return Response({"error": "Enter a valid email address"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # The submission is only accepted for an address the requester has proven to own.
+        session = resolve_session(request, portal.workspace_id)
+        if session is None or session.email.lower() != requester_email.lower():
+            return Response(
+                {"error": "Confirme seu e-mail antes de enviar a solicitação."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         requester_name = (request.data.get("requester_name") or "").strip()[:MAX_REQUESTER_NAME_LENGTH]
 
         tag = request.data.get("tag")
@@ -252,6 +262,8 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
             current_instance=None,
             epoch=int(timezone.now().timestamp()),
         )
+
+        send_portal_ticket_created.delay(str(issue.id))
 
         return Response(
             {

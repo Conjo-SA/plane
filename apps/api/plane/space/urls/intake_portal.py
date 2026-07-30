@@ -4,7 +4,15 @@
 
 from django.urls import path
 
-from plane.space.views import IntakePortalAssetEndpoint, IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
+from plane.space.views import (
+    IntakePortalAssetEndpoint,
+    IntakePortalMetaEndpoint,
+    IntakePortalTicketDetailEndpoint,
+    IntakePortalTicketsEndpoint,
+    IntakePortalVerificationConfirmEndpoint,
+    IntakePortalVerificationEndpoint,
+    IntakePortalWorkItemEndpoint,
+)
 
 
 urlpatterns = [
@@ -27,5 +35,25 @@ urlpatterns = [
         "intake-portal/<str:anchor>/assets/<uuid:pk>/",
         IntakePortalAssetEndpoint.as_view(),
         name="intake-portal-asset",
+    ),
+    path(
+        "intake-portal/<str:anchor>/verify/",
+        IntakePortalVerificationEndpoint.as_view(),
+        name="intake-portal-verify",
+    ),
+    path(
+        "intake-portal/<str:anchor>/verify/confirm/",
+        IntakePortalVerificationConfirmEndpoint.as_view(),
+        name="intake-portal-verify-confirm",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/",
+        IntakePortalTicketsEndpoint.as_view(),
+        name="intake-portal-tickets",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/",
+        IntakePortalTicketDetailEndpoint.as_view(),
+        name="intake-portal-ticket-detail",
     ),
 ]

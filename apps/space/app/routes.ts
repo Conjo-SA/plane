@@ -12,6 +12,8 @@ export default [
   route(":workspaceSlug/:projectId", "./[workspaceSlug]/[projectId]/page.tsx"),
   route("intake/:anchor", "./intake/[anchor]/page.tsx"),
   route("intake/:anchor/:tag", "./intake/[anchor]/page.tsx", { id: "intake-portal-tagged" }),
+  route("portal/:anchor", "./portal/[anchor]/page.tsx"),
+  route("portal/:anchor/:issueId", "./portal/[anchor]/[issueId]/page.tsx"),
   layout("./issues/[anchor]/layout.tsx", [route("issues/:anchor", "./issues/[anchor]/page.tsx")]),
   // Catch-all route for 404 handling
   route("*", "./not-found.tsx"),

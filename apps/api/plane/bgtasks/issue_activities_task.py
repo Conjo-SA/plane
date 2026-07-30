@@ -1499,6 +1499,40 @@ def create_intake_activity(
         )
 
 
+def notify_intake_portal_requester(issue_id, actor_id, activities):
+    """Email the external requester when their portal ticket changes.
+
+    Only activities performed by a team member are relayed, so the requester is
+    never notified about their own submission.
+    """
+    try:
+        if not issue_id or not actor_id or not activities:
+            return
+
+        from plane.bgtasks.intake_portal_task import send_portal_ticket_update
+        from plane.db.models import IntakeIssue
+        from plane.db.models.intake import SourceType
+
+        is_portal_ticket = IntakeIssue.objects.filter(
+            issue_id=issue_id, source=SourceType.PORTAL, source_email__isnull=False
+        ).exists()
+        if not is_portal_ticket:
+            return
+
+        relevant_fields = {"state", "priority", "comment", "target_date", "assignees", "labels"}
+        summaries = [
+            activity.comment
+            for activity in activities
+            if activity.comment and (activity.field in relevant_fields or activity.field is None)
+        ]
+        if not summaries:
+            return
+
+        send_portal_ticket_update.delay(str(issue_id), " ".join(summaries)[:500])
+    except Exception as e:
+        log_exception(e)
+
+
 # Receive message from room group
 @shared_task
 def issue_activity(
@@ -1582,6 +1616,9 @@ def issue_activity(
 
         # Save all the values to database
         issue_activities_created = IssueActivity.objects.bulk_create(issue_activities)
+
+        # Keep portal requesters in the loop whenever their ticket changes.
+        notify_intake_portal_requester(issue_id=issue_id, actor_id=actor_id, activities=issue_activities_created)
 
         if notification:
             notifications.delay(

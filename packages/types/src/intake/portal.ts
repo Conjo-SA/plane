@@ -78,3 +78,41 @@ export type TIntakePortalAssetUpload = {
         fields: Record<string, string>;
     };
 };
+/**
+ * Session issued to a requester after confirming ownership of their email.
+ */
+export type TIntakePortalSession = {
+    token: string;
+    email: string;
+};
+
+/**
+ * Ticket summary shown in the requester portal.
+ */
+export type TIntakePortalTicket = {
+    id: string;
+    name: string;
+    sequence_id: number;
+    priority: TIssuePriorities;
+    created_at: string;
+    project_name: string;
+    state: string | null;
+    state_group: string | null;
+    intake_status: number;
+};
+
+export type TIntakePortalTicketList = {
+    email: string;
+    tickets: TIntakePortalTicket[];
+};
+
+export type TIntakePortalTicketComment = {
+    id: string;
+    comment_html: string;
+    created_at: string;
+};
+
+export type TIntakePortalTicketDetail = TIntakePortalTicket & {
+    description_html: string;
+    comments: TIntakePortalTicketComment[];
+};
