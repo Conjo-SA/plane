@@ -12,6 +12,7 @@ import type { TIssuePriorities } from "../issues";
 export type TIntakePortal = {
     id: string;
     anchor: string;
+    slug: string | null;
     is_enabled: boolean;
     title: string;
     description: string;
@@ -36,6 +37,7 @@ export type TIntakePortalTag = {
  */
 export type TIntakePortalMeta = {
     anchor: string;
+    slug: string | null;
     title: string;
     description: string;
     success_message: string;

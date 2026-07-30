@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.validators import validate_email
+from django.db.models import Q
 from django.utils import timezone
 
 # Third party imports
@@ -67,9 +68,9 @@ ALLOWED_ATTACHMENT_TYPES = {
 
 
 def get_enabled_portal(anchor):
-    """Return the enabled portal for the given anchor, or None."""
+    """Return the enabled portal matching the anchor or its custom slug."""
     return (
-        IntakePortal.objects.filter(anchor=anchor, is_enabled=True)
+        IntakePortal.objects.filter(Q(anchor=anchor) | Q(slug__iexact=anchor), is_enabled=True)
         .select_related("project", "workspace", "intake")
         .first()
     )
@@ -119,6 +120,7 @@ class IntakePortalMetaEndpoint(BaseAPIView):
         return Response(
             {
                 "anchor": portal.anchor,
+                "slug": portal.slug,
                 "title": portal.title or portal.project.name,
                 "description": portal.description,
                 "success_message": portal.success_message,

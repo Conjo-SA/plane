@@ -32,8 +32,8 @@ const isPortalConfigured = (portal: TIntakePortal | Record<string, never> | unde
  * SITES_URL is relative (e.g. "/spaces") on self-hosted setups behind the bundled proxy,
  * so it is resolved against the current origin to produce a shareable, copy-pasteable link.
  */
-const buildPortalUrl = (anchor: string): string => {
-    const path = `${SITES_URL}/intake/${anchor}`;
+const buildPortalUrl = (identifier: string): string => {
+    const path = `${SITES_URL}/intake/${identifier}`;
     if (typeof window === "undefined") return path;
     try {
         return new URL(path, window.location.origin).toString();
@@ -56,6 +56,7 @@ export const IntakePortalSettings = observer(function IntakePortalSettings(props
     const [title, setTitle] = useState<string | null>(null);
     const [description, setDescription] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [slug, setSlug] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     // store hooks
     const { getProjectLabels, fetchProjectLabels } = useLabel();
@@ -72,7 +73,8 @@ export const IntakePortalSettings = observer(function IntakePortalSettings(props
     const projectLabels = getProjectLabels(projectId) ?? [];
 
     const isConfigured = isPortalConfigured(portal);
-    const portalUrl = isConfigured ? buildPortalUrl(portal.anchor) : "";
+    // The slug is an alias for the anchor, so the shared link prefers it when set.
+    const portalUrl = isConfigured ? buildPortalUrl(portal.slug || portal.anchor) : "";
 
     const handleError = (fallback: string) =>
         setToast({ type: TOAST_TYPE.ERROR, title: "Erro!", message: fallback });
@@ -95,9 +97,11 @@ export const IntakePortalSettings = observer(function IntakePortalSettings(props
         try {
             const response = await intakePortalService.updateConfig(workspaceSlug, projectId, payload);
             await mutate(response, false);
+            setSlug(null);
             setToast({ type: TOAST_TYPE.SUCCESS, title: "Sucesso!", message: "Formulário atualizado." });
-        } catch {
-            handleError("Não foi possível atualizar o formulário. Tente novamente.");
+        } catch (err) {
+            const message = (err as { data?: { error?: string } })?.data?.error;
+            handleError(message || "Não foi possível atualizar o formulário. Tente novamente.");
         } finally {
             setIsSaving(false);
         }
@@ -189,6 +193,38 @@ export const IntakePortalSettings = observer(function IntakePortalSettings(props
                     </Button>
                 </div>
                 <p className="text-11 text-tertiary">Gerar um novo link invalida imediatamente o link anterior.</p>
+            </div>
+
+            <div className="space-y-1 border-t border-subtle-1 pt-4">
+                <label className="text-13 font-medium text-secondary" htmlFor="intake-portal-slug">
+                    Link personalizado
+                </label>
+                <p className="text-13 text-tertiary">
+                    Um apelido no lugar do código gerado. Deixe em branco para voltar a usar o código.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                    <span className="shrink-0 font-mono text-12 text-tertiary">{`${SITES_URL}/intake/`}</span>
+                    <Input
+                        id="intake-portal-slug"
+                        type="text"
+                        className="w-full"
+                        placeholder="suporte-conjosa"
+                        value={slug ?? portal.slug ?? ""}
+                        onChange={(e) => setSlug(e.target.value)}
+                    />
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={isSaving}
+                        onClick={() => void handleUpdate({ slug: (slug ?? portal.slug ?? "") as TIntakePortal["slug"] })}
+                    >
+                        Salvar link
+                    </Button>
+                </div>
+                <p className="text-11 text-tertiary">
+                    De 3 a 60 caracteres, apenas letras minúsculas, números, hífen e underline. O código original
+                    continua funcionando.
+                </p>
             </div>
 
             <div className="space-y-2 border-t border-subtle-1 pt-4">

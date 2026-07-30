@@ -97,6 +97,8 @@ class IntakePortal(ProjectBaseModel):
 
     intake = models.ForeignKey("db.Intake", related_name="portals", on_delete=models.CASCADE)
     anchor = models.CharField(max_length=255, default=get_intake_portal_anchor, unique=True, db_index=True)
+    # Human friendly alias for the anchor, so links can be shared as /intake/<slug>
+    slug = models.CharField(max_length=60, unique=True, null=True, blank=True, db_index=True)
     is_enabled = models.BooleanField(default=False)
     title = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)

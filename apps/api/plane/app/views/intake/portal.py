@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+import re
+
+# Django imports
+from django.db.models import Q
+
 # Third party imports
 from rest_framework import status
 from rest_framework.response import Response
@@ -14,6 +20,34 @@ from plane.db.models import Intake, IntakePortal
 from plane.db.models.intake import get_intake_portal_anchor
 
 EDITABLE_FIELDS = ["is_enabled", "title", "description", "success_message", "is_attachment_enabled"]
+
+SLUG_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{1,58}[a-z0-9]$")
+
+
+def validate_portal_slug(raw_slug, portal):
+    """Normalize and validate a custom slug.
+
+    Returns (slug, error). An empty value clears the slug. The slug must not
+    collide with another portal's slug or with any anchor, since both are
+    resolved from the same URL segment.
+    """
+    slug = (raw_slug or "").strip().lower()
+    if not slug:
+        return None, None
+
+    if not SLUG_PATTERN.match(slug):
+        return None, (
+            "Use 3 to 60 characters with lowercase letters, numbers, hyphens or underscores, "
+            "starting and ending with a letter or number."
+        )
+
+    conflict = (
+        IntakePortal.objects.filter(Q(slug__iexact=slug) | Q(anchor__iexact=slug)).exclude(pk=portal.pk).exists()
+    )
+    if conflict:
+        return None, "This link is already taken. Choose another one."
+
+    return slug, None
 
 
 class IntakePortalEndpoint(BaseAPIView):
@@ -59,6 +93,13 @@ class IntakePortalEndpoint(BaseAPIView):
         if request.data.get("regenerate_anchor"):
             portal.anchor = get_intake_portal_anchor()
             portal.save(update_fields=["anchor"])
+
+        if "slug" in request.data:
+            slug_value, slug_error = validate_portal_slug(request.data.get("slug"), portal)
+            if slug_error:
+                return Response({"error": slug_error}, status=status.HTTP_400_BAD_REQUEST)
+            portal.slug = slug_value
+            portal.save(update_fields=["slug"])
 
         payload = {field: request.data[field] for field in EDITABLE_FIELDS if field in request.data}
         serializer = IntakePortalSerializer(portal, data=payload, partial=True)

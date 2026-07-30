@@ -30,6 +30,7 @@ class IntakePortalSerializer(BaseSerializer):
         fields = [
             "id",
             "anchor",
+            "slug",
             "is_enabled",
             "title",
             "description",
@@ -39,7 +40,7 @@ class IntakePortalSerializer(BaseSerializer):
             "project",
             "workspace",
         ]
-        read_only_fields = ["id", "anchor", "intake", "project", "workspace"]
+        read_only_fields = ["id", "anchor", "slug", "intake", "project", "workspace"]
 
 
 class IntakeIssueSerializer(BaseSerializer):
