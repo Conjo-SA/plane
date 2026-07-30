@@ -335,6 +335,15 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 
+# RabbitMQ 4.x refuses `transient_nonexcl_queues`, which Celery uses for the
+# remote control mailbox (pidbox) and for worker events. Without these flags the
+# worker crash-loops with:
+#   InternalError: Queue.declare (541) Feature `transient_nonexcl_queues` is deprecated
+# Remote control and worker-to-worker gossip are not used by this deployment.
+CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
+CELERY_WORKER_SEND_TASK_EVENTS = False
+CELERY_EVENT_QUEUE_EXPIRES = 60
+
 
 CELERY_IMPORTS = (
     # scheduled tasks

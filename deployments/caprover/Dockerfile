@@ -121,6 +121,10 @@ COPY --from=backend-img /usr/local/lib/python3.12/site-packages/ /usr/local/lib/
 COPY --from=backend-img /usr/local/bin/ /usr/local/bin/
 COPY apps/api/plane /app/backend/plane
 
+# Entrypoint scripts are patched too (worker flags for RabbitMQ 4.x compatibility).
+COPY apps/api/bin /app/backend/bin
+RUN chmod +x /app/backend/bin/*.sh
+
 # Python dependencies added by this fork on top of the official backend image
 # (site-packages above comes from backend-img, so new requirements must be
 # installed explicitly or the API fails to boot on import).
