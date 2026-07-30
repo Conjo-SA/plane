@@ -69,6 +69,7 @@ export default function IntakePortalPage() {
     const [session, setSession] = useState(() => (anchor ? getPortalSession(anchor) : null));
     const [verificationCode, setVerificationCode] = useState("");
     const [isCodeSent, setIsCodeSent] = useState(false);
+    const [sentToEmail, setSentToEmail] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
     // refs
     const editorRef = useRef<EditorRefApi>(null);
@@ -124,12 +125,14 @@ export default function IntakePortalPage() {
     const handleRemoveAttachment = (key: string) =>
         setAttachments((prev) => prev.filter((attachment) => attachment.key !== key));
 
-    const handleRequestCode = async (emailValue: string) => {
+    const handleRequestCode = async (rawEmail: string) => {
+        const emailValue = (rawEmail || "").trim().toLowerCase();
         if (!anchor || !emailValue) return;
         setSubmitError(null);
         setIsVerifying(true);
         try {
             await intakePortalService.requestVerificationCode(anchor, emailValue);
+            setSentToEmail(emailValue);
             setIsCodeSent(true);
         } catch (err) {
             const message = (err as { data?: { error?: string } })?.data?.error;
@@ -139,7 +142,8 @@ export default function IntakePortalPage() {
         }
     };
 
-    const handleConfirmCode = async (emailValue: string) => {
+    const handleConfirmCode = async (rawEmail: string) => {
+        const emailValue = (rawEmail || "").trim().toLowerCase();
         if (!anchor || !emailValue) return;
         setSubmitError(null);
         setIsVerifying(true);
@@ -313,7 +317,9 @@ export default function IntakePortalPage() {
                                     ) : (
                                         <div className="space-y-2 rounded-md border border-subtle bg-surface-2 px-3 py-3">
                                             <p className="text-12 text-secondary">
-                                                Confirme seu e-mail para abrir o chamado e acompanhar as atualizações.
+                                                {isCodeSent && sentToEmail
+                                                    ? `Enviamos um código de 6 dígitos para ${sentToEmail}. Verifique também a caixa de spam.`
+                                                    : "Confirme seu e-mail para abrir o chamado e acompanhar as atualizações."}
                                             </p>
                                             {isCodeSent ? (
                                                 <div className="flex flex-col gap-2 sm:flex-row">
