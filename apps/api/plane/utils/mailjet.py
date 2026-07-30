@@ -38,6 +38,16 @@ def is_mailjet_configured():
     return bool(api_key and api_secret and from_email)
 
 
+def is_smtp_configured():
+    (EMAIL_HOST, *_rest) = get_email_configuration()
+    return bool(EMAIL_HOST)
+
+
+def is_email_provider_configured():
+    """True when at least one delivery channel is usable."""
+    return is_mailjet_configured() or is_smtp_configured()
+
+
 def _send_with_mailjet(to_email, subject, html_content, text_content):
     api_key, api_secret, from_email, from_name = get_mailjet_configuration()
 
@@ -111,8 +121,22 @@ def send_transactional_email(to_email, subject, html_content):
 
     try:
         if is_mailjet_configured():
-            return _send_with_mailjet(to_email, subject, html_content, text_content)
-        return _send_with_smtp(to_email, subject, html_content, text_content)
+            _send_with_mailjet(to_email, subject, html_content, text_content)
+            logger.info(f"Transactional email sent to {to_email} via Mailjet.")
+            return True
+
+        if _send_with_smtp(to_email, subject, html_content, text_content):
+            logger.info(f"Transactional email sent to {to_email} via SMTP.")
+            return True
+        return False
+    except requests.HTTPError as e:
+        # Mailjet returns the rejection reason in the body, which is what tells
+        # apart an invalid key from an unverified sender address.
+        response_body = e.response.text if e.response is not None else ""
+        logger.error(f"Mailjet rejected the message for {to_email}: {response_body}")
+        log_exception(e)
+        return False
     except Exception as e:
+        logger.error(f"Failed to deliver transactional email to {to_email}.")
         log_exception(e)
         return False

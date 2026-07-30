@@ -15,6 +15,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from plane.bgtasks.intake_portal_task import send_portal_verification_code
 from plane.db.models import IntakeIssue, Issue, IssueComment
 from plane.db.models.intake import SourceType
+from plane.utils.mailjet import is_email_provider_configured
 
 from .base import BaseAPIView
 from .intake_portal import get_enabled_portal
@@ -48,6 +49,13 @@ class IntakePortalVerificationEndpoint(BaseAPIView):
         email = normalize_email(request.data.get("email"))
         if email is None:
             return Response({"error": "Informe um e-mail válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fail loudly instead of promising a code that no provider can deliver.
+        if not is_email_provider_configured():
+            return Response(
+                {"error": "O envio de e-mails não está configurado. Avise o administrador."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         if is_on_cooldown(email, portal.workspace_id):
             return Response(
