@@ -205,209 +205,209 @@ export default function IntakePortalPage() {
                                 </div>
                             ) : (
                                 <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label className="text-13 font-medium text-secondary" htmlFor="requester_name">
+                                                Seu nome <span className="text-danger-primary">*</span>
+                                            </label>
+                                            <Input
+                                                id="requester_name"
+                                                type="text"
+                                                className="w-full"
+                                                hasError={Boolean(errors.requester_name)}
+                                                placeholder="Como podemos te chamar?"
+                                                {...register("requester_name", { required: "Informe seu nome" })}
+                                            />
+                                            {errors.requester_name && (
+                                                <p className="text-11 text-danger-primary">{errors.requester_name.message}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-13 font-medium text-secondary" htmlFor="requester_email">
+                                                Seu e-mail <span className="text-danger-primary">*</span>
+                                            </label>
+                                            <Input
+                                                id="requester_email"
+                                                type="email"
+                                                className="w-full"
+                                                hasError={Boolean(errors.requester_email)}
+                                                placeholder="voce@empresa.com"
+                                                {...register("requester_email", {
+                                                    required: "Informe seu e-mail",
+                                                    pattern: {
+                                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                                        message: "Informe um e-mail válido",
+                                                    },
+                                                })}
+                                            />
+                                            {errors.requester_email && (
+                                                <p className="text-11 text-danger-primary">{errors.requester_email.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-1">
-                                        <label className="text-13 font-medium text-secondary" htmlFor="requester_name">
-                                            Seu nome <span className="text-danger-primary">*</span>
+                                        <label className="text-13 font-medium text-secondary" htmlFor="name">
+                                            Assunto <span className="text-danger-primary">*</span>
                                         </label>
                                         <Input
-                                            id="requester_name"
+                                            id="name"
                                             type="text"
                                             className="w-full"
-                                            hasError={Boolean(errors.requester_name)}
-                                            placeholder="Como podemos te chamar?"
-                                            {...register("requester_name", { required: "Informe seu nome" })}
+                                            hasError={Boolean(errors.name)}
+                                            placeholder="Resuma sua solicitação em uma frase"
+                                            {...register("name", {
+                                                required: "Informe o assunto",
+                                                maxLength: { value: 255, message: "O assunto deve ter no máximo 255 caracteres" },
+                                            })}
                                         />
-                                        {errors.requester_name && (
-                                            <p className="text-11 text-danger-primary">{errors.requester_name.message}</p>
-                                        )}
+                                        {errors.name && <p className="text-11 text-danger-primary">{errors.name.message}</p>}
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-13 font-medium text-secondary" htmlFor="requester_email">
-                                            Seu e-mail <span className="text-danger-primary">*</span>
+                                        <label className="text-13 font-medium text-secondary" htmlFor="priority">
+                                            Prioridade
                                         </label>
-                                        <Input
-                                            id="requester_email"
-                                            type="email"
-                                            className="w-full"
-                                            hasError={Boolean(errors.requester_email)}
-                                            placeholder="voce@empresa.com"
-                                            {...register("requester_email", {
-                                                required: "Informe seu e-mail",
-                                                pattern: {
-                                                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                                    message: "Informe um e-mail válido",
-                                                },
-                                            })}
-                                        />
-                                        {errors.requester_email && (
-                                            <p className="text-11 text-danger-primary">{errors.requester_email.message}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-13 font-medium text-secondary" htmlFor="name">
-                                        Assunto <span className="text-danger-primary">*</span>
-                                    </label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        className="w-full"
-                                        hasError={Boolean(errors.name)}
-                                        placeholder="Resuma sua solicitação em uma frase"
-                                        {...register("name", {
-                                            required: "Informe o assunto",
-                                            maxLength: { value: 255, message: "O assunto deve ter no máximo 255 caracteres" },
-                                        })}
-                                    />
-                                    {errors.name && <p className="text-11 text-danger-primary">{errors.name.message}</p>}
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-13 font-medium text-secondary" htmlFor="priority">
-                                        Prioridade
-                                    </label>
-                                    <select
-                                        id="priority"
-                                        className="w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-14 text-primary outline-none focus:border-strong"
-                                        {...register("priority")}
-                                    >
-                                        {PRIORITY_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <span className="text-13 font-medium text-secondary">Descrição</span>
-                                    <div className="rounded-md border border-subtle bg-surface-1 transition-colors focus-within:border-strong">
-                                        <Controller
-                                            name="description_html"
-                                            control={control}
-                                            render={({ field: { value, onChange } }) => (
-                                                <RichTextEditor
-                                                    editable
-                                                    id="intake-portal-editor"
-                                                    ref={editorRef}
-                                                    anchor={anchor}
-                                                    workspaceId=""
-                                                    initialValue={value ?? "<p></p>"}
-                                                    onChange={(_description, description_html) => onChange(description_html)}
-                                                    disabledExtensions={["ai", "image", "issue-embed"]}
-                                                    placeholder="Descreva o problema, o passo a passo para reproduzir e o resultado esperado."
-                                                    containerClassName="min-h-[180px] p-3"
-                                                    uploadFile={async () => {
-                                                        throw new Error("Use o campo de anexos abaixo para enviar arquivos.");
-                                                    }}
-                                                />
-                                            )}
-                                        />
-                                    </div>
-                                    <p className="text-11 text-tertiary">
-                                        Dica: você pode colar Markdown e blocos de código com três crases.
-                                    </p>
-                                </div>
-
-                                {portal.is_attachment_enabled && (
-                                    <div className="space-y-2">
-                                        <span className="text-13 font-medium text-secondary">Anexos</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            onDragOver={(e) => {
-                                                e.preventDefault();
-                                                setIsDragging(true);
-                                            }}
-                                            onDragLeave={() => setIsDragging(false)}
-                                            onDrop={(e) => {
-                                                e.preventDefault();
-                                                setIsDragging(false);
-                                                void handleFiles(e.dataTransfer.files);
-                                            }}
-                                            className={`flex w-full flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors ${isDragging
-                                                ? "border-accent-strong bg-accent-subtle"
-                                                : "border-subtle bg-surface-2 hover:border-strong hover:bg-layer-1"
-                                                }`}
+                                        <select
+                                            id="priority"
+                                            className="w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-14 text-primary outline-none focus:border-strong"
+                                            {...register("priority")}
                                         >
-                                            <CloudUpload className="size-6 text-tertiary" />
-                                            <span className="text-13 font-medium text-secondary">
-                                                Arraste arquivos aqui ou clique para selecionar
-                                            </span>
-                                            <span className="text-11 text-tertiary">
-                                                Imagens, vídeos, PDF, planilhas e arquivos ZIP · até {MAX_ATTACHMENTS} arquivos
-                                            </span>
-                                        </button>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            multiple
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                void handleFiles(e.target.files);
-                                                e.target.value = "";
-                                            }}
-                                        />
-
-                                        {attachments.length > 0 && (
-                                            <ul className="space-y-2">
-                                                {attachments.map((attachment) => (
-                                                    <li
-                                                        key={attachment.key}
-                                                        className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
-                                                    >
-                                                        {attachment.status === "uploading" ? (
-                                                            <Loader2 className="size-4 shrink-0 animate-spin text-tertiary" />
-                                                        ) : attachment.status === "error" ? (
-                                                            <Paperclip className="size-4 shrink-0 text-danger-primary" />
-                                                        ) : (
-                                                            <FileText className="size-4 shrink-0 text-tertiary" />
-                                                        )}
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="truncate text-13 text-primary">{attachment.name}</p>
-                                                            <p className="text-11 text-tertiary">
-                                                                {attachment.status === "error"
-                                                                    ? "Falha no envio"
-                                                                    : attachment.status === "uploading"
-                                                                        ? "Enviando…"
-                                                                        : formatFileSize(attachment.size)}
-                                                            </p>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            aria-label={`Remover ${attachment.name}`}
-                                                            className="rounded-sm p-1 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-                                                            onClick={() => handleRemoveAttachment(attachment.key)}
-                                                        >
-                                                            <X className="size-4" />
-                                                        </button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                            {PRIORITY_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
 
-                                {submitError && (
-                                    <p className="rounded-md border border-danger-subtle bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
-                                        {submitError}
-                                    </p>
-                                )}
+                                    <div className="space-y-1">
+                                        <span className="text-13 font-medium text-secondary">Descrição</span>
+                                        <div className="rounded-md border border-subtle bg-surface-1 transition-colors focus-within:border-strong">
+                                            <Controller
+                                                name="description_html"
+                                                control={control}
+                                                render={({ field: { value, onChange } }) => (
+                                                    <RichTextEditor
+                                                        editable
+                                                        id="intake-portal-editor"
+                                                        ref={editorRef}
+                                                        anchor={anchor}
+                                                        workspaceId=""
+                                                        initialValue={value ?? "<p></p>"}
+                                                        onChange={(_description, description_html) => onChange(description_html)}
+                                                        disabledExtensions={["ai", "image", "issue-embed"]}
+                                                        placeholder="Descreva o problema, o passo a passo para reproduzir e o resultado esperado."
+                                                        containerClassName="min-h-[180px] p-3"
+                                                        uploadFile={async () => {
+                                                            throw new Error("Use o campo de anexos abaixo para enviar arquivos.");
+                                                        }}
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+                                        <p className="text-11 text-tertiary">
+                                            Dica: você pode colar Markdown e blocos de código com três crases.
+                                        </p>
+                                    </div>
 
-                                <div className="flex flex-col-reverse items-center justify-between gap-3 border-t border-subtle-1 pt-5 sm:flex-row">
-                                    <p className="flex items-center gap-1.5 text-11 text-tertiary">
-                                        <ShieldCheck className="size-3.5" />
-                                        Seus dados são usados apenas para responder esta solicitação.
-                                    </p>
-                                    <Button type="submit" variant="primary" size="lg" loading={isSubmitting} disabled={isUploading}>
-                                        {isSubmitting ? "Enviando" : "Enviar solicitação"}
-                                    </Button>
-                                </div>
-                            </form>
-                        )}
+                                    {portal.is_attachment_enabled && (
+                                        <div className="space-y-2">
+                                            <span className="text-13 font-medium text-secondary">Anexos</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    setIsDragging(true);
+                                                }}
+                                                onDragLeave={() => setIsDragging(false)}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    setIsDragging(false);
+                                                    void handleFiles(e.dataTransfer.files);
+                                                }}
+                                                className={`flex w-full flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors ${isDragging
+                                                    ? "border-accent-strong bg-accent-subtle"
+                                                    : "border-subtle bg-surface-2 hover:border-strong hover:bg-layer-1"
+                                                    }`}
+                                            >
+                                                <CloudUpload className="size-6 text-tertiary" />
+                                                <span className="text-13 font-medium text-secondary">
+                                                    Arraste arquivos aqui ou clique para selecionar
+                                                </span>
+                                                <span className="text-11 text-tertiary">
+                                                    Imagens, vídeos, PDF, planilhas e arquivos ZIP · até {MAX_ATTACHMENTS} arquivos
+                                                </span>
+                                            </button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                multiple
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    void handleFiles(e.target.files);
+                                                    e.target.value = "";
+                                                }}
+                                            />
+
+                                            {attachments.length > 0 && (
+                                                <ul className="space-y-2">
+                                                    {attachments.map((attachment) => (
+                                                        <li
+                                                            key={attachment.key}
+                                                            className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
+                                                        >
+                                                            {attachment.status === "uploading" ? (
+                                                                <Loader2 className="size-4 shrink-0 animate-spin text-tertiary" />
+                                                            ) : attachment.status === "error" ? (
+                                                                <Paperclip className="size-4 shrink-0 text-danger-primary" />
+                                                            ) : (
+                                                                <FileText className="size-4 shrink-0 text-tertiary" />
+                                                            )}
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-13 text-primary">{attachment.name}</p>
+                                                                <p className="text-11 text-tertiary">
+                                                                    {attachment.status === "error"
+                                                                        ? "Falha no envio"
+                                                                        : attachment.status === "uploading"
+                                                                            ? "Enviando…"
+                                                                            : formatFileSize(attachment.size)}
+                                                                </p>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                aria-label={`Remover ${attachment.name}`}
+                                                                className="rounded-sm p-1 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                                                                onClick={() => handleRemoveAttachment(attachment.key)}
+                                                            >
+                                                                <X className="size-4" />
+                                                            </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {submitError && (
+                                        <p className="rounded-md border border-danger-subtle bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
+                                            {submitError}
+                                        </p>
+                                    )}
+
+                                    <div className="flex flex-col-reverse items-center justify-between gap-3 border-t border-subtle-1 pt-5 sm:flex-row">
+                                        <p className="flex items-center gap-1.5 text-11 text-tertiary">
+                                            <ShieldCheck className="size-3.5" />
+                                            Seus dados são usados apenas para responder esta solicitação.
+                                        </p>
+                                        <Button type="submit" variant="primary" size="lg" loading={isSubmitting} disabled={isUploading}>
+                                            {isSubmitting ? "Enviando" : "Enviar solicitação"}
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>

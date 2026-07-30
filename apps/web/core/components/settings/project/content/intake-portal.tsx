@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, RefreshCw, Tag } from "lucide-react";
+import { observer } from "mobx-react";
 import { useState } from "react";
 import useSWR from "swr";
 // plane imports
@@ -14,6 +15,8 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { IntakePortalService } from "@plane/services";
 import type { TIntakePortal } from "@plane/types";
 import { Input, TextArea, ToggleSwitch } from "@plane/ui";
+// hooks
+import { useLabel } from "@/hooks/store/use-label";
 
 const intakePortalService = new IntakePortalService();
 
@@ -39,18 +42,34 @@ const buildPortalUrl = (anchor: string): string => {
     }
 };
 
-export function IntakePortalSettings(props: Props) {
+/**
+ * Builds the tagged variant of the portal link. Spaces become hyphens because the
+ * API accepts hyphen/underscore separators, and the name is encoded so accented
+ * labels stay valid in a URL.
+ */
+const buildTaggedPortalUrl = (portalUrl: string, labelName: string): string =>
+    `${portalUrl}/${encodeURIComponent(labelName.trim().replace(/\s+/g, "-"))}`;
+
+export const IntakePortalSettings = observer(function IntakePortalSettings(props: Props) {
     const { projectId, workspaceSlug } = props;
     // states
     const [title, setTitle] = useState<string | null>(null);
     const [description, setDescription] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    // store hooks
+    const { getProjectLabels, fetchProjectLabels } = useLabel();
     // portal config
     const swrKey = `INTAKE_PORTAL_CONFIG_${workspaceSlug}_${projectId}`;
     const { data: portal, mutate } = useSWR(swrKey, () =>
         intakePortalService.retrieveConfig(workspaceSlug, projectId)
     );
+    // project labels
+    useSWR(
+        workspaceSlug && projectId ? `PROJECT_LABELS_${workspaceSlug}_${projectId}` : null,
+        workspaceSlug && projectId ? () => fetchProjectLabels(workspaceSlug, projectId) : null
+    );
+    const projectLabels = getProjectLabels(projectId) ?? [];
 
     const isConfigured = isPortalConfigured(portal);
     const portalUrl = isConfigured ? buildPortalUrl(portal.anchor) : "";
@@ -88,6 +107,19 @@ export function IntakePortalSettings(props: Props) {
         try {
             await navigator.clipboard.writeText(portalUrl);
             setToast({ type: TOAST_TYPE.SUCCESS, title: "Copiado!", message: "Link copiado para a área de transferência." });
+        } catch {
+            handleError("Não foi possível copiar o link.");
+        }
+    };
+
+    const handleCopyTaggedLink = async (labelName: string) => {
+        try {
+            await navigator.clipboard.writeText(buildTaggedPortalUrl(portalUrl, labelName));
+            setToast({
+                type: TOAST_TYPE.SUCCESS,
+                title: "Copiado!",
+                message: `Link da etiqueta "${labelName}" copiado.`,
+            });
         } catch {
             handleError("Não foi possível copiar o link.");
         }
@@ -157,11 +189,49 @@ export function IntakePortalSettings(props: Props) {
                     </Button>
                 </div>
                 <p className="text-11 text-tertiary">Gerar um novo link invalida imediatamente o link anterior.</p>
-                <p className="text-11 text-tertiary">
-                    Para classificar automaticamente, acrescente uma etiqueta do projeto ao final do link:{" "}
-                    <span className="font-mono text-secondary">{portalUrl}/suporte</span>. Os chamados abertos por esse
-                    link já entram com a etiqueta aplicada. A etiqueta precisa existir no projeto.
-                </p>
+            </div>
+
+            <div className="space-y-2 border-t border-subtle-1 pt-4">
+                <div>
+                    <h4 className="text-14 font-medium text-primary">Links por etiqueta</h4>
+                    <p className="mt-1 text-13 text-tertiary">
+                        Divulgue um link por canal. Os chamados abertos por ele já entram no Intake com a etiqueta
+                        aplicada.
+                    </p>
+                </div>
+
+                {projectLabels.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-subtle px-3 py-4 text-13 text-tertiary">
+                        Este projeto ainda não tem etiquetas. Crie etiquetas nas configurações do projeto para gerar
+                        links classificados.
+                    </p>
+                ) : (
+                    <ul className="divide-y divide-subtle-1 overflow-hidden rounded-md border border-subtle">
+                        {projectLabels.map((label) => (
+                            <li key={label.id} className="flex items-center gap-3 px-3 py-2">
+                                <span
+                                    aria-hidden
+                                    className="size-2.5 shrink-0 rounded-full"
+                                    style={{ backgroundColor: label.color || "#6b7280" }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-13 font-medium text-primary">{label.name}</p>
+                                    <p className="truncate font-mono text-11 text-tertiary">
+                                        {buildTaggedPortalUrl(portalUrl, label.name)}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => void handleCopyTaggedLink(label.name)}
+                                    prependIcon={<Tag />}
+                                >
+                                    Copiar
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             <div className="space-y-1">
@@ -224,4 +294,4 @@ export function IntakePortalSettings(props: Props) {
             </div>
         </div>
     );
-}
+});
