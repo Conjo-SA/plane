@@ -6,3 +6,5 @@
 
 export * from "./intake.service";
 export * from "./issue.service";
+export * from "./portal.service";
+

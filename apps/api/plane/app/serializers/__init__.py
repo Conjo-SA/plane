@@ -114,6 +114,7 @@ from .estimate import (
 
 from .intake import (
     IntakeSerializer,
+    IntakePortalSerializer,
     IntakeIssueSerializer,
     IssueStateIntakeSerializer,
     IntakeIssueLiteSerializer,

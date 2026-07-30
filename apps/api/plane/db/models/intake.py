@@ -2,11 +2,18 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+from uuid import uuid4
+
 # Django imports
 from django.db import models
 
 # Module imports
 from plane.db.models.project import ProjectBaseModel
+
+
+def get_intake_portal_anchor():
+    return uuid4().hex
 
 
 class Intake(ProjectBaseModel):
@@ -37,6 +44,7 @@ class Intake(ProjectBaseModel):
 
 class SourceType(models.TextChoices):
     IN_APP = "IN_APP"
+    PORTAL = "PORTAL"
 
 
 class IntakeIssueStatus(models.IntegerChoices):
@@ -82,3 +90,32 @@ class IntakeIssue(ProjectBaseModel):
     def __str__(self):
         """Return name of the Issue"""
         return f"{self.issue.name} <{self.intake.name}>"
+
+
+class IntakePortal(ProjectBaseModel):
+    """Public request form that lets external requesters submit work items into a project's intake."""
+
+    intake = models.ForeignKey("db.Intake", related_name="portals", on_delete=models.CASCADE)
+    anchor = models.CharField(max_length=255, default=get_intake_portal_anchor, unique=True, db_index=True)
+    is_enabled = models.BooleanField(default=False)
+    title = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    success_message = models.TextField(blank=True)
+    is_attachment_enabled = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "IntakePortal"
+        verbose_name_plural = "IntakePortals"
+        db_table = "intake_portals"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="intake_portal_unique_project_when_deleted_at_null",
+            )
+        ]
+
+    def __str__(self):
+        """Return the anchor of the portal"""
+        return f"{self.anchor} <{self.project.name}>"
