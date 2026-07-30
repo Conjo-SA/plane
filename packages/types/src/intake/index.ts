@@ -4,4 +4,6 @@
  * See the LICENSE file for details.
  */
 
+export * from "./portal";
 export * from "./state";
+

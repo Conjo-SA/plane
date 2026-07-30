@@ -63,7 +63,9 @@ COPY --from=backend-img /usr/local/bin/ /usr/local/bin/
 # and migrations are never silently left out of the image.
 COPY apps/api/plane /app/backend/plane
 
-# Dependencies added by this fork on top of the official backend image.
+# Python dependencies added by this fork on top of the official backend image
+# (site-packages above comes from backend-img, so new requirements must be
+# installed explicitly or the API fails to boot on import).
 RUN pip install --no-cache-dir mistune==3.0.2
 
 RUN apk add --no-cache nss-tools bash curl uuidgen ncdu vim
