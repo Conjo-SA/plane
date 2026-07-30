@@ -44,6 +44,8 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
+from plane.db.deploy_checklist_gate import evaluate_deploy_checklist
+from plane.db.models.deploy_checklist import DEPLOY_CHECKLIST_SOURCE
 from plane.db.models import (
     CycleIssue,
     FileAsset,
@@ -275,6 +277,10 @@ class IssueViewSet(BaseViewSet):
         order_by_param = request.GET.get("order_by", "-created_at")
 
         issue_queryset = self.get_queryset()
+
+        # Hide deploy checklist sub-issues from the board/list (they still show under
+        # their parent via the sub-issues endpoint).
+        issue_queryset = issue_queryset.exclude(external_source=DEPLOY_CHECKLIST_SOURCE)
 
         # Apply rich filters
         issue_queryset = self.filter_queryset(issue_queryset)
@@ -673,6 +679,21 @@ class IssueViewSet(BaseViewSet):
 
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Deploy checklist gate: block moving a work item to a Completed-group state
+        # until its deploy checklist sub-issues are all done (opt-in per project).
+        # Rejecting here (400) makes the board undo the optimistic move and show the
+        # message; nothing is saved, so no phantom "Concluída" activity is recorded.
+        new_state_id = request.data.get("state_id") or request.data.get("state")
+        pending_checklist = evaluate_deploy_checklist(issue, new_state_id)
+        if pending_checklist:
+            return Response(
+                {
+                    "error": "Conclua a checklist de deploy antes de mover para Concluída.",
+                    "pending": pending_checklist,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         current_instance = json.dumps(IssueDetailSerializer(issue).data, cls=DjangoJSONEncoder)
 
