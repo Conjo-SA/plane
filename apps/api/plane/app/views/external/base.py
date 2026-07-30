@@ -19,6 +19,7 @@ from plane.app.serializers import ProjectLiteSerializer, WorkspaceLiteSerializer
 from plane.db.models import Project, Workspace
 from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.exception_logger import log_exception
+from plane.utils.markdown import convert_markdown_to_html
 
 from ..base import BaseAPIView
 
@@ -261,7 +262,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
         return Response(
             {
                 "response": text,
-                "response_html": text.replace("\n", "<br/>"),
+                "response_html": convert_markdown_to_html(text),
                 "project_detail": ProjectLiteSerializer(project).data,
                 "workspace_detail": WorkspaceLiteSerializer(workspace).data,
             },
@@ -307,7 +308,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         return Response(
             {
                 "response": text,
-                "response_html": text.replace("\n", "<br/>"),
+                "response_html": convert_markdown_to_html(text),
             },
             status=status.HTTP_200_OK,
         )
