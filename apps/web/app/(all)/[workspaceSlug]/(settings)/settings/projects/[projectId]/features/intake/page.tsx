@@ -8,12 +8,13 @@ import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 // components
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
 import { ProjectSettingsFeatureControlItem } from "@/components/settings/project/content/feature-control-item";
+import { IntakePortalSettings } from "@/components/settings/project/content/intake-portal";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -55,6 +56,9 @@ function FeaturesIntakeSettingsPage({ params }: Route.ComponentProps) {
             value={!!currentProjectDetails?.inbox_view}
             workspaceSlug={workspaceSlug}
           />
+          {currentProjectDetails?.inbox_view && (
+            <IntakePortalSettings projectId={projectId} workspaceSlug={workspaceSlug} />
+          )}
         </div>
       </section>
     </SettingsContentWrapper>

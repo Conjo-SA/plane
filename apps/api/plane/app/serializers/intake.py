@@ -11,7 +11,7 @@ from .issue import IssueIntakeSerializer, LabelLiteSerializer, IssueDetailSerial
 from .project import ProjectLiteSerializer
 from .state import StateLiteSerializer
 from .user import UserLiteSerializer
-from plane.db.models import Intake, IntakeIssue, Issue, StateGroup, State
+from plane.db.models import Intake, IntakeIssue, IntakePortal, Issue, StateGroup, State
 
 
 class IntakeSerializer(BaseSerializer):
@@ -22,6 +22,24 @@ class IntakeSerializer(BaseSerializer):
         model = Intake
         fields = "__all__"
         read_only_fields = ["project", "workspace"]
+
+
+class IntakePortalSerializer(BaseSerializer):
+    class Meta:
+        model = IntakePortal
+        fields = [
+            "id",
+            "anchor",
+            "is_enabled",
+            "title",
+            "description",
+            "success_message",
+            "is_attachment_enabled",
+            "intake",
+            "project",
+            "workspace",
+        ]
+        read_only_fields = ["id", "anchor", "intake", "project", "workspace"]
 
 
 class IntakeIssueSerializer(BaseSerializer):
@@ -35,6 +53,8 @@ class IntakeIssueSerializer(BaseSerializer):
             "duplicate_to",
             "snoozed_till",
             "source",
+            "source_email",
+            "extra",
             "issue",
             "created_by",
         ]
@@ -103,6 +123,8 @@ class IntakeIssueDetailSerializer(BaseSerializer):
             "snoozed_till",
             "duplicate_issue_detail",
             "source",
+            "source_email",
+            "extra",
             "issue",
         ]
         read_only_fields = ["project", "workspace"]

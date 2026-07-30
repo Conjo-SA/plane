@@ -57,11 +57,11 @@ COPY --from=backend-img /code /app/backend
 COPY --from=backend-img /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=backend-img /usr/local/bin/ /usr/local/bin/
 
-# Overlay patched backend files from this repository so CapRover deploys
-# custom OpenAI-compatible LLM behavior (model/base URL/env fallbacks).
-COPY apps/api/plane/app/views/external/base.py /app/backend/plane/app/views/external/base.py
-COPY apps/api/plane/license/api/views/instance.py /app/backend/plane/license/api/views/instance.py
-COPY apps/api/plane/utils/instance_config_variables/core.py /app/backend/plane/utils/instance_config_variables/core.py
+# Overlay the backend package from this repository so CapRover deploys the local
+# customizations (LLM behavior, intake portal models/views/urls and migrations).
+# The whole `plane` package is copied instead of individual files so new modules
+# and migrations are never silently left out of the image.
+COPY apps/api/plane /app/backend/plane
 
 RUN apk add --no-cache nss-tools bash curl uuidgen ncdu vim
 

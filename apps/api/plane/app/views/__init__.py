@@ -196,6 +196,8 @@ from .intake.base import (
     IntakeWorkItemDescriptionVersionEndpoint,
 )
 
+from .intake.portal import IntakePortalEndpoint
+
 from .analytic.base import (
     AnalyticsEndpoint,
     AnalyticViewViewset,
