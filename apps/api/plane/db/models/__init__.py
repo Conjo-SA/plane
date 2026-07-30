@@ -18,7 +18,6 @@ from .draft import (
 from .estimate import Estimate, EstimatePoint
 from .exporter import ExporterHistory
 from .importer import Importer
-from .deploy_checklist import DeployChecklistTemplate
 from .intake import Intake, IntakeIssue, IntakePortal, IntakePortalSession, IntakePortalVerification
 from .integration import (
     GithubCommentSync,

@@ -5,10 +5,11 @@
 """Deploy checklist gate (API layer).
 
 Evaluated in the issue update view BEFORE saving. When a work item is being moved
-INTO the Completed state group ("Concluída" = production) in a project that has an
-enabled ``DeployChecklistTemplate``, the checklist sub-issues are ensured to exist and
-the list of still-pending items is returned so the view can reject the update with a
-400 (the board then rolls the card back and shows the message).
+INTO the Completed state group ("Concluída" = production) in a project where
+``Project.deploy_checklist_enabled`` is on (toggle in Project Settings > Automations),
+the checklist sub-issues are ensured to exist and the list of still-pending items is
+returned so the view can reject the update with a 400 (the board then rolls the card
+back and shows the message).
 
 Doing this in the view (instead of a model signal) means the rejection reaches the
 client as a normal 400 — the optimistic UI update is undone automatically — and no
@@ -39,8 +40,8 @@ def evaluate_deploy_checklist(issue, new_state_id):
 
 
 def _evaluate(issue, new_state_id):
-    from plane.db.models import DeployChecklistTemplate, Issue, State
-    from plane.db.models.deploy_checklist import DEPLOY_CHECKLIST_SOURCE
+    from plane.db.models import Issue, Project, State
+    from plane.db.models.deploy_checklist import DEFAULT_DEPLOY_CHECKLIST_ITEMS, DEPLOY_CHECKLIST_SOURCE
 
     if not new_state_id:
         return []
@@ -59,11 +60,12 @@ def _evaluate(issue, new_state_id):
     if old_group == COMPLETED_GROUP:
         return []  # already completed; not a fresh transition
 
-    template = DeployChecklistTemplate.objects.filter(
-        project_id=issue.project_id, is_enabled=True, deleted_at__isnull=True
-    ).first()
-    if not template or not template.items:
-        return []  # project not opted in
+    enabled = (
+        Project.objects.filter(pk=issue.project_id).values_list("deploy_checklist_enabled", flat=True).first()
+    )
+    if not enabled:
+        return []  # project not opted in (toggle off in Project Settings > Automations)
+    items = DEFAULT_DEPLOY_CHECKLIST_ITEMS
 
     children = Issue.objects.filter(
         parent_id=issue.id, external_source=DEPLOY_CHECKLIST_SOURCE, deleted_at__isnull=True
@@ -72,7 +74,7 @@ def _evaluate(issue, new_state_id):
 
     missing_items = []  # (index, name) not created yet
     pending = []  # names still not completed (missing or incomplete)
-    for idx, name in enumerate(template.items):
+    for idx, name in enumerate(items):
         child = existing_by_key.get(str(idx))
         if child is None:
             missing_items.append((idx, name))

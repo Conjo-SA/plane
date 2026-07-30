@@ -15,6 +15,7 @@ import { AutoArchiveAutomation, AutoCloseAutomation } from "@/components/automat
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
+import { ProjectSettingsFeatureControlItem } from "@/components/settings/project/content/feature-control-item";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -66,6 +67,14 @@ function AutomationSettingsPage({ params }: Route.ComponentProps) {
         <div className="mt-6">
           <AutoArchiveAutomation handleChange={handleChange} />
           <AutoCloseAutomation handleChange={handleChange} />
+          <ProjectSettingsFeatureControlItem
+            title="Checklist de deploy"
+            description="Ao mover uma atividade para Concluída (produção), exige que a checklist de deploy esteja completa. Se faltar item, a mudança é bloqueada e a checklist é criada como sub-issues no card."
+            featureProperty="deploy_checklist_enabled"
+            projectId={projectId}
+            value={!!projectDetails?.deploy_checklist_enabled}
+            workspaceSlug={workspaceSlug}
+          />
         </div>
       </section>
     </SettingsContentWrapper>
