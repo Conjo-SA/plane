@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+from urllib.parse import quote
+
 # Third party imports
 from celery import shared_task
 
 # Django imports
+from django.conf import settings
 from django.utils.html import escape
 
 # Module imports
@@ -18,6 +22,50 @@ BASE_STYLE = (
     "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#1f2937;"
     "line-height:1.6;max-width:560px;margin:0 auto;padding:24px;"
 )
+
+
+def _normalize_base_path(base_path: str | None, fallback: str) -> str:
+    normalized_path = base_path or fallback
+    if not normalized_path.startswith("/"):
+        normalized_path = f"/{normalized_path}"
+    if not normalized_path.endswith("/"):
+        normalized_path = f"{normalized_path}/"
+    return normalized_path
+
+
+def _portal_ticket_url(anchor: str | None, issue_id: str | None = None) -> str:
+    if not anchor:
+        return ""
+
+    base_origin = settings.SPACE_BASE_URL or settings.WEB_URL or settings.APP_BASE_URL
+    if not base_origin:
+        return ""
+
+    space_base_path = _normalize_base_path(getattr(settings, "SPACE_BASE_PATH", None), "/spaces/")
+    safe_anchor = quote(str(anchor).strip(), safe="")
+    if not safe_anchor:
+        return ""
+
+    ticket_path = f"portal/{safe_anchor}"
+    if issue_id:
+        ticket_path = f"{ticket_path}/{quote(str(issue_id).strip(), safe='')}"
+
+    return f"{base_origin.rstrip('/')}{space_base_path}{ticket_path}"
+
+
+def _portal_cta_html(portal_url: str, button_label: str) -> str:
+    safe_url = escape(portal_url)
+    safe_label = escape(button_label)
+    return (
+        '<div style="margin-top:20px;">'
+        f'<a href="{safe_url}" '
+        'style="display:inline-block;background:#1080bc;color:#ffffff;text-decoration:none;'
+        'padding:10px 16px;border-radius:8px;font-weight:600;">'
+        f"{safe_label}"
+        "</a>"
+        f'<p style="margin:12px 0 0;font-size:13px;color:#4b5563;">Ou acesse direto pelo link: <a href="{safe_url}" style="color:#1080bc;">{safe_url}</a></p>'
+        "</div>"
+    )
 
 
 def _wrap(title, body_html):
@@ -64,9 +112,15 @@ def send_portal_ticket_created(issue_id, portal_url=""):
         if intake_issue is None or not intake_issue.source_email:
             return
 
+        portal_anchor = ""
+        if isinstance(intake_issue.extra, dict):
+            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
+
+        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+
         link_html = (
-            f'<p><a href="{escape(portal_url)}" style="color:#1080bc;">Acompanhar meus chamados</a></p>'
-            if portal_url
+            _portal_cta_html(effective_portal_url, "Abrir chamado no portal")
+            if effective_portal_url
             else ""
         )
         body = (
@@ -95,12 +149,18 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
         if intake_issue is None or not intake_issue.source_email:
             return
 
+        portal_anchor = ""
+        if isinstance(intake_issue.extra, dict):
+            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
+
+        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+
         state_html = (
             f'<p>Status atual: <strong>{escape(issue.state.name)}</strong></p>' if issue.state_id and issue.state else ""
         )
         link_html = (
-            f'<p><a href="{escape(portal_url)}" style="color:#1080bc;">Ver detalhes do chamado</a></p>'
-            if portal_url
+            _portal_cta_html(effective_portal_url, "Abrir atualização no portal")
+            if effective_portal_url
             else ""
         )
         body = (

@@ -1520,15 +1520,35 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
             return
 
         relevant_fields = {"state", "priority", "comment", "target_date", "assignees", "labels"}
-        summaries = [
-            activity.comment
+        changed_fields = {
+            activity.field
             for activity in activities
-            if activity.comment and (activity.field in relevant_fields or activity.field is None)
-        ]
-        if not summaries:
+            if activity.field in relevant_fields or activity.field is None
+        }
+        if not changed_fields:
             return
 
-        send_portal_ticket_update.delay(str(issue_id), " ".join(summaries)[:500])
+        field_labels = {
+            "state": "status",
+            "priority": "prioridade",
+            "comment": "comentário",
+            "target_date": "data-alvo",
+            "assignees": "responsáveis",
+            "labels": "etiquetas",
+        }
+
+        selected_labels = [field_labels[field] for field in field_labels if field in changed_fields]
+        if not selected_labels:
+            summary = "Seu chamado recebeu uma nova atualização da equipe."
+        elif len(selected_labels) == 1:
+            summary = f"Houve uma atualização de {selected_labels[0]} no seu chamado."
+        else:
+            summary = (
+                "Houve atualizações de "
+                f"{', '.join(selected_labels[:-1])} e {selected_labels[-1]} no seu chamado."
+            )
+
+        send_portal_ticket_update.delay(str(issue_id), summary)
     except Exception as e:
         log_exception(e)
 

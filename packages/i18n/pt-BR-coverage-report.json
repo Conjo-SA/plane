@@ -1,0 +1,192 @@
+{
+  "generatedAt": "2026-07-31T11:59:03.014Z",
+  "missingFiles": [],
+  "filesWithMissingKeys": [],
+  "filesWithUntranslatedValues": [
+    {
+      "file": "auth.json",
+      "count": 6,
+      "keys": [
+        "sso.domain_management.verified_domains.list.status",
+        "sso.domain_management.verified_domains.add_domain.form.domain_placeholder",
+        "sso.providers.header",
+        "sso.providers.saml.setup_modal.mapping_table.table.idp",
+        "sso.providers.saml.setup_modal.mapping_table.table.plane",
+        "auth.common.email.label"
+      ]
+    },
+    {
+      "file": "automation.json",
+      "count": 6,
+      "keys": [
+        "automations.trigger.schedule.minute_suffix",
+        "automations.trigger.schedule.am",
+        "automations.trigger.schedule.pm",
+        "automations.trigger.schedule.schedule_mode_cron",
+        "automations.trigger.schedule.main_content_cron_summary",
+        "automations.global_automations.table.scope.global"
+      ]
+    },
+    {
+      "file": "common.json",
+      "count": 27,
+      "keys": [
+        "ok",
+        "avatar",
+        "upgrade",
+        "compare_burndowns",
+        "forum",
+        "ideal",
+        "link.modal.url.text",
+        "common.link",
+        "common.layout",
+        "common.completed_on",
+        "common.links",
+        "common.url",
+        "common.modal",
+        "common.global",
+        "common.beta",
+        "common.upgrade",
+        "common.business",
+        "common.your_profile",
+        "common.developer",
+        "common.work_structure",
+        "common.execution",
+        "common.administration",
+        "workspace_dashboards",
+        "exporter.csv.title",
+        "exporter.excel.title",
+        "exporter.xlsx.title",
+        "exporter.json.title"
+      ]
+    },
+    {
+      "file": "inbox.json",
+      "count": 1,
+      "keys": [
+        "inbox_issue.order_by.id"
+      ]
+    },
+    {
+      "file": "integration.json",
+      "count": 21,
+      "keys": [
+        "github_integration.name",
+        "gitlab_integration.name",
+        "gitlab_enterprise_integration.name",
+        "gitlab_enterprise_integration.client_secret_title",
+        "gitlab_enterprise_integration.webhook_secret_title",
+        "slack_integration.name",
+        "sentry_integration.name",
+        "bitbucket_dc_integration.name",
+        "oauth_bridge_integration.name",
+        "oauth_bridge_integration.provider_form.issuer_placeholder",
+        "oauth_bridge_integration.provider_form.jwks_url_placeholder",
+        "oauth_bridge_integration.provider_form.audience_placeholder",
+        "oauth_bridge_integration.provider_form.rate_limit_placeholder",
+        "github_enterprise_integration.name",
+        "github_enterprise_integration.app_id_placeholder",
+        "github_enterprise_integration.app_name_placeholder",
+        "github_enterprise_integration.base_url_placeholder",
+        "github_enterprise_integration.client_id_placeholder",
+        "github_enterprise_integration.client_secret_placeholder",
+        "github_enterprise_integration.webhook_secret_placeholder",
+        "github_enterprise_integration.private_key_placeholder"
+      ]
+    },
+    {
+      "file": "navigation.json",
+      "count": 5,
+      "keys": [
+        "sidebar.analytics",
+        "sidebar.pro",
+        "sidebar.pi_chat",
+        "sidebar.plane_pro",
+        "sidebar.business"
+      ]
+    },
+    {
+      "file": "page.json",
+      "count": 1,
+      "keys": [
+        "page_navigation_pane.tabs.info.label"
+      ]
+    },
+    {
+      "file": "power-k.json",
+      "count": 1,
+      "keys": [
+        "power_k.group_titles.contextual"
+      ]
+    },
+    {
+      "file": "project-settings.json",
+      "count": 2,
+      "keys": [
+        "project_settings.estimates.systems.points.fibonacci",
+        "project_settings.estimates.systems.points.linear"
+      ]
+    },
+    {
+      "file": "project.json",
+      "count": 3,
+      "keys": [
+        "project_cycles.active_cycle.ideal",
+        "project_modules.status.backlog",
+        "project_modules.order_by.manual"
+      ]
+    },
+    {
+      "file": "template.json",
+      "count": 5,
+      "keys": [
+        "templates.settings.form.publish.website.placeholder",
+        "templates.settings.form.publish.company_name.placeholder",
+        "templates.settings.form.publish.contact_email.placeholder",
+        "templates.settings.form.publish.privacy_policy_url.placeholder",
+        "templates.settings.form.publish.terms_of_service_url.placeholder"
+      ]
+    },
+    {
+      "file": "work-item.json",
+      "count": 2,
+      "keys": [
+        "issue.display.properties.id",
+        "issue.states.backlog"
+      ]
+    },
+    {
+      "file": "workspace-settings.json",
+      "count": 11,
+      "keys": [
+        "workspace_settings.settings.webhooks.heading",
+        "workspace_settings.settings.webhooks.title",
+        "workspace_settings.settings.applications.website.placeholder",
+        "workspace_settings.settings.applications.setup_url.placeholder",
+        "workspace_settings.settings.applications.webhook_url.placeholder",
+        "workspace_settings.settings.applications.redirect_uris.placeholder",
+        "workspace_settings.settings.applications.redirect_uris_title",
+        "workspace_settings.settings.plane-intelligence.title",
+        "workspace_settings.settings.plane-intelligence.heading",
+        "workspace_settings.settings.runners.title",
+        "workspace_settings.settings.runners.heading"
+      ]
+    },
+    {
+      "file": "workspace.json",
+      "count": 2,
+      "keys": [
+        "workspace_projects.state.backlog",
+        "workspace_projects.sort.manual"
+      ]
+    }
+  ],
+  "totals": {
+    "enFiles": 28,
+    "missingFiles": 0,
+    "filesWithMissingKeys": 0,
+    "missingKeys": 0,
+    "filesWithUntranslatedValues": 14,
+    "untranslatedValues": 93
+  }
+}

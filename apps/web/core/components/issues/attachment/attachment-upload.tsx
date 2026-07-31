@@ -7,6 +7,7 @@
 import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import { useDropzone } from "react-dropzone";
+import { useTranslation } from "@plane/i18n";
 // plane web hooks
 import { useFileSize } from "@/hooks/use-file-size";
 // types
@@ -22,6 +23,7 @@ type Props = {
 
 export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(props: Props) {
   const { workspaceSlug, disabled = false, attachmentOperations } = props;
+  const { t } = useTranslation();
   // states
   const [isLoading, setIsLoading] = useState(false);
   // file size
@@ -45,8 +47,13 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
     disabled: isLoading || disabled,
   });
 
+  const fileRejectionCode = fileRejections[0]?.errors?.[0]?.code;
   const fileError =
-    fileRejections.length > 0 ? `Invalid file type or size (max ${maxFileSize / 1024 / 1024} MB)` : null;
+    fileRejectionCode === "file-too-large"
+      ? t("editor.attachmentComponent.errors.file_too_large.title")
+      : fileRejections.length > 0
+        ? t("common.file_upload.invalid_file_type")
+        : null;
 
   return (
     <div
@@ -58,13 +65,13 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
       <input {...getInputProps()} />
       <span className="flex items-center gap-2">
         {isDragActive ? (
-          <p>Drop here...</p>
+          <p>{t("template.ai_popovers.attachment.drop_here")}</p>
         ) : fileError ? (
           <p className="text-center text-danger-primary">{fileError}</p>
         ) : isLoading ? (
-          <p className="text-center">Uploading...</p>
+          <p className="text-center">{t("project.project_pages.uploading")}</p>
         ) : (
-          <p className="text-center">Click or drag a file here</p>
+          <p className="text-center">{t("editor.attachmentComponent.uploader.drag_and_drop")}</p>
         )}
       </span>
     </div>

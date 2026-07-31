@@ -82,7 +82,7 @@ function BorderButton(props: ButtonProps) {
   return (
     <Tooltip
       tooltipHeading={t("priority")}
-      tooltipContent={priorityDetails?.title ?? t("common.none")}
+      tooltipContent={priority ? t(`issue.priority.${priority}`) : t("common.none")}
       disabled={!showTooltip}
       isMobile={isMobile}
       renderByDefault={renderToolTipByDefault}
@@ -132,7 +132,7 @@ function BorderButton(props: ButtonProps) {
               "text-placeholder": !priority || priority === "none",
             })}
           >
-            {priorityDetails?.title ?? placeholder}
+            {priority ? t(`issue.priority.${priority}`) : placeholder}
           </span>
         )}
         {dropdownArrow && (
@@ -173,7 +173,7 @@ function BackgroundButton(props: ButtonProps) {
   return (
     <Tooltip
       tooltipHeading={t("priority")}
-      tooltipContent={t(priorityDetails?.key ?? "none")}
+      tooltipContent={priority ? t(`issue.priority.${priority}`) : t("common.none")}
       disabled={!showTooltip}
       isMobile={isMobile}
       renderByDefault={renderToolTipByDefault}
@@ -223,7 +223,7 @@ function BackgroundButton(props: ButtonProps) {
               "text-placeholder": !priority || priority === "none",
             })}
           >
-            {priorityDetails?.title ?? t("common.priority") ?? placeholder}
+            {priority ? t(`issue.priority.${priority}`) : t("common.priority") ?? placeholder}
           </span>
         )}
         {dropdownArrow && (
@@ -257,7 +257,7 @@ function TransparentButton(props: ButtonProps) {
   return (
     <Tooltip
       tooltipHeading={t("priority")}
-      tooltipContent={priorityDetails?.title ?? t("common.none")}
+      tooltipContent={priority ? t(`issue.priority.${priority}`) : t("common.none")}
       disabled={!showTooltip}
       isMobile={isMobile}
       renderByDefault={renderToolTipByDefault}
@@ -307,7 +307,7 @@ function TransparentButton(props: ButtonProps) {
               "text-placeholder": !priority || priority === "none",
             })}
           >
-            {priorityDetails?.title ?? t("common.priority") ?? placeholder}
+            {priority ? t(`issue.priority.${priority}`) : t("common.priority") ?? placeholder}
           </span>
         )}
         {dropdownArrow && (
@@ -369,7 +369,7 @@ export function PriorityDropdown(props: Props) {
     content: (
       <div className="flex items-center gap-2">
         <PriorityIcon priority={priority.key} size={14} withContainer />
-        <span className="flex-grow truncate">{priority.title}</span>
+        <span className="flex-grow truncate">{t(`issue.priority.${priority.key}`)}</span>
       </div>
     ),
   }));
