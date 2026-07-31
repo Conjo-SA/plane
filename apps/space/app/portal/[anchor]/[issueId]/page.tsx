@@ -54,7 +54,9 @@ export default function PortalTicketDetailPage() {
 
     if (error || !ticket) return <PageNotFound />;
 
-    const comments = ticket.comments ?? [];
+    // The API may omit `comments` (or return a non-array) on older deployments,
+    // so normalize before rendering to keep the page from crashing.
+    const comments = Array.isArray(ticket.comments) ? ticket.comments : [];
 
     return (
         <>

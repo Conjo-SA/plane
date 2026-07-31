@@ -4,15 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
-import { useRef, useState } from "react";
-import { usePopper } from "react-popper";
-import { SignalHigh } from "lucide-react";
 import { Combobox } from "@headlessui/react";
 import { ISSUE_PRIORITIES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
+import { SignalHigh } from "lucide-react";
+import type { ReactNode } from "react";
+import { useRef, useState } from "react";
+import { usePopper } from "react-popper";
 // types
-import { CheckIcon, PriorityIcon, ChevronDownIcon, SearchIcon } from "@plane/propel/icons";
+import { CheckIcon, ChevronDownIcon, PriorityIcon, SearchIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssuePriorities } from "@plane/types";
 // ui
@@ -491,8 +491,7 @@ export function PriorityDropdown(props: Props) {
                     value={option.value}
                     className={({ active, selected }) =>
                       cn(
-                        `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none ${
-                          active ? "bg-layer-transparent-hover" : ""
+                        `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none ${active ? "bg-layer-transparent-hover" : ""
                         } ${selected ? "text-primary" : "text-secondary"}`
                       )
                     }

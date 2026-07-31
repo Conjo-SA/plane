@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
-import { observer } from "mobx-react";
-import { useDropzone } from "react-dropzone";
 import { useTranslation } from "@plane/i18n";
+import { observer } from "mobx-react";
+import { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
 // plane web hooks
 import { useFileSize } from "@/hooks/use-file-size";
 // types
@@ -58,9 +58,8 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
   return (
     <div
       {...getRootProps()}
-      className={`flex h-[60px] items-center justify-center rounded-md border-2 border-dashed bg-accent-primary/5 px-4 text-11 text-accent-primary ${
-        isDragActive ? "border-accent-strong bg-accent-primary/10" : "border-subtle"
-      } ${isDragReject ? "bg-danger-subtle" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+      className={`flex h-[60px] items-center justify-center rounded-md border-2 border-dashed bg-accent-primary/5 px-4 text-11 text-accent-primary ${isDragActive ? "border-accent-strong bg-accent-primary/10" : "border-subtle"
+        } ${isDragReject ? "bg-danger-subtle" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
     >
       <input {...getInputProps()} />
       <span className="flex items-center gap-2">

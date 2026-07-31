@@ -4,20 +4,20 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 import {
-  StatePropertyIcon,
+  DueDatePropertyIcon,
+  DuplicatePropertyIcon,
+  LabelPropertyIcon,
   MembersPropertyIcon,
   PriorityPropertyIcon,
-  DueDatePropertyIcon,
-  LabelPropertyIcon,
-  DuplicatePropertyIcon,
+  StatePropertyIcon,
 } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
 import { ControlLink } from "@plane/ui";
-import { getDate, renderFormattedPayloadDate, generateWorkItemLink } from "@plane/utils";
+import { generateWorkItemLink, getDate, renderFormattedPayloadDate } from "@plane/utils";
+import { observer } from "mobx-react";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { IntakeStateDropdown } from "@/components/dropdowns/intake-state/dropdown";
@@ -77,7 +77,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
               {issue?.state_id && (
                 <DropdownComponent
                   value={issue?.state_id}
-                  onChange={() => {}}
+                  onChange={() => { }}
                   projectId={projectId?.toString() ?? ""}
                   disabled
                   buttonVariant="transparent-with-text"
@@ -109,9 +109,8 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
                 }
                 className="group w-3/5 flex-grow"
                 buttonContainerClassName="w-full text-left"
-                buttonClassName={`text-13 justify-between ${
-                  (issue?.assignee_ids || [])?.length > 0 ? "" : "text-placeholder"
-                }`}
+                buttonClassName={`text-13 justify-between ${(issue?.assignee_ids || [])?.length > 0 ? "" : "text-placeholder"
+                  }`}
                 hideIcon={issue.assignee_ids?.length === 0}
                 dropdownArrow
                 dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
