@@ -122,6 +122,10 @@ export class IntakePortalService extends APIService {
             {},
             { headers: { "X-Portal-Token": token } }
         )
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
     }
 
     /**

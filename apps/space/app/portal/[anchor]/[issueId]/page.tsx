@@ -54,6 +54,8 @@ export default function PortalTicketDetailPage() {
 
     if (error || !ticket) return <PageNotFound />;
 
+    const comments = ticket.comments ?? [];
+
     return (
         <>
             <div className="min-h-screen w-full overflow-y-auto bg-gradient-to-b from-surface-2 via-surface-2 to-surface-1">
@@ -94,11 +96,11 @@ export default function PortalTicketDetailPage() {
 
                             <div>
                                 <h2 className="text-13 font-medium text-secondary">Atualizações</h2>
-                                {ticket.comments.length === 0 ? (
+                                {comments.length === 0 ? (
                                     <p className="mt-2 text-13 text-tertiary">Ainda não há atualizações públicas neste chamado.</p>
                                 ) : (
                                     <ul className="mt-3 space-y-3">
-                                        {ticket.comments.map((comment) => (
+                                        {comments.map((comment) => (
                                             <li key={comment.id} className="rounded-md border border-subtle bg-surface-2 px-4 py-3">
                                                 <p className="text-11 text-tertiary">{formatDateTime(comment.created_at)}</p>
                                                 <div
