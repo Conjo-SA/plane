@@ -571,6 +571,38 @@ SCRIPT_CAPABLE_MIME_TYPES: frozenset[str] = frozenset(
     ]
 )
 
+# Media the browser can render safely inline, so an attachment can be previewed
+# without being downloaded first. Deliberately excludes SVG and every other
+# script capable type listed above.
+PREVIEWABLE_MIME_TYPES: frozenset[str] = frozenset(
+    [
+        # images
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+        "image/avif",
+        # video
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/quicktime",
+        # audio
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/x-wav",
+        "audio/ogg",
+        "audio/webm",
+        "audio/aac",
+        "audio/mp4",
+        # documents
+        "application/pdf",
+    ]
+)
+
 # Seed directory path
 SEED_DIR = os.path.join(BASE_DIR, "seeds")
 

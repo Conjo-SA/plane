@@ -619,7 +619,8 @@
       "enable": "Включить",
       "disable": "Отключить",
       "copy_markdown": "Копировать markdown",
-      "reply": "Ответить"
+      "reply": "Ответить",
+      "download": "Скачать"
     },
     "name": "Название",
     "discard": "Отменить",

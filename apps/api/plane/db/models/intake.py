@@ -164,6 +164,7 @@ class IntakePortalSession(WorkspaceBaseModel):
 class IntakePortalBudgetStatus(models.TextChoices):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class IntakePortalBudget(ProjectBaseModel):
@@ -171,7 +172,8 @@ class IntakePortalBudget(ProjectBaseModel):
 
     Approval is deliberately one way: once a requester approves an estimate it
     becomes an immutable record, so neither side can silently revoke or reprice
-    work that was already agreed on.
+    work that was already agreed on. A rejection is not terminal, so the team can
+    send a revised estimate for the same ticket.
     """
 
     issue = models.OneToOneField("db.Issue", related_name="portal_budget", on_delete=models.CASCADE)
@@ -185,6 +187,9 @@ class IntakePortalBudget(ProjectBaseModel):
     requested_at = models.DateTimeField(null=True, blank=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by_email = models.EmailField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    rejected_by_email = models.EmailField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "IntakePortalBudget"

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, Clock, Send } from "lucide-react";
+import { CheckCircle2, Clock, Send, XCircle } from "lucide-react";
 import { observer } from "mobx-react";
 import { useState } from "react";
 import useSWR from "swr";
@@ -38,6 +38,7 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
 
     const budget = data?.budget ?? null;
     const isApproved = budget?.is_approved ?? false;
+    const isRejected = budget?.is_rejected ?? false;
 
     const handleSubmit = async () => {
         setFormError(null);
@@ -74,11 +75,17 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
             <h3 className="text-body-sm-medium">Orçamento por hora</h3>
             {budget && (
                 <div
-                    className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2.5 ${isApproved ? "border-success-subtle bg-success-subtle" : "border-subtle bg-surface-2"
+                    className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2.5 ${isApproved
+                        ? "border-success-subtle bg-success-subtle"
+                        : isRejected
+                            ? "border-danger-subtle bg-danger-subtle"
+                            : "border-subtle bg-surface-2"
                         }`}
                 >
                     {isApproved ? (
                         <CheckCircle2 className="size-4 shrink-0 text-success-primary" />
+                    ) : isRejected ? (
+                        <XCircle className="size-4 shrink-0 text-danger-primary" />
                     ) : (
                         <Clock className="size-4 shrink-0 text-tertiary" />
                     )}
@@ -87,10 +94,15 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
                         <p className="text-11 text-tertiary">
                             {isApproved && budget.approved_at
                                 ? `Aprovado por ${budget.approved_by_email} em ${formatDateTime(budget.approved_at)}`
-                                : budget.requested_at
-                                    ? `Aguardando aprovação do cliente desde ${formatDateTime(budget.requested_at)}`
-                                    : "Aguardando aprovação do cliente"}
+                                : isRejected && budget.rejected_at
+                                    ? `Recusado por ${budget.rejected_by_email} em ${formatDateTime(budget.rejected_at)}`
+                                    : budget.requested_at
+                                        ? `Aguardando resposta do cliente desde ${formatDateTime(budget.requested_at)}`
+                                        : "Aguardando resposta do cliente"}
                         </p>
+                        {isRejected && budget.rejection_reason && (
+                            <p className="mt-1 text-12 text-secondary">Motivo: {budget.rejection_reason}</p>
+                        )}
                         {budget.note && <p className="mt-1 text-12 text-secondary">{budget.note}</p>}
                     </div>
                 </div>
@@ -127,11 +139,13 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
                                 prependIcon={<Send />}
                                 onClick={() => void handleSubmit()}
                             >
-                                {budget ? "Reenviar" : "Enviar"}
+                                {isRejected ? "Enviar novo" : budget ? "Reenviar" : "Enviar"}
                             </Button>
                         </div>
                         <p className="text-11 text-tertiary">
-                            O cliente recebe um e-mail e aprova pelo portal. Só ele pode aprovar, e apenas uma vez.
+                            {isRejected
+                                ? "O cliente recusou o orçamento anterior. Envie um novo valor para ele responder."
+                                : "O cliente recebe um e-mail e responde pelo portal. Só ele pode aprovar, e apenas uma vez."}
                         </p>
                     </div>
                 )

@@ -183,9 +183,18 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
                 )
 
             storage = S3Storage(request=request)
+            # Inline is opt in and limited to media the browser renders safely, so a
+            # preview never turns an uploaded file into a same origin script.
+            asset_mime_type = (asset.attributes.get("type") or "").split(";")[0].strip().lower()
+            disposition = (
+                "inline"
+                if request.query_params.get("disposition") == "inline"
+                and asset_mime_type in settings.PREVIEWABLE_MIME_TYPES
+                else "attachment"
+            )
             presigned_url = storage.generate_presigned_url(
                 object_name=asset.asset.name,
-                disposition="attachment",
+                disposition=disposition,
                 filename=asset.attributes.get("name"),
             )
             return HttpResponseRedirect(presigned_url)

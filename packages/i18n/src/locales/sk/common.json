@@ -619,7 +619,8 @@
       "enable": "Povoliť",
       "disable": "Zakázať",
       "copy_markdown": "Kopírovať markdown",
-      "reply": "Odpovedať"
+      "reply": "Odpovedať",
+      "download": "Stiahnuť"
     },
     "name": "Názov",
     "discard": "Zahodiť",

@@ -12,6 +12,7 @@ import {
   MembersPropertyIcon,
   PriorityPropertyIcon,
   StatePropertyIcon,
+  UserCirclePropertyIcon,
 } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
@@ -38,11 +39,23 @@ type Props = {
   isEditable: boolean;
   duplicateIssueDetails: TInboxDuplicateIssueDetails | undefined;
   isIntakeAccepted: boolean;
+  /** External requester of a portal ticket, absent for in-app work items. */
+  requesterName?: string;
+  requesterEmail?: string;
 };
 
 export const InboxIssueContentProperties = observer(function InboxIssueContentProperties(props: Props) {
-  const { workspaceSlug, projectId, issue, issueOperations, isEditable, duplicateIssueDetails, isIntakeAccepted } =
-    props;
+  const {
+    workspaceSlug,
+    projectId,
+    issue,
+    issueOperations,
+    isEditable,
+    duplicateIssueDetails,
+    isIntakeAccepted,
+    requesterName,
+    requesterEmail,
+  } = props;
   const { t } = useTranslation();
 
   const router = useAppRouter();
@@ -68,6 +81,18 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
         <h5 className="mb-2 text-body-sm-medium">{t("common.properties")}</h5>
         <div className={`divide-y-2 divide-subtle-1 ${!isEditable ? "opacity-60" : ""}`}>
           <div className="flex flex-col gap-3">
+            {/* Requester */}
+            {requesterEmail && (
+              <div className="flex min-h-8 items-center gap-2">
+                <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                  <UserCirclePropertyIcon className="h-4 w-4 flex-shrink-0" />
+                  <span>Solicitante</span>
+                </div>
+                <div className="w-3/5 flex-grow truncate text-13 text-primary" title={requesterEmail}>
+                  {requesterName ? `${requesterName} · ${requesterEmail}` : requesterEmail}
+                </div>
+              </div>
+            )}
             {/* Intake State */}
             <div className="flex h-8 items-center gap-2">
               <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">

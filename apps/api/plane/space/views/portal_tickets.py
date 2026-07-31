@@ -41,6 +41,7 @@ from .portal_auth import (
 
 MAX_TICKETS = 100
 MAX_COMMENT_HTML_LENGTH = 20000
+MAX_BUDGET_REASON_LENGTH = 1000
 
 # Marks the replies an external requester wrote from the portal, so the portal
 # can tell them apart from the ones written by the support team.
@@ -476,9 +477,12 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
             return Response({"error": "Anexo não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
         # Force a download for script capable types so the file can never execute
-        # on the portal's own origin.
+        # on the portal's own origin. Everything else defaults to inline, so the
+        # requester can preview it, and can still opt into a download.
         asset_mime_type = ((asset.attributes or {}).get("type") or "").split(";")[0].strip().lower()
-        disposition = "attachment" if asset_mime_type in settings.SCRIPT_CAPABLE_MIME_TYPES else "inline"
+        is_script_capable = asset_mime_type in settings.SCRIPT_CAPABLE_MIME_TYPES
+        wants_download = request.query_params.get("disposition") == "attachment"
+        disposition = "attachment" if is_script_capable or wants_download else "inline"
 
         storage = S3Storage(request=request)
         signed_url = storage.generate_presigned_url(
@@ -496,13 +500,20 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
 
 
 class IntakePortalTicketBudgetEndpoint(BaseAPIView):
-    """Approval of an hourly estimate by the requester who owns the ticket."""
+    """Decision of an hourly estimate by the requester who owns the ticket.
+
+    The URL carries the action, so approving and rejecting share the same
+    ownership checks and the same single writer guard.
+    """
 
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "intake_portal"
 
-    def post(self, request, anchor, issue_id):
+    def post(self, request, anchor, issue_id, action):
+        if action not in ("approve", "reject"):
+            return Response({"error": "Ação inválida."}, status=status.HTTP_400_BAD_REQUEST)
+
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
@@ -521,42 +532,61 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
         budget = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id).first()
         if budget is None:
             return Response(
-                {"error": "Não há orçamento para aprovar neste chamado."},
+                {"error": "Não há orçamento para responder neste chamado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Approval is one way on purpose: it can never be repeated or undone.
-        # The conditional update is what enforces it, so two concurrent clicks
-        # cannot both win and approve the same estimate twice.
-        approved_count = IntakePortalBudget.objects.filter(
-            pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
-        ).update(
-            status=IntakePortalBudgetStatus.APPROVED,
-            approved_at=timezone.now(),
-            approved_by_email=session.email,
+        is_approval = action == "approve"
+        reason = "" if is_approval else (request.data.get("reason") or "").strip()[:MAX_BUDGET_REASON_LENGTH]
+
+        decision_fields = (
+            {
+                "status": IntakePortalBudgetStatus.APPROVED,
+                "approved_at": timezone.now(),
+                "approved_by_email": session.email,
+            }
+            if is_approval
+            else {
+                "status": IntakePortalBudgetStatus.REJECTED,
+                "rejected_at": timezone.now(),
+                "rejected_by_email": session.email,
+                "rejection_reason": reason,
+            }
         )
-        if not approved_count:
+
+        # Only a pending estimate can be decided, and the conditional update is
+        # what enforces it: two concurrent clicks cannot both win, and an
+        # approval can never be repeated or undone.
+        decided_count = IntakePortalBudget.objects.filter(
+            pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
+        ).update(**decision_fields)
+        if not decided_count:
+            budget.refresh_from_db()
+            already = "aprovado" if budget.status == IntakePortalBudgetStatus.APPROVED else "recusado"
             return Response(
-                {"error": "Este orçamento já foi aprovado."},
+                {"error": f"Este orçamento já foi {already}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         budget.refresh_from_db()
 
         hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
+        decision_label = "aprovado" if is_approval else "recusado"
+        reason_html = f"<p>Motivo: {escape(reason)}</p>" if reason else ""
         comment = IssueComment.objects.create(
             issue_id=intake_issue.issue_id,
             project_id=portal.project_id,
             workspace_id=portal.workspace_id,
             comment_html=(
-                f"<p>Orçamento de {escape(hours)} horas aprovado por {escape(session.email)}.</p>"
+                f"<p>Orçamento de {escape(hours)} horas {decision_label} por {escape(session.email)}.</p>"
+                f"{reason_html}"
             ),
             access="EXTERNAL",
             external_source=PORTAL_COMMENT_SOURCE,
             external_id=session.email,
         )
 
-        # Surfaces the approval on the work item timeline for the team.
+        # Surfaces the decision on the work item timeline for the team.
         issue_activity.delay(
             type="comment.activity.created",
             requested_data=json.dumps(

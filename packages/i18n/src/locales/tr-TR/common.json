@@ -619,7 +619,8 @@
       "enable": "Etkinleştir",
       "disable": "Devre dışı bırak",
       "copy_markdown": "Markdown'ı kopyala",
-      "reply": "Yanıtla"
+      "reply": "Yanıtla",
+      "download": "İndir"
     },
     "name": "Ad",
     "discard": "Vazgeç",

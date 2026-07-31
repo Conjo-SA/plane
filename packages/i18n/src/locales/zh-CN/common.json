@@ -619,7 +619,8 @@
       "enable": "启用",
       "disable": "禁用",
       "copy_markdown": "复制Markdown",
-      "reply": "回复"
+      "reply": "回复",
+      "download": "下载"
     },
     "name": "名称",
     "discard": "放弃",

@@ -4,7 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowLeft, CheckCircle2, Clock, Download, FileText, Loader2, Paperclip, Send, X } from "lucide-react";
+import {
+    ArrowLeft,
+    CheckCircle2,
+    Clock,
+    Download,
+    Eye,
+    FileText,
+    Loader2,
+    Paperclip,
+    Send,
+    X,
+    XCircle,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
@@ -12,6 +24,9 @@ import useSWR from "swr";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { IntakePortalService } from "@plane/services";
+import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import type { TAttachmentPreviewKind } from "@plane/utils";
+import { getAttachmentPreviewKind } from "@plane/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
@@ -65,6 +80,12 @@ type TPendingAttachment = {
     status: "uploading" | "done" | "error";
 };
 
+type TAttachmentPreview = {
+    url: string;
+    name: string;
+    kind: TAttachmentPreviewKind;
+};
+
 const formatDateTime = (value: string) => new Date(value).toLocaleString("pt-BR");
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString("pt-BR");
@@ -100,7 +121,12 @@ export default function PortalTicketDetailPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isConfirmingApproval, setIsConfirmingApproval] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [isConfirmingRejection, setIsConfirmingRejection] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
     const [approvalError, setApprovalError] = useState<string | null>(null);
+    const [preview, setPreview] = useState<TAttachmentPreview | null>(null);
+    const [previewingAssetId, setPreviewingAssetId] = useState<string | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
     // refs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -165,13 +191,55 @@ export default function PortalTicketDetailPage() {
         }
     };
 
+    const handleRejectBudget = async () => {
+        if (!anchor || !issueId || !session) return;
+        setApprovalError(null);
+        setIsRejecting(true);
+        try {
+            await intakePortalService.rejectTicketBudget(anchor, issueId, session.token, rejectionReason.trim());
+            setIsConfirmingRejection(false);
+            setRejectionReason("");
+            await mutate();
+        } catch (err) {
+            setApprovalError(readError(err) || "Não foi possível recusar o orçamento. Tente novamente.");
+        } finally {
+            setIsRejecting(false);
+        }
+    };
+
     const handleDownload = async (assetId: string) => {
         if (!anchor || !issueId || !session) return;
         try {
-            const url = await intakePortalService.retrieveAttachmentUrl(anchor, issueId, assetId, session.token);
+            const url = await intakePortalService.retrieveAttachmentUrl(
+                anchor,
+                issueId,
+                assetId,
+                session.token,
+                "attachment"
+            );
             if (url) window.open(url, "_blank", "noopener,noreferrer");
         } catch (err) {
             setFormError(readError(err) || "Não foi possível abrir o anexo.");
+        }
+    };
+
+    const handlePreview = async (assetId: string, name: string, kind: TAttachmentPreviewKind) => {
+        if (!anchor || !issueId || !session) return;
+        setFormError(null);
+        setPreviewingAssetId(assetId);
+        try {
+            const url = await intakePortalService.retrieveAttachmentUrl(
+                anchor,
+                issueId,
+                assetId,
+                session.token,
+                "inline"
+            );
+            if (url) setPreview({ url, name, kind });
+        } catch (err) {
+            setFormError(readError(err) || "Não foi possível abrir o anexo.");
+        } finally {
+            setPreviewingAssetId(null);
         }
     };
 
@@ -295,18 +363,26 @@ export default function PortalTicketDetailPage() {
                                 <div
                                     className={`rounded-lg border px-4 py-4 ${budget.is_approved
                                         ? "border-emerald-200 bg-emerald-50"
-                                        : "border-amber-200 bg-amber-50"
+                                        : budget.is_rejected
+                                            ? "border-red-200 bg-red-50"
+                                            : "border-amber-200 bg-amber-50"
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
                                         {budget.is_approved ? (
                                             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                                        ) : budget.is_rejected ? (
+                                            <XCircle className="mt-0.5 size-5 shrink-0 text-red-600" />
                                         ) : (
                                             <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
                                         )}
                                         <div className="min-w-0 flex-1">
                                             <h2 className="text-14 font-semibold text-primary">
-                                                {budget.is_approved ? "Orçamento aprovado" : "Orçamento aguardando sua aprovação"}
+                                                {budget.is_approved
+                                                    ? "Orçamento aprovado"
+                                                    : budget.is_rejected
+                                                        ? "Orçamento recusado"
+                                                        : "Orçamento aguardando sua resposta"}
                                             </h2>
                                             <p className="mt-1 text-20 font-semibold text-primary">
                                                 {budget.estimated_hours} horas
@@ -318,12 +394,37 @@ export default function PortalTicketDetailPage() {
                                                     Aprovado por {budget.approved_by_email}
                                                     {budget.approved_at ? ` em ${formatDateTime(budget.approved_at)}` : ""}.
                                                 </p>
+                                            ) : budget.is_rejected ? (
+                                                <>
+                                                    <p className="mt-2 text-12 text-tertiary">
+                                                        Recusado por {budget.rejected_by_email}
+                                                        {budget.rejected_at ? ` em ${formatDateTime(budget.rejected_at)}` : ""}.
+                                                    </p>
+                                                    {budget.rejection_reason && (
+                                                        <p className="mt-1 text-13 text-secondary">
+                                                            Motivo: {budget.rejection_reason}
+                                                        </p>
+                                                    )}
+                                                    <p className="mt-2 text-12 text-secondary">
+                                                        Se precisar, a equipe pode enviar um novo orçamento para este chamado.
+                                                    </p>
+                                                </>
                                             ) : (
                                                 <>
                                                     <p className="mt-2 text-12 text-secondary">
                                                         O trabalho começa depois da sua aprovação. A aprovação é definitiva:
                                                         só pode ser feita uma vez e não pode ser cancelada.
                                                     </p>
+
+                                                    {isConfirmingRejection && (
+                                                        <textarea
+                                                            className="mt-3 min-h-[80px] w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none transition-colors placeholder:text-placeholder focus:border-strong"
+                                                            placeholder="Conte para a equipe por que está recusando (opcional)."
+                                                            value={rejectionReason}
+                                                            onChange={(e) => setRejectionReason(e.target.value)}
+                                                        />
+                                                    )}
+
                                                     <div className="mt-3 flex flex-wrap items-center gap-2">
                                                         {isConfirmingApproval ? (
                                                             <>
@@ -345,15 +446,48 @@ export default function PortalTicketDetailPage() {
                                                                     Voltar
                                                                 </Button>
                                                             </>
+                                                        ) : isConfirmingRejection ? (
+                                                            <>
+                                                                <Button
+                                                                    variant="primary"
+                                                                    size="sm"
+                                                                    loading={isRejecting}
+                                                                    prependIcon={<XCircle />}
+                                                                    onClick={() => void handleRejectBudget()}
+                                                                >
+                                                                    Confirmar recusa
+                                                                </Button>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="sm"
+                                                                    disabled={isRejecting}
+                                                                    onClick={() => {
+                                                                        setIsConfirmingRejection(false);
+                                                                        setRejectionReason("");
+                                                                    }}
+                                                                >
+                                                                    Voltar
+                                                                </Button>
+                                                            </>
                                                         ) : (
-                                                            <Button
-                                                                variant="primary"
-                                                                size="sm"
-                                                                prependIcon={<CheckCircle2 />}
-                                                                onClick={() => setIsConfirmingApproval(true)}
-                                                            >
-                                                                Aprovar orçamento
-                                                            </Button>
+                                                            <>
+                                                                <Button
+                                                                    variant="primary"
+                                                                    size="sm"
+                                                                    prependIcon={<CheckCircle2 />}
+                                                                    onClick={() => setIsConfirmingApproval(true)}
+                                                                >
+                                                                    Aprovar orçamento
+                                                                </Button>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="sm"
+                                                                    prependIcon={<XCircle />}
+                                                                    onClick={() => setIsConfirmingRejection(true)}
+                                                                >
+                                                                    Recusar
+                                                                </Button>
+                                                            </>
                                                         )}
                                                     </div>
                                                 </>
@@ -440,28 +574,50 @@ export default function PortalTicketDetailPage() {
                                     <p className="mt-2 text-13 text-tertiary">Nenhum arquivo anexado a este chamado.</p>
                                 ) : (
                                     <ul className="mt-3 space-y-2">
-                                        {attachments.map((attachment) => (
-                                            <li
-                                                key={attachment.id}
-                                                className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
-                                            >
-                                                <FileText className="size-4 shrink-0 text-tertiary" />
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-13 text-primary">{attachment.name}</p>
-                                                    <p className="text-11 text-tertiary">
-                                                        {formatFileSize(attachment.size)} · {formatDateTime(attachment.created_at)}
-                                                    </p>
-                                                </div>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    prependIcon={<Download />}
-                                                    onClick={() => void handleDownload(attachment.id)}
+                                        {attachments.map((attachment) => {
+                                            const previewKind = getAttachmentPreviewKind(attachment.type, attachment.name);
+
+                                            return (
+                                                <li
+                                                    key={attachment.id}
+                                                    className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
                                                 >
-                                                    Baixar
-                                                </Button>
-                                            </li>
-                                        ))}
+                                                    <FileText className="size-4 shrink-0 text-tertiary" />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-13 text-primary">{attachment.name}</p>
+                                                        <p className="text-11 text-tertiary">
+                                                            {formatFileSize(attachment.size)} ·{" "}
+                                                            {formatDateTime(attachment.created_at)}
+                                                        </p>
+                                                    </div>
+                                                    {previewKind && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            loading={previewingAssetId === attachment.id}
+                                                            prependIcon={<Eye />}
+                                                            onClick={() =>
+                                                                void handlePreview(
+                                                                    attachment.id,
+                                                                    attachment.name,
+                                                                    previewKind
+                                                                )
+                                                            }
+                                                        >
+                                                            Visualizar
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        prependIcon={<Download />}
+                                                        onClick={() => void handleDownload(attachment.id)}
+                                                    >
+                                                        Baixar
+                                                    </Button>
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 )}
                             </div>
@@ -586,6 +742,46 @@ export default function PortalTicketDetailPage() {
                     </div>
                 </div>
             </div>
+
+            <ModalCore
+                isOpen={Boolean(preview)}
+                handleClose={() => setPreview(null)}
+                position={EModalPosition.CENTER}
+                width={EModalWidth.VIXL}
+            >
+                {preview && (
+                    <div className="flex max-h-[85vh] flex-col">
+                        <div className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3">
+                            <p className="truncate text-14 font-medium text-primary">{preview.name}</p>
+                            <button
+                                type="button"
+                                aria-label="Fechar"
+                                className="rounded-sm p-1.5 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                                onClick={() => setPreview(null)}
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+                        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-layer-1 p-4">
+                            {preview.kind === "image" && (
+                                <img
+                                    src={preview.url}
+                                    alt={preview.name}
+                                    className="max-h-[70vh] max-w-full object-contain"
+                                />
+                            )}
+                            {preview.kind === "video" && (
+                                <video src={preview.url} controls className="max-h-[70vh] max-w-full" />
+                            )}
+                            {preview.kind === "audio" && <audio src={preview.url} controls className="w-full" />}
+                            {preview.kind === "pdf" && (
+                                <iframe src={preview.url} title={preview.name} className="h-[70vh] w-full border-0" />
+                            )}
+                        </div>
+                    </div>
+                )}
+            </ModalCore>
+
             <PoweredBy />
         </>
     );

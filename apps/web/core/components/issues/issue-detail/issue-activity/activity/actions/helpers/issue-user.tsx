@@ -24,10 +24,15 @@ export function IssueUser(props: TIssueUser) {
 
   if (!activity) return <></>;
 
+  // Portal replies have no internal actor, so the requester identity comes from
+  // the intake source. Without this the link would point at /profile/undefined.
+  const hasActor = Boolean(activity.actor_detail?.id);
+  const requesterName = activity.source_data?.extra?.requester_name || activity.source_data?.source_email;
+
   return (
     <>
-      {customUserName ? (
-        <span className="font-medium text-primary">{customUserName}</span>
+      {customUserName || !hasActor ? (
+        <span className="font-medium text-primary">{customUserName || requesterName || "Plane"}</span>
       ) : (
         <Link
           href={`/${activity?.workspace_detail?.slug}/profile/${activity?.actor_detail?.id}`}

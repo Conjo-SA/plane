@@ -619,7 +619,8 @@
       "enable": "啟用",
       "disable": "停用",
       "copy_markdown": "複製 Markdown",
-      "reply": "回覆"
+      "reply": "回覆",
+      "download": "下載"
     },
     "name": "名稱",
     "discard": "捨棄",

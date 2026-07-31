@@ -4,16 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { clone, set } from "lodash-es";
-import { makeObservable, observable, runInAction, action } from "mobx";
 import type {
+  EInboxIssueSource,
+  TInboxDuplicateIssueDetails,
   TInboxIssue,
   TInboxIssueStatus,
-  EInboxIssueSource,
   TIssue,
-  TInboxDuplicateIssueDetails,
 } from "@plane/types";
 import { EInboxIssueStatus } from "@plane/types";
+import { clone, set } from "lodash-es";
+import { action, makeObservable, observable, runInAction } from "mobx";
 // helpers
 // services
 import { InboxIssueService } from "@/services/inbox";
@@ -28,6 +28,8 @@ export interface IInboxIssueStore {
   issue: Partial<TIssue>;
   snoozed_till: Date | undefined;
   source: EInboxIssueSource | undefined;
+  source_email: string | undefined;
+  extra: TInboxIssue["extra"];
   duplicate_to: string | undefined;
   created_by: string | undefined;
   duplicate_issue_detail: TInboxDuplicateIssueDetails | undefined;
@@ -48,6 +50,8 @@ export class InboxIssueStore implements IInboxIssueStore {
   issue: Partial<TIssue> = {};
   snoozed_till: Date | undefined;
   source: EInboxIssueSource | undefined;
+  source_email: string | undefined;
+  extra: TInboxIssue["extra"];
   duplicate_to: string | undefined;
   created_by: string | undefined;
   duplicate_issue_detail: TInboxDuplicateIssueDetails | undefined = undefined;
@@ -70,6 +74,8 @@ export class InboxIssueStore implements IInboxIssueStore {
     this.duplicate_to = data?.duplicate_to || undefined;
     this.created_by = data?.created_by || undefined;
     this.source = data?.source || undefined;
+    this.source_email = data?.source_email || undefined;
+    this.extra = data?.extra || undefined;
     this.duplicate_issue_detail = data?.duplicate_issue_detail || undefined;
     this.workspaceSlug = workspaceSlug;
     this.projectId = projectId;
@@ -86,6 +92,8 @@ export class InboxIssueStore implements IInboxIssueStore {
       duplicate_issue_detail: observable,
       created_by: observable,
       source: observable,
+      source_email: observable,
+      extra: observable,
       // actions
       updateInboxIssueStatus: action,
       updateInboxIssueDuplicateTo: action,

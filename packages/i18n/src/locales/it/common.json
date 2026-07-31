@@ -619,7 +619,8 @@
       "enable": "Abilita",
       "disable": "Disabilita",
       "copy_markdown": "Copia markdown",
-      "reply": "Rispondi"
+      "reply": "Rispondi",
+      "download": "Scarica"
     },
     "name": "Nome",
     "discard": "Scarta",

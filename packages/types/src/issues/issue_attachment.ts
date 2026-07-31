@@ -11,6 +11,8 @@ export type TIssueAttachment = {
   attributes: {
     name: string;
     size: number;
+    /** MIME type captured on upload. Absent on assets stored before it was recorded. */
+    type?: string;
   };
   asset_url: string;
   issue_id: string;

@@ -217,6 +217,8 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
           isEditable={isEditable}
           duplicateIssueDetails={inboxIssue?.duplicate_issue_detail}
           isIntakeAccepted={isIntakeAccepted}
+          requesterName={inboxIssue?.extra?.requester_name}
+          requesterEmail={inboxIssue?.source_email}
         />
       </div>
 

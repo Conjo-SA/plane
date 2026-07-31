@@ -77,6 +77,13 @@ urlpatterns = [
     path(
         "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/budget/approve/",
         IntakePortalTicketBudgetEndpoint.as_view(),
+        {"action": "approve"},
         name="intake-portal-ticket-budget-approve",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/budget/reject/",
+        IntakePortalTicketBudgetEndpoint.as_view(),
+        {"action": "reject"},
+        name="intake-portal-ticket-budget-reject",
     ),
 ]

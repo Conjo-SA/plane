@@ -619,7 +619,8 @@
       "enable": "Aktifkan",
       "disable": "Nonaktifkan",
       "copy_markdown": "Salin markdown",
-      "reply": "Balas"
+      "reply": "Balas",
+      "download": "Unduh"
     },
     "name": "Nama",
     "discard": "Buang",

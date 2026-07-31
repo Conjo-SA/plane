@@ -143,11 +143,12 @@ export type TIntakePortalTicketLabel = {
     color: string;
 };
 
-export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED";
+export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 /**
  * Hourly effort estimate a requester has to approve before the work starts.
- * Approval is one way: it cannot be repeated or revoked.
+ * Approval is one way: it cannot be repeated or revoked. A rejection is not
+ * terminal, so the team can send a revised estimate.
  */
 export type TIntakePortalBudget = {
     id: string;
@@ -155,9 +156,13 @@ export type TIntakePortalBudget = {
     note: string;
     status: TIntakePortalBudgetStatus;
     is_approved: boolean;
+    is_rejected: boolean;
     requested_at: string | null;
     approved_at: string | null;
     approved_by_email: string | null;
+    rejected_at: string | null;
+    rejected_by_email: string | null;
+    rejection_reason: string;
 };
 
 /**

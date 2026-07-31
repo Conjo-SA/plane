@@ -619,7 +619,8 @@
       "enable": "활성화",
       "disable": "비활성화",
       "copy_markdown": "마크다운 복사",
-      "reply": "답글"
+      "reply": "답글",
+      "download": "다운로드"
     },
     "name": "이름",
     "discard": "폐기",

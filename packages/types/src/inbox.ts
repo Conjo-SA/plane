@@ -37,6 +37,14 @@ export type TInboxIssue = {
   snoozed_till: Date | null;
   duplicate_to: string | undefined;
   source: EInboxIssueSource | undefined;
+  /** Email of the external requester, for tickets that came from the portal. */
+  source_email?: string | undefined;
+  extra?:
+  | {
+    requester_name?: string;
+    portal_anchor?: string;
+  }
+  | undefined;
   issue: TIssue;
   created_by: string;
   duplicate_issue_detail: TInboxDuplicateIssueDetails | undefined;
@@ -86,9 +94,9 @@ export type TInboxIssueSortingOrderByQueryParam = {
 export type TInboxIssuesQueryParams = {
   [key in keyof TInboxIssueFilter]: string;
 } & TInboxIssueSortingOrderByQueryParam & {
-    per_page: number;
-    cursor: string;
-  };
+  per_page: number;
+  cursor: string;
+};
 
 // inbox issue types
 

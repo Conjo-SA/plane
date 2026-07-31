@@ -194,18 +194,20 @@ export class IntakePortalService extends APIService {
      * @param {string} issueId - The ticket identifier
      * @param {string} assetId - The attachment identifier
      * @param {string} token - The portal session token
-     * @returns {Promise<string>} The signed download URL
+     * @param {"inline" | "attachment"} [disposition] - Preview in place or force a download
+     * @returns {Promise<string>} The signed URL
      * @throws {Error} If the API request fails
      */
     async retrieveAttachmentUrl(
         anchor: string,
         issueId: string,
         assetId: string,
-        token: string
+        token: string,
+        disposition?: "inline" | "attachment"
     ): Promise<string> {
         return this.get(
             `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/${assetId}/`,
-            {},
+            disposition ? { params: { disposition } } : {},
             { headers: { "X-Portal-Token": token } }
         )
             .then((response) => response?.data?.url)
@@ -227,6 +229,33 @@ export class IntakePortalService extends APIService {
         return this.post(
             `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/approve/`,
             {},
+            { headers: { "X-Portal-Token": token } }
+        )
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Rejects the hourly estimate of a ticket. Like approval, the decision is
+     * recorded once, but it leaves the team free to send a revised estimate.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {string} token - The portal session token
+     * @param {string} [reason] - Optional explanation shown to the team
+     * @returns {Promise<TIntakePortalBudget>} The rejected estimate
+     * @throws {Error} If the API request fails
+     */
+    async rejectTicketBudget(
+        anchor: string,
+        issueId: string,
+        token: string,
+        reason?: string
+    ): Promise<TIntakePortalBudget> {
+        return this.post(
+            `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/reject/`,
+            { reason: reason ?? "" },
             { headers: { "X-Portal-Token": token } }
         )
             .then((response) => response?.data)

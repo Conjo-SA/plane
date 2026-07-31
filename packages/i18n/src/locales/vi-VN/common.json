@@ -619,7 +619,8 @@
       "enable": "Bật",
       "disable": "Tắt",
       "copy_markdown": "Sao chép markdown",
-      "reply": "Trả lời"
+      "reply": "Trả lời",
+      "download": "Tải xuống"
     },
     "name": "Tên",
     "discard": "Hủy bỏ",

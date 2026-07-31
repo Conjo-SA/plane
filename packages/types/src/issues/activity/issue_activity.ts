@@ -7,10 +7,10 @@
 // local imports
 import type { EInboxIssueSource } from "../../inbox";
 import type {
-  TIssueActivityWorkspaceDetail,
-  TIssueActivityProjectDetail,
   TIssueActivityIssueDetail,
+  TIssueActivityProjectDetail,
   TIssueActivityUserDetail,
+  TIssueActivityWorkspaceDetail,
 } from "./base";
 
 export type TIssueActivity = {
@@ -43,6 +43,7 @@ export type TIssueActivity = {
     source_email?: string;
     extra: {
       username?: string;
+      requester_name?: string;
     };
   };
 };

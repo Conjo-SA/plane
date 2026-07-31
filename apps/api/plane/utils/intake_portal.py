@@ -26,9 +26,13 @@ def serialize_portal_budget(budget):
         "note": budget.note,
         "status": budget.status,
         "is_approved": budget.status == IntakePortalBudgetStatus.APPROVED,
+        "is_rejected": budget.status == IntakePortalBudgetStatus.REJECTED,
         "requested_at": budget.requested_at,
         "approved_at": budget.approved_at,
         "approved_by_email": budget.approved_by_email,
+        "rejected_at": budget.rejected_at,
+        "rejected_by_email": budget.rejected_by_email,
+        "rejection_reason": budget.rejection_reason,
     }
 
 

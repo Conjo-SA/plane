@@ -619,7 +619,8 @@
       "enable": "Увімкнути",
       "disable": "Вимкнути",
       "copy_markdown": "Скопіювати markdown",
-      "reply": "Відповісти"
+      "reply": "Відповісти",
+      "download": "Завантажити"
     },
     "name": "Назва",
     "discard": "Скасувати",

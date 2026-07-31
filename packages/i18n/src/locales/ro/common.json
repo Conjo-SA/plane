@@ -619,7 +619,8 @@
       "enable": "Activează",
       "disable": "Dezactivează",
       "copy_markdown": "Copiază markdown",
-      "reply": "Răspunde"
+      "reply": "Răspunde",
+      "download": "Descarcă"
     },
     "name": "Nume",
     "discard": "Renunță",
