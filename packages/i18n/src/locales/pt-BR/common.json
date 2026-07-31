@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Apenas um arquivo pode ser enviado por vez.",
     "file_size_limit": "O arquivo deve ter {size}MB ou menos.",
     "drag_and_drop": "Arraste e solte em qualquer lugar para enviar",
-    "delete": "Excluir anexo"
+    "delete": "Excluir anexo",
+    "click_or_drag": "Clique ou arraste um arquivo aqui",
+    "drop_here": "Solte aqui...",
+    "uploading": "Enviando...",
+    "invalid_file_type_or_size": "Tipo ou tamanho de arquivo inválido (máx. {size} MB)"
   },
   "label": {
     "select": "Selecionar etiqueta",

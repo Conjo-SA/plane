@@ -50,9 +50,9 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
   const fileRejectionCode = fileRejections[0]?.errors?.[0]?.code;
   const fileError =
     fileRejectionCode === "file-too-large"
-      ? t("editor.attachmentComponent.errors.file_too_large.title")
+      ? t("attachment.file_size_limit", { size: Math.round(maxFileSize / 1024 / 1024) })
       : fileRejections.length > 0
-        ? t("common.file_upload.invalid_file_type")
+        ? t("attachment.invalid_file_type_or_size", { size: Math.round(maxFileSize / 1024 / 1024) })
         : null;
 
   return (
@@ -64,13 +64,13 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
       <input {...getInputProps()} />
       <span className="flex items-center gap-2">
         {isDragActive ? (
-          <p>{t("template.ai_popovers.attachment.drop_here")}</p>
+          <p>{t("attachment.drop_here")}</p>
         ) : fileError ? (
           <p className="text-center text-danger-primary">{fileError}</p>
         ) : isLoading ? (
-          <p className="text-center">{t("project.project_pages.uploading")}</p>
+          <p className="text-center">{t("attachment.uploading")}</p>
         ) : (
-          <p className="text-center">{t("editor.attachmentComponent.uploader.drag_and_drop")}</p>
+          <p className="text-center">{t("attachment.click_or_drag")}</p>
         )}
       </span>
     </div>

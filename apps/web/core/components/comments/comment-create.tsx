@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useForm, Controller } from "react-hook-form";
+import { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 // plane imports
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
 import type { EditorRefApi } from "@plane/editor";
-import type { TIssueComment, TCommentsOperations } from "@plane/types";
+import type { TCommentsOperations, TIssueComment } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";

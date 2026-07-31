@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Hanya satu file yang dapat diunggah pada satu waktu.",
     "file_size_limit": "File harus berukuran {size}MB atau lebih kecil.",
     "drag_and_drop": "Seret dan jatuhkan di mana saja untuk mengunggah",
-    "delete": "Hapus lampiran"
+    "delete": "Hapus lampiran",
+    "click_or_drag": "Klik atau seret berkas ke sini",
+    "drop_here": "Lepaskan di sini...",
+    "uploading": "Mengunggah...",
+    "invalid_file_type_or_size": "Tipe atau ukuran berkas tidak valid (maks. {size} MB)"
   },
   "label": {
     "select": "Pilih label",

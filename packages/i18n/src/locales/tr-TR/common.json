@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Aynı anda yalnızca bir dosya yüklenebilir.",
     "file_size_limit": "Dosya boyutu {size}MB veya daha az olmalıdır.",
     "drag_and_drop": "Yüklemek için herhangi bir yere sürükleyip bırakın",
-    "delete": "Eki sil"
+    "delete": "Eki sil",
+    "click_or_drag": "Bir dosyaya tıklayın veya buraya sürükleyin",
+    "drop_here": "Buraya bırakın...",
+    "uploading": "Yükleniyor...",
+    "invalid_file_type_or_size": "Geçersiz dosya türü veya boyutu (en fazla {size} MB)"
   },
   "label": {
     "select": "Etiket seç",

@@ -762,7 +762,11 @@
     "only_one_file_allowed": "一度にアップロードできるファイルは1つだけです。",
     "file_size_limit": "ファイルサイズは{size}MB以下である必要があります。",
     "drag_and_drop": "どこにでもドラッグ＆ドロップでアップロード",
-    "delete": "添付ファイルを削除"
+    "delete": "添付ファイルを削除",
+    "click_or_drag": "クリックまたはファイルをここにドラッグしてください",
+    "drop_here": "ここにドロップ...",
+    "uploading": "アップロード中...",
+    "invalid_file_type_or_size": "ファイルの種類またはサイズが無効です（最大 {size} MB）"
   },
   "label": {
     "select": "ラベルを選択",

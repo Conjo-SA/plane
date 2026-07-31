@@ -762,7 +762,11 @@
     "only_one_file_allowed": "一次只能上傳一個檔案。",
     "file_size_limit": "檔案大小必須小於或等於 {size}MB。",
     "drag_and_drop": "拖曳到任何位置以上傳",
-    "delete": "刪除附件"
+    "delete": "刪除附件",
+    "click_or_drag": "點擊或將檔案拖曳至此",
+    "drop_here": "拖放至此...",
+    "uploading": "上傳中...",
+    "invalid_file_type_or_size": "檔案類型或大小無效（最大 {size} MB）"
   },
   "label": {
     "select": "選擇標籤",

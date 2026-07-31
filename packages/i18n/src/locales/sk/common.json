@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Je možné nahrať iba jeden súbor naraz.",
     "file_size_limit": "Súbor musí byť menší ako {size}MB.",
     "drag_and_drop": "Pretiahnite súbor kamkoľvek pre nahratie",
-    "delete": "Zmazať prílohu"
+    "delete": "Zmazať prílohu",
+    "click_or_drag": "Kliknite alebo sem presuňte súbor",
+    "drop_here": "Presuňte sem...",
+    "uploading": "Nahrávanie...",
+    "invalid_file_type_or_size": "Neplatný typ alebo veľkosť súboru (max. {size} MB)"
   },
   "label": {
     "select": "Vybrať štítok",

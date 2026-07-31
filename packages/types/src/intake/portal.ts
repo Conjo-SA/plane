@@ -110,48 +110,48 @@ export type TIntakePortalTicketComment = {
     id: string;
     comment_html: string;
     created_at: string;
-  /** True when the reply was written by the requester from the portal. */
-  is_requester: boolean;
-  author: string;
+    /** True when the reply was written by the requester from the portal. */
+    is_requester: boolean;
+    author: string;
 };
 
 /**
  * File attached to a ticket, exposed with a portal scoped download route.
  */
 export type TIntakePortalTicketAttachment = {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  created_at: string;
-  download_url: string;
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    created_at: string;
+    download_url: string;
 };
 
 /**
  * Reply submitted by a requester from the portal.
  */
 export type TIntakePortalCommentSubmission = {
-  comment_html: string;
-  attachment_ids?: string[];
+    comment_html: string;
+    attachment_ids?: string[];
 };
 
 /**
  * Label applied to a ticket, shown to the requester as its classification.
  */
 export type TIntakePortalTicketLabel = {
-  name: string;
-  color: string;
+    name: string;
+    color: string;
 };
 
 export type TIntakePortalTicketDetail = TIntakePortalTicket & {
-  description_html: string;
-  project_identifier: string;
-  updated_at: string;
-  target_date: string | null;
-  completed_at: string | null;
-  is_attachment_enabled: boolean;
-  labels: TIntakePortalTicketLabel[];
-  assignees: string[];
-  comments: TIntakePortalTicketComment[];
-  attachments: TIntakePortalTicketAttachment[];
+    description_html: string;
+    project_identifier: string;
+    updated_at: string;
+    target_date: string | null;
+    completed_at: string | null;
+    is_attachment_enabled: boolean;
+    labels: TIntakePortalTicketLabel[];
+    assignees: string[];
+    comments: TIntakePortalTicketComment[];
+    attachments: TIntakePortalTicketAttachment[];
 };

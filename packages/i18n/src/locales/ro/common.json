@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Se poate încărca doar un fișier o dată.",
     "file_size_limit": "Fișierul trebuie să aibă {size}MB sau mai puțin.",
     "drag_and_drop": "Trage și plasează oriunde pentru a încărca",
-    "delete": "Șterge atașamentul"
+    "delete": "Șterge atașamentul",
+    "click_or_drag": "Dați clic sau trageți un fișier aici",
+    "drop_here": "Plasați aici...",
+    "uploading": "Se încarcă...",
+    "invalid_file_type_or_size": "Tip sau dimensiune de fișier nevalidă (max. {size} MB)"
   },
   "label": {
     "select": "Selectează eticheta",

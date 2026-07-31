@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo } from "react";
 import uniq from "lodash-es/uniq";
 import { observer } from "mobx-react";
+import { useMemo } from "react";
 // plane package imports
 import type { TActivityFilters } from "@plane/constants";
 import { E_SORT_ORDER, defaultActivityFilters } from "@plane/constants";
@@ -21,9 +21,9 @@ import { CommentCreate } from "@/components/comments/comment-create";
 import { useProject } from "@/hooks/store/use-project";
 // local imports
 import { IssueActivityCommentRoot } from "./activity-comment-root";
+import { ActivityFilterRoot } from "./filter-root";
 import { useWorkItemCommentOperations } from "./helper";
 import { ActivitySortRoot } from "./sort-root";
-import { ActivityFilterRoot } from "./filter-root";
 
 type TIssueActivity = {
   workspaceSlug: string;

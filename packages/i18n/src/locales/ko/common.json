@@ -762,7 +762,11 @@
     "only_one_file_allowed": "한 번에 하나의 파일만 업로드할 수 있습니다.",
     "file_size_limit": "파일 크기는 {size}MB 이하이어야 합니다.",
     "drag_and_drop": "업로드하려면 아무 곳에나 드래그 앤 드롭하세요",
-    "delete": "첨부 파일 삭제"
+    "delete": "첨부 파일 삭제",
+    "click_or_drag": "클릭하거나 파일을 여기로 끌어다 놓으세요",
+    "drop_here": "여기에 놓으세요...",
+    "uploading": "업로드 중...",
+    "invalid_file_type_or_size": "파일 형식 또는 크기가 올바르지 않습니다(최대 {size} MB)"
   },
   "label": {
     "select": "레이블 선택",

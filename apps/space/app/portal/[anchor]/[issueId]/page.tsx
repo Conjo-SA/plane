@@ -251,17 +251,15 @@ export default function PortalTicketDetailPage() {
                             <div className="mt-3 flex flex-wrap items-center gap-2 text-12 text-tertiary">
                                 {ticket.state && (
                                     <span
-                                        className={`rounded-full px-2.5 py-1 text-11 font-medium ${
-                                            STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
-                                        }`}
+                                        className={`rounded-full px-2.5 py-1 text-11 font-medium ${STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
+                                            }`}
                                     >
                                         {ticket.state}
                                     </span>
                                 )}
                                 <span
-                                    className={`rounded-full px-2.5 py-1 text-11 font-medium ${
-                                        PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.none
-                                    }`}
+                                    className={`rounded-full px-2.5 py-1 text-11 font-medium ${PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.none
+                                        }`}
                                 >
                                     {PRIORITY_LABELS[priority] ?? PRIORITY_LABELS.none}
                                 </span>
@@ -380,11 +378,10 @@ export default function PortalTicketDetailPage() {
                                         {comments.map((comment) => (
                                             <li
                                                 key={comment.id}
-                                                className={`rounded-md border px-4 py-3 ${
-                                                    comment.is_requester
+                                                className={`rounded-md border px-4 py-3 ${comment.is_requester
                                                         ? "border-accent-subtle bg-accent-subtle"
                                                         : "border-subtle bg-surface-2"
-                                                }`}
+                                                    }`}
                                             >
                                                 <p className="text-11 text-tertiary">
                                                     {comment.author} · {formatDateTime(comment.created_at)}
@@ -451,8 +448,8 @@ export default function PortalTicketDetailPage() {
                                                                 {attachment.status === "error"
                                                                     ? "Falha no envio"
                                                                     : attachment.status === "uploading"
-                                                                      ? "Enviando…"
-                                                                      : formatFileSize(attachment.size)}
+                                                                        ? "Enviando…"
+                                                                        : formatFileSize(attachment.size)}
                                                             </p>
                                                         </div>
                                                         <button

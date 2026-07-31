@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Chỉ có thể tải lên một tệp mỗi lần.",
     "file_size_limit": "Kích thước tệp phải nhỏ hơn hoặc bằng {size}MB.",
     "drag_and_drop": "Kéo và thả vào bất kỳ đâu để tải lên",
-    "delete": "Xóa tệp đính kèm"
+    "delete": "Xóa tệp đính kèm",
+    "click_or_drag": "Nhấp hoặc kéo tệp vào đây",
+    "drop_here": "Thả vào đây...",
+    "uploading": "Đang tải lên...",
+    "invalid_file_type_or_size": "Loại hoặc kích thước tệp không hợp lệ (tối đa {size} MB)"
   },
   "label": {
     "select": "Chọn nhãn",

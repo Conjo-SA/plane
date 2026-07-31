@@ -762,7 +762,11 @@
     "only_one_file_allowed": "Es kann jeweils nur eine Datei hochgeladen werden.",
     "file_size_limit": "Die Datei muss kleiner als {size} MB sein.",
     "drag_and_drop": "Datei hierher ziehen, um sie hochzuladen",
-    "delete": "Anhang löschen"
+    "delete": "Anhang löschen",
+    "click_or_drag": "Klicken Sie oder ziehen Sie eine Datei hierher",
+    "drop_here": "Hier ablegen...",
+    "uploading": "Wird hochgeladen...",
+    "invalid_file_type_or_size": "Ungültiger Dateityp oder ungültige Größe (max. {size} MB)"
   },
   "label": {
     "select": "Label auswählen",
