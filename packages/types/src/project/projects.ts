@@ -16,6 +16,7 @@ export enum EUserProjectRoles {
   GUEST = 5,
 }
 
+
 export interface IPartialProject {
   id: string;
   name: string;
