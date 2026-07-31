@@ -50,7 +50,8 @@
       "urgent": "Urgentă",
       "high": "Ridicată",
       "medium": "Medie",
-      "low": "Scăzută"
+      "low": "Scăzută",
+      "none": "Fără prioritate"
     },
     "display": {
       "properties": {

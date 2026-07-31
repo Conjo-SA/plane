@@ -8,6 +8,7 @@ from django.urls import path
 from plane.app.views import (
     IntakeViewSet,
     IntakeIssueViewSet,
+    IntakePortalBudgetEndpoint,
     IntakePortalEndpoint,
     IntakeWorkItemDescriptionVersionEndpoint,
 )
@@ -23,6 +24,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/intake-portal/",
         IntakePortalEndpoint.as_view(),
         name="intake-portal",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/portal-budget/",
+        IntakePortalBudgetEndpoint.as_view(),
+        name="intake-portal-budget",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/intakes/<uuid:pk>/",

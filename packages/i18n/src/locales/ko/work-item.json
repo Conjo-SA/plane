@@ -50,7 +50,8 @@
       "urgent": "긴급",
       "high": "높음",
       "medium": "중간",
-      "low": "낮음"
+      "low": "낮음",
+      "none": "없음"
     },
     "display": {
       "properties": {

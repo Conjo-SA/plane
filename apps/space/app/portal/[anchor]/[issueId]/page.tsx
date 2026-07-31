@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowLeft, Download, FileText, Loader2, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Download, FileText, Loader2, Paperclip, Send, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
@@ -98,6 +98,9 @@ export default function PortalTicketDetailPage() {
     const [reply, setReply] = useState("");
     const [pendingAttachments, setPendingAttachments] = useState<TPendingAttachment[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isConfirmingApproval, setIsConfirmingApproval] = useState(false);
+    const [isApproving, setIsApproving] = useState(false);
+    const [approvalError, setApprovalError] = useState<string | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
     // refs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,6 +149,21 @@ export default function PortalTicketDetailPage() {
 
     const handleRemovePending = (key: string) =>
         setPendingAttachments((prev) => prev.filter((attachment) => attachment.key !== key));
+
+    const handleApproveBudget = async () => {
+        if (!anchor || !issueId || !session) return;
+        setApprovalError(null);
+        setIsApproving(true);
+        try {
+            await intakePortalService.approveTicketBudget(anchor, issueId, session.token);
+            setIsConfirmingApproval(false);
+            await mutate();
+        } catch (err) {
+            setApprovalError(readError(err) || "Não foi possível aprovar o orçamento. Tente novamente.");
+        } finally {
+            setIsApproving(false);
+        }
+    };
 
     const handleDownload = async (assetId: string) => {
         if (!anchor || !issueId || !session) return;
@@ -229,6 +247,7 @@ export default function PortalTicketDetailPage() {
         : `#${ticket.sequence_id}`;
     const priority = ticket.priority ?? "none";
     const intakeStatusLabel = INTAKE_STATUS_LABELS[ticket.intake_status];
+    const budget = ticket.budget ?? null;
 
     return (
         <>
@@ -272,6 +291,84 @@ export default function PortalTicketDetailPage() {
                         </div>
 
                         <div className="space-y-6 px-6 py-7 sm:px-9">
+                            {budget && (
+                                <div
+                                    className={`rounded-lg border px-4 py-4 ${budget.is_approved
+                                        ? "border-emerald-200 bg-emerald-50"
+                                        : "border-amber-200 bg-amber-50"
+                                        }`}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        {budget.is_approved ? (
+                                            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                                        ) : (
+                                            <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <h2 className="text-14 font-semibold text-primary">
+                                                {budget.is_approved ? "Orçamento aprovado" : "Orçamento aguardando sua aprovação"}
+                                            </h2>
+                                            <p className="mt-1 text-20 font-semibold text-primary">
+                                                {budget.estimated_hours} horas
+                                            </p>
+                                            {budget.note && <p className="mt-2 text-13 text-secondary">{budget.note}</p>}
+
+                                            {budget.is_approved ? (
+                                                <p className="mt-2 text-12 text-tertiary">
+                                                    Aprovado por {budget.approved_by_email}
+                                                    {budget.approved_at ? ` em ${formatDateTime(budget.approved_at)}` : ""}.
+                                                </p>
+                                            ) : (
+                                                <>
+                                                    <p className="mt-2 text-12 text-secondary">
+                                                        O trabalho começa depois da sua aprovação. A aprovação é definitiva:
+                                                        só pode ser feita uma vez e não pode ser cancelada.
+                                                    </p>
+                                                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                        {isConfirmingApproval ? (
+                                                            <>
+                                                                <Button
+                                                                    variant="primary"
+                                                                    size="sm"
+                                                                    loading={isApproving}
+                                                                    prependIcon={<CheckCircle2 />}
+                                                                    onClick={() => void handleApproveBudget()}
+                                                                >
+                                                                    Confirmar aprovação
+                                                                </Button>
+                                                                <Button
+                                                                    variant="secondary"
+                                                                    size="sm"
+                                                                    disabled={isApproving}
+                                                                    onClick={() => setIsConfirmingApproval(false)}
+                                                                >
+                                                                    Voltar
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <Button
+                                                                variant="primary"
+                                                                size="sm"
+                                                                prependIcon={<CheckCircle2 />}
+                                                                onClick={() => setIsConfirmingApproval(true)}
+                                                            >
+                                                                Aprovar orçamento
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {approvalError && (
+                                                <p className="mt-3 rounded-md border border-danger-subtle bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
+                                                    {approvalError}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <h2 className="text-13 font-medium text-secondary">Detalhes</h2>
                                 <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -379,8 +476,8 @@ export default function PortalTicketDetailPage() {
                                             <li
                                                 key={comment.id}
                                                 className={`rounded-md border px-4 py-3 ${comment.is_requester
-                                                        ? "border-accent-subtle bg-accent-subtle"
-                                                        : "border-subtle bg-surface-2"
+                                                    ? "border-accent-subtle bg-accent-subtle"
+                                                    : "border-subtle bg-surface-2"
                                                     }`}
                                             >
                                                 <p className="text-11 text-tertiary">

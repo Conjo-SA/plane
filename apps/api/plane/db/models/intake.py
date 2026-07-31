@@ -159,3 +159,38 @@ class IntakePortalSession(WorkspaceBaseModel):
 
     def __str__(self):
         return f"{self.email}"
+
+
+class IntakePortalBudgetStatus(models.TextChoices):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+
+
+class IntakePortalBudget(ProjectBaseModel):
+    """Hourly effort estimate a requester has to approve before the work starts.
+
+    Approval is deliberately one way: once a requester approves an estimate it
+    becomes an immutable record, so neither side can silently revoke or reprice
+    work that was already agreed on.
+    """
+
+    issue = models.OneToOneField("db.Issue", related_name="portal_budget", on_delete=models.CASCADE)
+    estimated_hours = models.DecimalField(max_digits=7, decimal_places=2)
+    note = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=IntakePortalBudgetStatus.choices,
+        default=IntakePortalBudgetStatus.PENDING,
+    )
+    requested_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by_email = models.EmailField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "IntakePortalBudget"
+        verbose_name_plural = "IntakePortalBudgets"
+        db_table = "intake_portal_budgets"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.estimated_hours}h <{self.status}>"

@@ -24,6 +24,7 @@ from .intake_portal import IntakePortalAssetEndpoint, IntakePortalMetaEndpoint, 
 
 from .portal_tickets import (
     IntakePortalTicketAttachmentEndpoint,
+    IntakePortalTicketBudgetEndpoint,
     IntakePortalTicketCommentEndpoint,
     IntakePortalTicketDetailEndpoint,
     IntakePortalTicketsEndpoint,

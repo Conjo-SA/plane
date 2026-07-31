@@ -196,7 +196,7 @@ from .intake.base import (
     IntakeWorkItemDescriptionVersionEndpoint,
 )
 
-from .intake.portal import IntakePortalEndpoint
+from .intake.portal import IntakePortalBudgetEndpoint, IntakePortalEndpoint
 
 from .analytic.base import (
     AnalyticsEndpoint,

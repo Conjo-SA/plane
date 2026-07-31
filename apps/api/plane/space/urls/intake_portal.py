@@ -8,6 +8,7 @@ from plane.space.views import (
     IntakePortalAssetEndpoint,
     IntakePortalMetaEndpoint,
     IntakePortalTicketAttachmentEndpoint,
+    IntakePortalTicketBudgetEndpoint,
     IntakePortalTicketCommentEndpoint,
     IntakePortalTicketDetailEndpoint,
     IntakePortalTicketsEndpoint,
@@ -72,5 +73,10 @@ urlpatterns = [
         "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/attachments/<uuid:pk>/",
         IntakePortalTicketAttachmentEndpoint.as_view(),
         name="intake-portal-ticket-attachment",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/budget/approve/",
+        IntakePortalTicketBudgetEndpoint.as_view(),
+        name="intake-portal-ticket-budget-approve",
     ),
 ]

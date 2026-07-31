@@ -50,7 +50,8 @@
       "urgent": "Urgente",
       "high": "Alta",
       "medium": "Media",
-      "low": "Baja"
+      "low": "Baja",
+      "none": "Sin prioridad"
     },
     "display": {
       "properties": {

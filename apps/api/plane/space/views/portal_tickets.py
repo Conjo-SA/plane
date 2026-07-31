@@ -9,7 +9,7 @@ import json
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
-from django.utils.html import strip_tags
+from django.utils.html import escape, strip_tags
 
 # Third party imports
 from rest_framework import status
@@ -20,10 +20,11 @@ from rest_framework.throttling import ScopedRateThrottle
 # Module imports
 from plane.bgtasks.intake_portal_task import send_portal_verification_code
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import FileAsset, IntakeIssue, IssueAssignee, IssueComment, IssueLabel
-from plane.db.models.intake import SourceType
+from plane.db.models import FileAsset, IntakeIssue, IntakePortalBudget, IssueAssignee, IssueComment, IssueLabel
+from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.settings.storage import S3Storage
 from plane.utils.content_validator import validate_html_content
+from plane.utils.intake_portal import serialize_portal_budget
 from plane.utils.mailjet import is_email_provider_configured
 from plane.utils.uuid import is_valid_uuid
 
@@ -309,6 +310,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
                 "is_attachment_enabled": portal.is_attachment_enabled,
                 "labels": serialize_ticket_labels(issue.id),
                 "assignees": serialize_ticket_assignees(issue.id),
+                "budget": serialize_portal_budget(IntakePortalBudget.objects.filter(issue_id=issue.id).first()),
                 "comments": serialize_ticket_comments(issue.id),
                 "attachments": serialize_ticket_attachments(anchor, issue.id),
             },
@@ -491,3 +493,80 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
             )
 
         return Response({"url": signed_url}, status=status.HTTP_200_OK)
+
+
+class IntakePortalTicketBudgetEndpoint(BaseAPIView):
+    """Approval of an hourly estimate by the requester who owns the ticket."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "intake_portal"
+
+    def post(self, request, anchor, issue_id):
+        portal = get_enabled_portal(anchor)
+        if portal is None:
+            return Response(
+                {"error": "This request form is not available."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        session = resolve_session(request, portal.workspace_id)
+        if session is None:
+            return Response({"error": "Sessão expirada."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        intake_issue = get_owned_intake_issue(portal, issue_id, session.email)
+        if intake_issue is None:
+            return Response({"error": "Chamado não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        budget = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id).first()
+        if budget is None:
+            return Response(
+                {"error": "Não há orçamento para aprovar neste chamado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Approval is one way on purpose: it can never be repeated or undone.
+        # The conditional update is what enforces it, so two concurrent clicks
+        # cannot both win and approve the same estimate twice.
+        approved_count = IntakePortalBudget.objects.filter(
+            pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
+        ).update(
+            status=IntakePortalBudgetStatus.APPROVED,
+            approved_at=timezone.now(),
+            approved_by_email=session.email,
+        )
+        if not approved_count:
+            return Response(
+                {"error": "Este orçamento já foi aprovado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        budget.refresh_from_db()
+
+        hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
+        comment = IssueComment.objects.create(
+            issue_id=intake_issue.issue_id,
+            project_id=portal.project_id,
+            workspace_id=portal.workspace_id,
+            comment_html=(
+                f"<p>Orçamento de {escape(hours)} horas aprovado por {escape(session.email)}.</p>"
+            ),
+            access="EXTERNAL",
+            external_source=PORTAL_COMMENT_SOURCE,
+            external_id=session.email,
+        )
+
+        # Surfaces the approval on the work item timeline for the team.
+        issue_activity.delay(
+            type="comment.activity.created",
+            requested_data=json.dumps(
+                {"id": str(comment.id), "comment_html": comment.comment_html}, cls=DjangoJSONEncoder
+            ),
+            actor_id=None,
+            issue_id=str(intake_issue.issue_id),
+            project_id=str(portal.project_id),
+            current_instance=None,
+            epoch=int(timezone.now().timestamp()),
+        )
+
+        return Response(serialize_portal_budget(budget), status=status.HTTP_200_OK)

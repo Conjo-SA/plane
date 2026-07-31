@@ -9,6 +9,9 @@ import { API_BASE_URL } from "@plane/constants";
 import type {
     TIntakePortal,
     TIntakePortalAssetUpload,
+    TIntakePortalBudget,
+    TIntakePortalBudgetContext,
+    TIntakePortalBudgetSubmission,
     TIntakePortalCommentSubmission,
     TIntakePortalMeta,
     TIntakePortalSession,
@@ -206,6 +209,72 @@ export class IntakePortalService extends APIService {
             { headers: { "X-Portal-Token": token } }
         )
             .then((response) => response?.data?.url)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Approves the hourly estimate of a ticket. The approval is final: the API
+     * rejects a second attempt, so it can never be repeated or revoked.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {string} token - The portal session token
+     * @returns {Promise<TIntakePortalBudget>} The approved estimate
+     * @throws {Error} If the API request fails
+     */
+    async approveTicketBudget(anchor: string, issueId: string, token: string): Promise<TIntakePortalBudget> {
+        return this.post(
+            `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/approve/`,
+            {},
+            { headers: { "X-Portal-Token": token } }
+        )
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Retrieves the hourly estimate of a portal ticket from the team side.
+     * @param {string} workspaceSlug - The workspace slug
+     * @param {string} projectId - The project identifier
+     * @param {string} issueId - The work item identifier
+     * @returns {Promise<TIntakePortalBudgetContext>} The estimate and its context
+     * @throws {Error} If the API request fails
+     */
+    async retrieveBudget(
+        workspaceSlug: string,
+        projectId: string,
+        issueId: string
+    ): Promise<TIntakePortalBudgetContext> {
+        return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`)
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Sends an hourly estimate to the requester for approval.
+     * @param {string} workspaceSlug - The workspace slug
+     * @param {string} projectId - The project identifier
+     * @param {string} issueId - The work item identifier
+     * @param {TIntakePortalBudgetSubmission} data - The estimate payload
+     * @returns {Promise<TIntakePortalBudget>} The pending estimate
+     * @throws {Error} If the API request fails
+     */
+    async requestBudgetApproval(
+        workspaceSlug: string,
+        projectId: string,
+        issueId: string,
+        data: TIntakePortalBudgetSubmission
+    ): Promise<TIntakePortalBudget> {
+        return this.post(
+            `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`,
+            data
+        )
+            .then((response) => response?.data)
             .catch((error) => {
                 throw error?.response;
             });

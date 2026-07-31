@@ -50,7 +50,8 @@
       "urgent": "Khẩn cấp",
       "high": "Cao",
       "medium": "Trung bình",
-      "low": "Thấp"
+      "low": "Thấp",
+      "none": "Không có"
     },
     "display": {
       "properties": {

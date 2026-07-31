@@ -50,7 +50,8 @@
       "urgent": "Срочный",
       "high": "Высокий",
       "medium": "Средний",
-      "low": "Низкий"
+      "low": "Низкий",
+      "none": "Нет"
     },
     "display": {
       "properties": {

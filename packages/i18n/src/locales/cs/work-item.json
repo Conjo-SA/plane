@@ -50,7 +50,8 @@
       "urgent": "Naléhavá",
       "high": "Vysoká",
       "medium": "Střední",
-      "low": "Nízká"
+      "low": "Nízká",
+      "none": "Žádná"
     },
     "display": {
       "properties": {

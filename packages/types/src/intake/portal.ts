@@ -143,6 +143,40 @@ export type TIntakePortalTicketLabel = {
     color: string;
 };
 
+export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED";
+
+/**
+ * Hourly effort estimate a requester has to approve before the work starts.
+ * Approval is one way: it cannot be repeated or revoked.
+ */
+export type TIntakePortalBudget = {
+    id: string;
+    estimated_hours: number;
+    note: string;
+    status: TIntakePortalBudgetStatus;
+    is_approved: boolean;
+    requested_at: string | null;
+    approved_at: string | null;
+    approved_by_email: string | null;
+};
+
+/**
+ * Estimate submitted by the team for the requester to approve.
+ */
+export type TIntakePortalBudgetSubmission = {
+    estimated_hours: number;
+    note?: string;
+};
+
+/**
+ * Team side view of a work item's estimate. Only tickets that came from the
+ * portal have a requester who can approve one.
+ */
+export type TIntakePortalBudgetContext = {
+    is_portal_ticket: boolean;
+    budget: TIntakePortalBudget | null;
+};
+
 export type TIntakePortalTicketDetail = TIntakePortalTicket & {
     description_html: string;
     project_identifier: string;
@@ -152,6 +186,7 @@ export type TIntakePortalTicketDetail = TIntakePortalTicket & {
     is_attachment_enabled: boolean;
     labels: TIntakePortalTicketLabel[];
     assignees: string[];
+    budget: TIntakePortalBudget | null;
     comments: TIntakePortalTicketComment[];
     attachments: TIntakePortalTicketAttachment[];
 };

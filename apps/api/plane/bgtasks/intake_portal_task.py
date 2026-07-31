@@ -13,8 +13,8 @@ from django.conf import settings
 from django.utils.html import escape
 
 # Module imports
-from plane.db.models import IntakeIssue, Issue
-from plane.db.models.intake import SourceType
+from plane.db.models import IntakeIssue, IntakePortalBudget, Issue
+from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.utils.exception_logger import log_exception
 from plane.utils.mailjet import send_transactional_email
 
@@ -173,6 +173,52 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
             intake_issue.source_email,
             f"Atualização no chamado: {issue.name}",
             _wrap("Atualização no seu chamado", body),
+        )
+    except Exception as e:
+        log_exception(e)
+
+
+@shared_task
+def send_portal_budget_request(issue_id, portal_url=""):
+    """Ask the requester to approve the hourly estimate of their ticket."""
+    try:
+        issue = Issue.objects.filter(pk=issue_id).first()
+        if issue is None:
+            return
+
+        intake_issue = IntakeIssue.objects.filter(issue_id=issue_id, source=SourceType.PORTAL).first()
+        if intake_issue is None or not intake_issue.source_email:
+            return
+
+        budget = IntakePortalBudget.objects.filter(issue_id=issue_id).first()
+        if budget is None or budget.status != IntakePortalBudgetStatus.PENDING:
+            return
+
+        portal_anchor = ""
+        if isinstance(intake_issue.extra, dict):
+            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
+
+        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+
+        hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
+        note_html = f"<p>{escape(budget.note)}</p>" if budget.note else ""
+        link_html = (
+            _portal_cta_html(effective_portal_url, "Revisar e aprovar no portal") if effective_portal_url else ""
+        )
+        body = (
+            f"<p>Preparamos um orçamento para a sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
+            '<p style="font-size:28px;font-weight:700;background:#f3f4f6;padding:16px 24px;'
+            'border-radius:8px;text-align:center;margin:24px 0;">'
+            f"{escape(hours)} horas"
+            "</p>"
+            f"{note_html}"
+            "<p>O trabalho só começa depois da sua aprovação. A aprovação é definitiva e não pode ser desfeita.</p>"
+            f"{link_html}"
+        )
+        send_transactional_email(
+            intake_issue.source_email,
+            f"Aprovação de orçamento: {issue.name}",
+            _wrap("Orçamento aguardando sua aprovação", body),
         )
     except Exception as e:
         log_exception(e)

@@ -4,25 +4,29 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { useHashScroll } from "@plane/hooks";
 import { GlobeIcon, LockIcon } from "@plane/propel/icons";
-import { EIssueCommentAccessSpecifier } from "@plane/types";
 import type { TCommentsOperations, TIssueComment } from "@plane/types";
+import { EIssueCommentAccessSpecifier } from "@plane/types";
 import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 // local imports
-import { CommentReactions } from "../comment-reaction";
-import { CommentCardEditForm } from "./edit-form";
+import { useMember } from "@/hooks/store/use-member";
 import { EmojiReactionButton, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
 import { Avatar, Tooltip } from "@plane/ui";
-import { useMember } from "@/hooks/store/use-member";
+import { CommentReactions } from "../comment-reaction";
+import { CommentCardEditForm } from "./edit-form";
+
+// Mirrors PORTAL_COMMENT_SOURCE on the API side. Replies written by an external
+// requester have no internal actor, so their identity comes from the comment.
+const PORTAL_COMMENT_SOURCE = "INTAKE_PORTAL";
 
 export type TCommentCardDisplayProps = {
   activityOperations: TCommentsOperations;
@@ -63,10 +67,13 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
   const { getUserDetails } = useMember();
   // derived values
   const userDetails = getUserDetails(comment?.actor);
-  const displayName = comment?.actor_detail?.is_bot
-    ? comment?.actor_detail?.first_name + `Bot`
-    : (userDetails?.display_name ?? comment?.actor_detail?.display_name);
-  const avatarUrl = userDetails?.avatar_url ?? comment?.actor_detail?.avatar_url;
+  const isPortalRequester = comment?.external_source === PORTAL_COMMENT_SOURCE && !comment?.actor;
+  const displayName = isPortalRequester
+    ? (comment?.external_id ?? "Cliente")
+    : comment?.actor_detail?.is_bot
+      ? comment?.actor_detail?.first_name + `Bot`
+      : (userDetails?.display_name ?? comment?.actor_detail?.display_name);
+  const avatarUrl = isPortalRequester ? undefined : (userDetails?.avatar_url ?? comment?.actor_detail?.avatar_url);
 
   const userReactions = activityOperations.userReactions(comment.id);
 

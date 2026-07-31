@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { observer } from "mobx-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef } from "react";
-import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -33,6 +33,7 @@ import { IntakeWorkItemVersionService } from "@/services/inbox";
 import type { IInboxIssueStore } from "@/store/inbox/inbox-issue.store";
 // local imports
 import { InboxIssueContentProperties } from "./issue-properties";
+import { IntakePortalBudgetRoot } from "./portal-budget";
 // services init
 const intakeWorkItemVersionService = new IntakeWorkItemVersionService();
 
@@ -216,6 +217,15 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
           isEditable={isEditable}
           duplicateIssueDetails={inboxIssue?.duplicate_issue_detail}
           isIntakeAccepted={isIntakeAccepted}
+        />
+      </div>
+
+      <div className="py-4">
+        <IntakePortalBudgetRoot
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issue.id}
+          disabled={!isEditable}
         />
       </div>
 
