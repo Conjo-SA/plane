@@ -575,7 +575,11 @@ def create_issue_activity(
         epoch=epoch,
     )
     issue_activity.created_at = issue.created_at
-    issue_activity.actor_id = issue.created_by_id
+    # Anchor the activity to the work item author when there is one. External
+    # submissions (portal, email) have no internal author, so they keep the
+    # actor they were created with instead of being attributed to a member.
+    if issue.created_by_id:
+        issue_activity.actor_id = issue.created_by_id
     issue_activity.save(update_fields=["created_at", "actor_id"])
     requested_data = json.loads(requested_data) if requested_data is not None else None
     if requested_data.get("assignee_ids") is not None:

@@ -216,13 +216,17 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
                 default=False,
             )
 
-        issue = Issue.objects.create(
+        issue = Issue(
             name=name,
             description_html=safe_description_html,
             priority=priority,
             project_id=portal.project_id,
             state_id=triage_state.id,
         )
+        # A portal submission has no internal author. Skipping the automatic
+        # author stamping keeps an ambient request user from ever being recorded
+        # as the creator of a ticket that came from outside the workspace.
+        issue.save(disable_auto_set_user=True)
 
         IntakeIssue.objects.create(
             intake_id=portal.intake_id,

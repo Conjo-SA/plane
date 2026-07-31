@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { differenceInDays, format, formatDistanceToNow, isAfter, isEqual, isValid, parseISO } from "date-fns";
+import { differenceInDays, format, isAfter, isEqual, isValid, parseISO } from "date-fns";
 import { isNumber } from "lodash-es";
 
 // Format Date Helpers
@@ -162,21 +162,43 @@ export const findHowManyDaysLeft = (
 };
 
 // Time Difference Helpers
+const RELATIVE_TIME_UNITS: { unit: Intl.RelativeTimeFormatUnit; seconds: number }[] = [
+  { unit: "year", seconds: 60 * 60 * 24 * 365 },
+  { unit: "month", seconds: 60 * 60 * 24 * 30 },
+  { unit: "week", seconds: 60 * 60 * 24 * 7 },
+  { unit: "day", seconds: 60 * 60 * 24 },
+  { unit: "hour", seconds: 60 * 60 },
+  { unit: "minute", seconds: 60 },
+];
+
+/**
+ * Language the app is rendered in. `setLanguage` mirrors the active locale onto
+ * the <html lang> attribute, so relative times follow the user's choice instead
+ * of the browser default.
+ */
+const getAppLanguage = (): string | undefined =>
+  typeof document !== "undefined" ? document.documentElement.lang || undefined : undefined;
+
 /**
  * @returns {string} formatted date in the form of amount of time passed since the event happened
- * @description Returns time passed since the event happened
+ * @description Returns time passed since the event happened, localized to the app language
  * @param {string | Date} time
  * @example calculateTimeAgo("2023-01-01") // 1 year ago
  */
 export const calculateTimeAgo = (time: string | number | Date | null): string => {
   if (!time) return "";
   // Parse the time to check if it is valid
-  const parsedTime = typeof time === "string" || typeof time === "number" ? parseISO(String(time)) : time;
-  // return if undefined
-  if (!parsedTime) return ""; // Return empty string for invalid dates
-  // Format the time in the form of amount of time passed since the event happened
-  const distance = formatDistanceToNow(parsedTime, { addSuffix: true });
-  return distance;
+  const parsedTime = typeof time === "string" ? parseISO(time) : new Date(time);
+  // return if invalid
+  if (!parsedTime || !isValid(parsedTime)) return "";
+
+  const elapsedSeconds = (parsedTime.getTime() - Date.now()) / 1000;
+  const formatter = new Intl.RelativeTimeFormat(getAppLanguage(), { numeric: "auto" });
+
+  for (const { unit, seconds } of RELATIVE_TIME_UNITS) {
+    if (Math.abs(elapsedSeconds) >= seconds) return formatter.format(Math.round(elapsedSeconds / seconds), unit);
+  }
+  return formatter.format(Math.round(elapsedSeconds), "second");
 };
 
 export function calculateTimeAgoShort(date: string | number | Date | null): string {
