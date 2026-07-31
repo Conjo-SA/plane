@@ -23,6 +23,8 @@ from .intake import IntakeIssuePublicViewSet
 from .intake_portal import IntakePortalAssetEndpoint, IntakePortalMetaEndpoint, IntakePortalWorkItemEndpoint
 
 from .portal_tickets import (
+    IntakePortalTicketAttachmentEndpoint,
+    IntakePortalTicketCommentEndpoint,
     IntakePortalTicketDetailEndpoint,
     IntakePortalTicketsEndpoint,
     IntakePortalVerificationConfirmEndpoint,

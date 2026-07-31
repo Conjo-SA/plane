@@ -25,6 +25,8 @@ type TCommentCreate = {
   activityOperations: TCommentsOperations;
   showToolbarInitially?: boolean;
   projectId?: string;
+  /** Lets the author choose between an internal note and a public reply. */
+  showAccessSpecifier?: boolean;
   onSubmitCallback?: (elementId: string) => void;
 };
 
@@ -38,6 +40,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
     activityOperations,
     showToolbarInitially = false,
     projectId,
+    showAccessSpecifier = false,
     onSubmitCallback,
   } = props;
   // states
@@ -132,6 +135,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                 onChange={(comment_json, comment_html) => onChange(comment_html)}
                 accessSpecifier={accessValue ?? EIssueCommentAccessSpecifier.INTERNAL}
                 handleAccessChange={onAccessChange}
+                showAccessSpecifier={showAccessSpecifier}
                 isSubmitting={isSubmitting}
                 uploadFile={async (blockId, file) => {
                   const { asset_id } = await activityOperations.uploadCommentAsset(blockId, file);

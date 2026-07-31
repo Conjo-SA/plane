@@ -7,6 +7,8 @@ from django.urls import path
 from plane.space.views import (
     IntakePortalAssetEndpoint,
     IntakePortalMetaEndpoint,
+    IntakePortalTicketAttachmentEndpoint,
+    IntakePortalTicketCommentEndpoint,
     IntakePortalTicketDetailEndpoint,
     IntakePortalTicketsEndpoint,
     IntakePortalVerificationConfirmEndpoint,
@@ -55,5 +57,20 @@ urlpatterns = [
         "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/",
         IntakePortalTicketDetailEndpoint.as_view(),
         name="intake-portal-ticket-detail",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/comments/",
+        IntakePortalTicketCommentEndpoint.as_view(),
+        name="intake-portal-ticket-comments",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/attachments/",
+        IntakePortalTicketAttachmentEndpoint.as_view(),
+        name="intake-portal-ticket-attachments",
+    ),
+    path(
+        "intake-portal/<str:anchor>/tickets/<uuid:issue_id>/attachments/<uuid:pk>/",
+        IntakePortalTicketAttachmentEndpoint.as_view(),
+        name="intake-portal-ticket-attachment",
     ),
 ]

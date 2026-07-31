@@ -75,6 +75,9 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
   const activityOperations = useWorkItemCommentOperations(workspaceSlug, projectId, issueId);
 
   const project = getProjectById(projectId);
+  // Intake tickets always have an external requester waiting on the other side,
+  // so the author needs the internal / public choice there too.
+  const canChooseCommentAccess = !!project?.anchor || isIntakeIssue;
   const renderCommentCreationBox = useMemo(
     () => (
       <CommentCreate
@@ -83,9 +86,10 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
         activityOperations={activityOperations}
         showToolbarInitially
         projectId={projectId}
+        showAccessSpecifier={canChooseCommentAccess}
       />
     ),
-    [workspaceSlug, issueId, activityOperations, projectId]
+    [workspaceSlug, issueId, activityOperations, projectId, canChooseCommentAccess]
   );
   if (!project) return <></>;
 
@@ -117,7 +121,7 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
               issueId={issueId}
               selectedFilters={selectedFilters || defaultActivityFilters}
               activityOperations={activityOperations}
-              showAccessSpecifier={!!project.anchor}
+              showAccessSpecifier={canChooseCommentAccess}
               disabled={disabled}
               sortOrder={sortOrder || E_SORT_ORDER.ASC}
             />

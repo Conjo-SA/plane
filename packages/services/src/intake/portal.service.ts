@@ -9,9 +9,15 @@ import { API_BASE_URL } from "@plane/constants";
 import type {
     TIntakePortal,
     TIntakePortalAssetUpload,
+    TIntakePortalCommentSubmission,
     TIntakePortalMeta,
+    TIntakePortalSession,
     TIntakePortalSubmission,
     TIntakePortalSubmissionResponse,
+    TIntakePortalTicketAttachment,
+    TIntakePortalTicketComment,
+    TIntakePortalTicketDetail,
+    TIntakePortalTicketList,
 } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
@@ -123,6 +129,83 @@ export class IntakePortalService extends APIService {
             { headers: { "X-Portal-Token": token } }
         )
             .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Publishes a reply written by the requester on their own ticket.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {TIntakePortalCommentSubmission} data - The reply payload
+     * @param {string} token - The portal session token
+     * @returns {Promise<TIntakePortalTicketComment>} The created reply
+     * @throws {Error} If the API request fails
+     */
+    async createTicketComment(
+        anchor: string,
+        issueId: string,
+        data: TIntakePortalCommentSubmission,
+        token: string
+    ): Promise<TIntakePortalTicketComment> {
+        return this.post(`/api/public/intake-portal/${anchor}/tickets/${issueId}/comments/`, data, {
+            headers: { "X-Portal-Token": token },
+        })
+            .then((response) => response?.data)
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Attaches already uploaded assets to an existing ticket.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {string[]} attachmentIds - The uploaded asset identifiers
+     * @param {string} token - The portal session token
+     * @returns {Promise<TIntakePortalTicketAttachment[]>} The ticket attachments
+     * @throws {Error} If the API request fails
+     */
+    async attachTicketFiles(
+        anchor: string,
+        issueId: string,
+        attachmentIds: string[],
+        token: string
+    ): Promise<TIntakePortalTicketAttachment[]> {
+        return this.post(
+            `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/`,
+            { attachment_ids: attachmentIds },
+            { headers: { "X-Portal-Token": token } }
+        )
+            .then((response) => response?.data?.attachments ?? [])
+            .catch((error) => {
+                throw error?.response;
+            });
+    }
+
+    /**
+     * Resolves a short lived download link for a ticket attachment.
+     * The link is requested with the session token, so it is never a public URL.
+     * @param {string} anchor - The portal anchor
+     * @param {string} issueId - The ticket identifier
+     * @param {string} assetId - The attachment identifier
+     * @param {string} token - The portal session token
+     * @returns {Promise<string>} The signed download URL
+     * @throws {Error} If the API request fails
+     */
+    async retrieveAttachmentUrl(
+        anchor: string,
+        issueId: string,
+        assetId: string,
+        token: string
+    ): Promise<string> {
+        return this.get(
+            `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/${assetId}/`,
+            {},
+            { headers: { "X-Portal-Token": token } }
+        )
+            .then((response) => response?.data?.url)
             .catch((error) => {
                 throw error?.response;
             });
