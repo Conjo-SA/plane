@@ -16,4 +16,4 @@ RUN apk update && apk upgrade --no-cache && apk add --no-cache nss-tools bash cu
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 
-COPY Caddyfile.ce /etc/caddy/Caddyfile
+COPY apps/proxy/Caddyfile.ce /etc/caddy/Caddyfile
