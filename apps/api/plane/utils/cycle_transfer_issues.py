@@ -179,6 +179,7 @@ def transfer_cycle_issues(
                             Value("/api/assets/v2/static/"),
                             "assignees__avatar_asset",
                             Value("/"),
+                            output_field=models.CharField(),
                         ),
                     ),
                     # If `avatar_asset` is None, fall back to using `avatar` field directly
@@ -301,6 +302,7 @@ def transfer_cycle_issues(
                         Value("/api/assets/v2/static/"),
                         "assignees__avatar_asset",
                         Value("/"),
+                        output_field=models.CharField(),
                     ),
                 ),
                 # If `avatar_asset` is None, fall back to using `avatar` field directly

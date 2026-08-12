@@ -859,6 +859,7 @@ class CycleAnalyticsEndpoint(BaseAPIView):
                                 Value("/api/assets/v2/static/"),
                                 "assignees__avatar_asset",  # Assuming avatar_asset has an id or relevant field
                                 Value("/"),
+                                output_field=models.CharField(),
                             ),
                         ),
                         # If `avatar_asset` is None, fall back to using `avatar` field directly
@@ -956,6 +957,7 @@ class CycleAnalyticsEndpoint(BaseAPIView):
                                 Value("/api/assets/v2/static/"),
                                 "assignees__avatar_asset",  # Assuming avatar_asset has an id or relevant field
                                 Value("/"),
+                                output_field=models.CharField(),
                             ),
                         ),
                         # If `avatar_asset` is None, fall back to using `avatar` field directly
