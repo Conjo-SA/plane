@@ -515,6 +515,8 @@ ATTACHMENT_MIME_TYPES = [
     "video/quicktime",
     "video/x-msvideo",
     "video/x-ms-wmv",
+    "video/x-matroska",
+    "video/matroska",
     # Archives
     "application/zip",
     "application/x-rar",

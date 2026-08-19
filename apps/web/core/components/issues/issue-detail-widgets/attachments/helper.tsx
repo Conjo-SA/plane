@@ -42,7 +42,7 @@ export const useAttachmentOperations = (
       create: async (file) => {
         if (!workspaceSlug || !projectId || !issueId) throw new Error("Missing required fields");
         const attachmentUploadPromise = createAttachment(workspaceSlug, projectId, issueId, file);
-        setPromiseToast(attachmentUploadPromise, {
+        setPromiseToast<any>(attachmentUploadPromise, {
           loading: "Uploading attachment...",
           success: {
             title: "Attachment uploaded",
@@ -50,7 +50,7 @@ export const useAttachmentOperations = (
           },
           error: {
             title: "Attachment not uploaded",
-            message: () => "The attachment could not be uploaded",
+            message: (err) => err?.error || "The attachment could not be uploaded",
           },
         });
 
