@@ -77,8 +77,9 @@ export const IssueAttachmentsDetail = observer(function IssueAttachmentsDetail(p
           </Tooltip>
           <Tooltip
             isMobile={isMobile}
-            tooltipContent={`${getUserDetails(attachment.updated_by)?.display_name ?? ""
-              } uploaded on ${renderFormattedDate(attachment.updated_at)}`}
+            tooltipContent={`${
+              getUserDetails(attachment.updated_by)?.display_name ?? ""
+            } uploaded on ${renderFormattedDate(attachment.updated_at)}`}
           >
             <span>
               <AlertCircle className="h-3 w-3" />
@@ -120,7 +121,8 @@ export const IssueAttachmentsDetail = observer(function IssueAttachmentsDetail(p
             {attachmentSummary}
           </button>
         ) : (
-          <Link href={fileURL ?? ""} target="_blank" rel="noopener noreferrer">
+          // non-previewable files still open inline, letting the browser render them when possible
+          <Link href={previewURL} target="_blank" rel="noopener noreferrer">
             {attachmentSummary}
           </Link>
         )}

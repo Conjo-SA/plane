@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { useState } from "react";
 
 import { useTranslation } from "@plane/i18n";
 import { TrashIcon } from "@plane/propel/icons";
@@ -13,11 +14,19 @@ import type { TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
 import { CustomMenu } from "@plane/ui";
-import { convertBytesToSize, getFileExtension, getFileName, getFileURL, renderFormattedDate } from "@plane/utils";
+import {
+  convertBytesToSize,
+  getAttachmentPreviewKind,
+  getFileExtension,
+  getFileName,
+  getFileURL,
+  renderFormattedDate,
+} from "@plane/utils";
 // components
 //
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 import { getFileIcon } from "@/components/icons";
+import { IssueAttachmentPreviewModal } from "@/components/issues/attachment/attachment-preview-modal";
 // helpers
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -46,20 +55,38 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
   const fileExtension = getFileExtension(attachment?.attributes.name ?? "");
   const fileIcon = getFileIcon(fileExtension, 18);
   const fileURL = getFileURL(attachment?.asset_url ?? "");
+  // Media the browser can render is opened in place, so it never has to be downloaded.
+  const previewKind = getAttachmentPreviewKind(attachment?.attributes.type, attachment?.attributes.name);
+  const previewURL = fileURL ? `${fileURL}?disposition=inline` : "";
   // hooks
   const { isMobile } = usePlatformOS();
+  // state
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   if (!attachment) return <></>;
 
+  const handleAttachmentClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // previewable media opens in the inline viewer; other files open in a new tab
+    // with an inline disposition so the browser tries to render instead of download
+    if (previewKind) setIsPreviewModalOpen(true);
+    else window.open(previewURL, "_blank");
+  };
+
   return (
     <>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          window.open(fileURL, "_blank");
-        }}
-      >
+      {previewKind && isPreviewModalOpen && (
+        <IssueAttachmentPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          previewUrl={previewURL}
+          downloadUrl={fileURL ?? ""}
+          fileName={attachment.attributes.name}
+          kind={previewKind}
+        />
+      )}
+      <button onClick={handleAttachmentClick}>
         <div className="group flex h-11 items-center justify-between gap-3 pr-2 pl-9 hover:bg-surface-2">
           <div className="flex items-center gap-3 truncate text-13">
             <div className="flex items-center gap-3">{fileIcon}</div>
