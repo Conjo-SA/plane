@@ -119,8 +119,13 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
 
     if (displayFilters?.layout) issueFiltersParams.layout = displayFilters?.layout;
 
+    const expandParams: string[] = [];
+    // list and kanban cards render image attachments as inline previews, so the attachment data must be expanded
+    if (displayFilters?.layout === EIssueLayoutTypes.LIST || displayFilters?.layout === EIssueLayoutTypes.KANBAN)
+      expandParams.push("issue_attachments");
     if (ENABLE_ISSUE_DEPENDENCIES && displayFilters?.layout === EIssueLayoutTypes.GANTT)
-      issueFiltersParams["expand"] = "issue_relation,issue_related";
+      expandParams.push("issue_relation", "issue_related");
+    if (expandParams.length > 0) issueFiltersParams["expand"] = expandParams.join(",");
 
     return issueFiltersParams;
   };
