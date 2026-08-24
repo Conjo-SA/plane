@@ -11,6 +11,7 @@ export * from "./cycle";
 export * from "./dashboard";
 export * from "./instance";
 export * from "./intake";
+export * from "./mcp";
 export * from "./module";
 export * from "./user";
 export * from "./project";
