@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import useSWR from "swr";
-import { RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { mcpService } from "@plane/services";
 import { Loader } from "@plane/ui";
+import { RefreshCw, Trash2 } from "lucide-react";
+import { useState } from "react";
+import useSWR from "swr";
 
 export function MCPCallLogs() {
   // states

@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import { RefreshCw } from "lucide-react";
 import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { mcpService } from "@plane/services";
 import type { IMCPServerConfig } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
+import { RefreshCw } from "lucide-react";
+import { useState } from "react";
 // components
 import { CopyField } from "@/components/common/copy-field";
 

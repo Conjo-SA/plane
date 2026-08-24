@@ -4,12 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
-import useSWR from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { mcpService } from "@plane/services";
 import type { IMCPServerConfig, IMCPToolDefinition } from "@plane/types";
 import { Loader, ToggleSwitch } from "@plane/ui";
+import { useState } from "react";
+import useSWR from "swr";
 
 type Props = {
   config: IMCPServerConfig;

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Image, BrainCog, Cog, Mail, PlugZap } from "lucide-react";
+import { BrainCog, Cog, Image, Mail, PlugZap } from "lucide-react";
 // plane imports
 import { LockIcon, WorkspaceIcon } from "@plane/propel/icons";
 // types

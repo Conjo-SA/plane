@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { index, layout, route } from "@react-router/dev/routes";
 import type { RouteConfig } from "@react-router/dev/routes";
+import { index, layout, route } from "@react-router/dev/routes";
 
 export default [
   layout("./(all)/(home)/layout.tsx", [index("./(all)/(home)/page.tsx")]),

@@ -30,7 +30,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async config(): Promise<IMCPServerConfig> {
-    return this.get("/api/mcp/config/")
+    return this.get("/api/instances/mcp/config/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -44,7 +44,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async updateConfig(data: Partial<IMCPServerConfig>): Promise<IMCPServerConfig> {
-    return this.patch("/api/mcp/config/", data)
+    return this.patch("/api/instances/mcp/config/", data)
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -57,7 +57,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async regenerateToken(): Promise<IMCPServerConfig> {
-    return this.post("/api/mcp/config/regenerate-token/")
+    return this.post("/api/instances/mcp/config/regenerate-token/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -70,7 +70,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async tools(): Promise<{ tools: IMCPToolDefinition[] }> {
-    return this.get("/api/mcp/tools/")
+    return this.get("/api/instances/mcp/tools/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -83,7 +83,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async testConnection(): Promise<IMCPTestConnectionResult> {
-    return this.post("/api/mcp/test/")
+    return this.post("/api/instances/mcp/test/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -97,7 +97,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async logs(limit: number = 50): Promise<{ logs: IMCPToolCallLog[] }> {
-    return this.get("/api/mcp/logs/", { params: { limit } })
+    return this.get("/api/instances/mcp/logs/", { params: { limit } })
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -110,7 +110,7 @@ export class MCPService extends APIService {
    * @throws {Error} If the API request fails
    */
   async clearLogs(): Promise<void> {
-    return this.delete("/api/mcp/logs/")
+    return this.delete("/api/instances/mcp/logs/")
       .then((response) => response.data)
       .catch((error) => {
         throw error?.response?.data;

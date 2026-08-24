@@ -19,7 +19,11 @@ urlpatterns = [
     path("api/", include("plane.app.urls")),
     path("api/public/", include("plane.space.urls")),
     path("api/instances/", include("plane.license.urls")),
-    path("api/mcp/", include("plane.mcp.urls")),
+    # MCP admin (God Mode) endpoints live under /api/instances/ so the custom
+    # SessionMiddleware authenticates them with the admin session cookie.
+    path("api/instances/mcp/", include("plane.mcp.urls.config")),
+    # MCP protocol endpoint consumed by MCP clients (bearer token auth).
+    path("api/mcp/", include("plane.mcp.urls.server")),
     path("api/v1/", include("plane.api.urls")),
     path("auth/", include("plane.authentication.urls")),
     path("", include("plane.web.urls")),
