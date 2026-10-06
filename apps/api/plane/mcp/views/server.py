@@ -2,15 +2,47 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Python imports
+import hmac
+
 # Third party imports
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 
 # Module imports
 from plane.mcp.models import MCPServer
 from plane.mcp.server import PROTOCOL_VERSION, SERVER_INFO, handle_mcp_payload
+
+
+def _bearer_is_valid(request):
+    server = MCPServer.get_instance()
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    return bool(server and scheme.lower() == "bearer" and token and hmac.compare_digest(token, server.token))
+
+
+class MCPThrottle(SimpleRateThrottle):
+    """An agent organizing the board makes many calls in a row: the valid token gets a generous budget,
+    while anything else stays at the anonymous rate per IP (which also slows down token guessing)."""
+
+    TOKEN_RATE = "600/minute"
+    ANONYMOUS_RATE = "30/minute"
+
+    def get_rate(self):
+        return self.ANONYMOUS_RATE
+
+    def allow_request(self, request, view):
+        self._valid = _bearer_is_valid(request)
+        self.rate = self.TOKEN_RATE if self._valid else self.ANONYMOUS_RATE
+        self.num_requests, self.duration = self.parse_rate(self.rate)
+        return super().allow_request(request, view)
+
+    def get_cache_key(self, request, view):
+        if self._valid:
+            return "throttle_mcp_token"
+        return f"throttle_mcp_anon_{self.get_ident(request)}"
 
 
 class MCPServerEndpoint(APIView):
@@ -25,6 +57,7 @@ class MCPServerEndpoint(APIView):
 
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [MCPThrottle]
 
     def _authenticate(self, request):
         """Return (server, error_response)."""
@@ -37,7 +70,7 @@ class MCPServerEndpoint(APIView):
 
         authorization = request.headers.get("Authorization", "")
         scheme, _, token = authorization.partition(" ")
-        if scheme.lower() != "bearer" or not token or token != server.token:
+        if scheme.lower() != "bearer" or not token or not hmac.compare_digest(token, server.token):
             return None, Response(
                 {"error": "Invalid or missing MCP bearer token"},
                 status=status.HTTP_401_UNAUTHORIZED,

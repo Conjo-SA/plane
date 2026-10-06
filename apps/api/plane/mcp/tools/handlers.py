@@ -96,9 +96,7 @@ def _get_issue(workspace_slug, issue):
             project_identifier, sequence_id = str(issue).rsplit("-", 1)
             sequence_id = int(sequence_id)
         except (ValueError, AttributeError):
-            raise MCPToolError(
-                f"Work item '{issue}' is not a valid UUID or identifier like 'PLANE-123'"
-            )
+            raise MCPToolError(f"Work item '{issue}' is not a valid UUID or identifier like 'PLANE-123'")
         instance = queryset.filter(
             project__identifier=project_identifier.strip().upper(), sequence_id=sequence_id
         ).first()
@@ -172,6 +170,8 @@ def _serialize_issue(issue, include_description=False):
         "priority": issue.priority,
         "sequence_id": issue.sequence_id,
         "state_id": str(issue.state_id) if issue.state_id else None,
+        "state": {"name": issue.state.name, "group": issue.state.group} if issue.state_id else None,
+        "parent_id": str(issue.parent_id) if issue.parent_id else None,
         "project_id": str(issue.project_id),
         "workspace_id": str(issue.workspace_id),
         "start_date": issue.start_date.isoformat() if issue.start_date else None,
@@ -431,14 +431,10 @@ def create_project(workspace_slug, name, identifier, description=""):
 )
 def list_workspace_members(workspace_slug):
     _get_workspace(workspace_slug)
-    members = WorkspaceMember.objects.filter(
-        workspace__slug=workspace_slug, is_active=True
-    ).select_related("member")
+    members = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, is_active=True).select_related("member")
     return {
         "members": [
-            {**_serialize_user(member.member), "role": member.role}
-            for member in members
-            if member.member is not None
+            {**_serialize_user(member.member), "role": member.role} for member in members if member.member is not None
         ]
     }
 
@@ -459,9 +455,7 @@ def list_project_members(workspace_slug, project):
     members = ProjectMember.objects.filter(project=project_instance, is_active=True).select_related("member")
     return {
         "members": [
-            {**_serialize_user(member.member), "role": member.role}
-            for member in members
-            if member.member is not None
+            {**_serialize_user(member.member), "role": member.role} for member in members if member.member is not None
         ]
     }
 
@@ -471,10 +465,28 @@ def list_project_members(workspace_slug, project):
 # ---------------------------------------------------------------------------
 
 
-def _filtered_issues(workspace_slug, project=None, query=None, state_id=None, priority=None, assignee_id=None):
+def _filtered_issues(
+    workspace_slug,
+    project=None,
+    query=None,
+    state_id=None,
+    priority=None,
+    assignee_id=None,
+    label_id=None,
+    cycle_id=None,
+    module_id=None,
+    state_group=None,
+    parent=None,
+    archived=False,
+):
+    # The board: no requests still in triage, no drafts; archived items only when asked for.
+    if archived:
+        base = Issue.objects.filter(archived_at__isnull=False, is_draft=False)
+    else:
+        base = Issue.issue_objects.all()
     queryset = (
-        Issue.objects.filter(workspace__slug=workspace_slug, archived_at__isnull=True)
-        .select_related("project")
+        base.filter(workspace__slug=workspace_slug)
+        .select_related("project", "state")
         .prefetch_related("assignees", "labels")
     )
     if project is not None:
@@ -487,6 +499,16 @@ def _filtered_issues(workspace_slug, project=None, query=None, state_id=None, pr
         queryset = queryset.filter(priority=priority)
     if assignee_id:
         queryset = queryset.filter(assignees__id=assignee_id)
+    if label_id:
+        queryset = queryset.filter(label_issue__label_id=label_id, label_issue__deleted_at__isnull=True)
+    if cycle_id:
+        queryset = queryset.filter(issue_cycle__cycle_id=cycle_id, issue_cycle__deleted_at__isnull=True)
+    if module_id:
+        queryset = queryset.filter(issue_module__module_id=module_id, issue_module__deleted_at__isnull=True)
+    if state_group:
+        queryset = queryset.filter(state__group=state_group)
+    if parent:
+        queryset = queryset.filter(parent=_get_issue(workspace_slug, parent))
     return queryset.order_by("-created_at").distinct()
 
 
@@ -508,26 +530,77 @@ def _filtered_issues(workspace_slug, project=None, query=None, state_id=None, pr
                 "description": "Filter by priority",
             },
             "assignee_id": {"type": "string", "description": "Filter by assignee user UUID"},
+            "label_id": {"type": "string", "description": "Filter by label UUID"},
+            "cycle_id": {"type": "string", "description": "Filter by cycle UUID"},
+            "module_id": {"type": "string", "description": "Filter by module UUID"},
+            "state_group": {
+                "type": "string",
+                "enum": ["backlog", "unstarted", "started", "completed", "cancelled"],
+                "description": "Filter by state group (e.g. 'started' for everything in progress)",
+            },
+            "parent": {"type": "string", "description": "Only sub-work items of this work item"},
+            "archived": {"type": "boolean", "description": "List archived work items instead", "default": False},
             "limit": {
                 "type": "integer",
                 "description": "Maximum number of work items to return (default 50, max 200)",
                 "default": 50,
             },
+            "offset": {"type": "integer", "description": "Skip this many items (pagination)", "default": 0},
         },
         "required": ["workspace_slug"],
         "additionalProperties": False,
     },
     category="work_items",
 )
-def list_work_items(workspace_slug, project=None, state_id=None, priority=None, assignee_id=None, limit=50):
+def list_work_items(
+    workspace_slug,
+    project=None,
+    state_id=None,
+    priority=None,
+    assignee_id=None,
+    label_id=None,
+    cycle_id=None,
+    module_id=None,
+    state_group=None,
+    parent=None,
+    archived=False,
+    limit=50,
+    offset=0,
+):
     _get_workspace(workspace_slug)
     if priority is not None and priority not in PRIORITY_CHOICES:
         raise MCPToolError(f"priority must be one of {', '.join(PRIORITY_CHOICES)}")
+    for name, value in (
+        ("state_id", state_id),
+        ("assignee_id", assignee_id),
+        ("label_id", label_id),
+        ("cycle_id", cycle_id),
+        ("module_id", module_id),
+    ):
+        if value and not _is_uuid(value):
+            raise MCPToolError(f"'{name}' must be a UUID")
     limit = max(1, min(int(limit or 50), 200))
-    issues = _filtered_issues(
-        workspace_slug, project=project, state_id=state_id, priority=priority, assignee_id=assignee_id
-    )[:limit]
-    return {"work_items": [_serialize_issue(issue) for issue in issues]}
+    offset = max(0, int(offset or 0))
+    queryset = _filtered_issues(
+        workspace_slug,
+        project=project,
+        state_id=state_id,
+        priority=priority,
+        assignee_id=assignee_id,
+        label_id=label_id,
+        cycle_id=cycle_id,
+        module_id=module_id,
+        state_group=state_group,
+        parent=parent,
+        archived=bool(archived),
+    )
+    total = queryset.count()
+    issues = queryset[offset : offset + limit]
+    return {
+        "work_items": [_serialize_issue(issue) for issue in issues],
+        "total": total,
+        "next_offset": offset + limit if offset + limit < total else None,
+    }
 
 
 @register_tool(
@@ -542,8 +615,37 @@ def list_work_items(workspace_slug, project=None, state_id=None, priority=None, 
     category="work_items",
 )
 def retrieve_work_item(workspace_slug, work_item):
+    from plane.db.models import CycleIssue, IntakeIssue, IssueLink, ModuleIssue
+    from plane.mcp.tools.board import _relations_of
+
     issue = _get_issue(workspace_slug, work_item)
-    return _serialize_issue(issue, include_description=True)
+    data = _serialize_issue(issue, include_description=True)
+    cycle = CycleIssue.objects.filter(issue=issue).select_related("cycle").first()
+    intake = IntakeIssue.objects.filter(issue=issue).first()
+    data.update(
+        assignees=[
+            {"id": str(user.id), "display_name": user.display_name, "email": user.email}
+            for user in issue.assignees.all()
+        ],
+        labels=[{"id": str(label.id), "name": label.name} for label in issue.labels.all()],
+        parent=_issue_identifier(issue.parent) if issue.parent_id else None,
+        sub_work_items=[
+            _issue_identifier(child) for child in Issue.issue_objects.filter(parent=issue).order_by("sequence_id")
+        ],
+        cycle={"id": str(cycle.cycle_id), "name": cycle.cycle.name} if cycle else None,
+        modules=[
+            {"id": str(link.module_id), "name": link.module.name}
+            for link in ModuleIssue.objects.filter(issue=issue).select_related("module")
+        ],
+        relations=_relations_of(issue),
+        links=IssueLink.objects.filter(issue=issue).count(),
+        is_archived=issue.archived_at is not None,
+        intake_status={-2: "pending", -1: "declined", 0: "snoozed", 1: "accepted", 2: "duplicate"}.get(intake.status)
+        if intake
+        else None,
+        completed_at=issue.completed_at.isoformat() if issue.completed_at else None,
+    )
+    return data
 
 
 @register_tool(
@@ -587,6 +689,24 @@ def _validate_state(project_instance, state_id):
     if state is None:
         raise MCPToolError(f"State '{state_id}' does not exist in project '{project_instance.identifier}'")
     return state
+
+
+def _validate_parent(workspace_slug, project_instance, parent, child=None):
+    """Parent in the same project, never the item itself nor one of its descendants."""
+    if parent in (None, ""):
+        return None
+    parent_issue = _get_issue(workspace_slug, parent)
+    if parent_issue.project_id != project_instance.id:
+        raise MCPToolError("The parent must be in the same project")
+    if child is not None:
+        ancestor = parent_issue
+        for _ in range(50):
+            if ancestor is None:
+                break
+            if ancestor.id == child.id:
+                raise MCPToolError("A work item cannot be the parent of itself or of its own parent")
+            ancestor = ancestor.parent
+    return parent_issue
 
 
 def _set_issue_assignees(issue, project_instance, assignee_ids):
@@ -686,6 +806,7 @@ def _issue_snapshot(issue):
         "state_id": str(issue.state_id) if issue.state_id else None,
         "start_date": issue.start_date.isoformat() if issue.start_date else None,
         "target_date": issue.target_date.isoformat() if issue.target_date else None,
+        "parent_id": str(issue.parent_id) if issue.parent_id else None,
         "assignee_ids": [
             str(a) for a in IssueAssignee.objects.filter(issue=issue).values_list("assignee_id", flat=True)
         ],
@@ -732,6 +853,10 @@ def _issue_snapshot(issue):
                 "items": {"type": "string"},
                 "description": "Label UUIDs to attach",
             },
+            "parent": {
+                "type": "string",
+                "description": "Make it a sub-work item of this work item (identifier or UUID, same project)",
+            },
         },
         "required": ["workspace_slug", "project", "name"],
         "additionalProperties": False,
@@ -749,16 +874,16 @@ def create_work_item(
     target_date=None,
     assignee_ids=None,
     label_ids=None,
+    parent=None,
 ):
     if not name:
         raise MCPToolError("'name' is required")
     _validate_priority(priority)
     project_instance = _get_project(workspace_slug, project)
     state = _validate_state(project_instance, state_id)
+    parent_issue = _validate_parent(workspace_slug, project_instance, parent)
 
-    issue_type = IssueType.objects.filter(
-        project_issue_types__project_id=project_instance.id, is_default=True
-    ).first()
+    issue_type = IssueType.objects.filter(project_issue_types__project_id=project_instance.id, is_default=True).first()
 
     actor = _mcp_actor()
     issue = Issue(
@@ -770,6 +895,7 @@ def create_work_item(
         type=issue_type,
         start_date=_parse_date(start_date, "start_date"),
         target_date=_parse_date(target_date, "target_date"),
+        parent=parent_issue,
     )
     # No request user behind the MCP token: name the bot as the author explicitly.
     issue.save(created_by_id=actor.id)
@@ -800,6 +926,10 @@ def create_work_item(
             "target_date": {"type": "string", "description": "ISO date (YYYY-MM-DD) or empty string to clear"},
             "assignee_ids": {"type": "array", "items": {"type": "string"}},
             "label_ids": {"type": "array", "items": {"type": "string"}},
+            "parent": {
+                "type": "string",
+                "description": "Parent work item (identifier or UUID, same project), or empty string to detach",
+            },
         },
         "required": ["workspace_slug", "work_item"],
         "additionalProperties": False,
@@ -817,6 +947,7 @@ def update_work_item(
     target_date=None,
     assignee_ids=None,
     label_ids=None,
+    parent=None,
 ):
     issue = _get_issue(workspace_slug, work_item)
     _validate_priority(priority)
@@ -841,6 +972,9 @@ def update_work_item(
     if target_date is not None:
         issue.target_date = _parse_date(target_date, "target_date")
         update_fields.append("target_date")
+    if parent is not None:
+        issue.parent = _validate_parent(workspace_slug, issue.project, parent, child=issue)
+        update_fields.append("parent")
 
     if update_fields:
         update_fields.append("updated_at")
@@ -947,13 +1081,17 @@ def create_cycle(workspace_slug, project, name, start_date, end_date, descriptio
     if end < start:
         raise MCPToolError("'end_date' must be after 'start_date'")
 
-    cycle = Cycle.objects.create(
+    actor = _mcp_actor()
+    cycle = Cycle(
         name=name,
         description=description or "",
         project=project_instance,
         start_date=start,
         end_date=end,
+        # A cycle needs an owner; the MCP token belongs to the instance, so the bot owns it.
+        owned_by=actor,
     )
+    cycle.save(created_by_id=actor.id)
     return _serialize_cycle(cycle)
 
 

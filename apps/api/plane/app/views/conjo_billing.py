@@ -230,26 +230,13 @@ class IssueWorkKindEndpoint(BaseAPIView):
             return Response(_issue_time_payload(issue))
         # Changing the kind of an item with an approved estimate debits or gives back client hours,
         # which is a statement operation: only administrators can do it (same as a manual reversal).
-        touches_statement = billing.open_debit(issue) is not None or (
-            billing.contract_for_issue(issue) is not None
-            and IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").exists()
-        )
-        if touches_statement and not _is_workspace_admin(request.user, slug):
+        if billing.kind_change_touches_statement(issue) and not _is_workspace_admin(request.user, slug):
             return _error(
                 "Esta tarefa tem orçamento aprovado: só um administrador pode mudar o tipo, porque isso altera o "
                 "saldo do cliente.",
                 status.HTTP_403_FORBIDDEN,
             )
-        with transaction.atomic():
-            IssueWorkKind.objects.update_or_create(issue=issue, defaults={"kind": kind, "project_id": issue.project_id})
-            debit = billing.open_debit(issue)
-            if kind != IssueWorkKind.EVOLUTION and debit is not None:
-                label = dict(IssueWorkKind.KIND_CHOICES)[kind]
-                billing.reverse_debit(debit, note=f"Tipo alterado para {label}: não desconta do pacote")
-            elif kind == IssueWorkKind.EVOLUTION and debit is None:
-                budget = IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").first()
-                if budget is not None:
-                    billing.debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "")
+        billing.change_work_kind(issue, kind)
         return Response(_issue_time_payload(issue))
 
 
@@ -434,22 +421,71 @@ class ClientProjectsEndpoint(BaseAPIView):
         client = _get_client(slug, client_id)
         if client is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        raw_ids = request.data.get("project_ids") or []
-        if not isinstance(raw_ids, list) or not all(is_valid_uuid(str(p)) for p in raw_ids):
-            return _error("Lista de projetos inválida.")
-        project_ids = [str(p) for p in raw_ids]
-        projects = list(Project.objects.filter(workspace__slug=slug, pk__in=project_ids))
-        taken = ClientProject.objects.filter(project__in=projects).exclude(client=client).select_related("client")
-        if taken:
-            names = ", ".join(f"{link.project.identifier} ({link.client.name})" for link in taken)
-            return _error(f"Projeto já ligado a outro cliente: {names}.")
-        with transaction.atomic():
-            ClientProject.objects.filter(client=client).exclude(project__in=projects).delete()
-            existing = set(ClientProject.objects.filter(client=client).values_list("project_id", flat=True))
-            for project in projects:
-                if project.id not in existing:
-                    ClientProject.objects.create(client=client, project=project, workspace_id=client.workspace_id)
+        error = set_client_projects(client, request.data.get("project_ids") or [])
+        if error:
+            return _error(error)
         return Response(_client(client, detail=True))
+
+
+def set_client_projects(client, raw_ids):
+    """Replace the client's projects (same workspace; a project belongs to one client). Returns an error or None."""
+    if not isinstance(raw_ids, list) or not all(is_valid_uuid(str(p)) for p in raw_ids):
+        return "Lista de projetos inválida."
+    projects = list(Project.objects.filter(workspace_id=client.workspace_id, pk__in=[str(p) for p in raw_ids]))
+    taken = ClientProject.objects.filter(project__in=projects).exclude(client=client).select_related("client")
+    if taken:
+        names = ", ".join(f"{link.project.identifier} ({link.client.name})" for link in taken)
+        return f"Projeto já ligado a outro cliente: {names}."
+    with transaction.atomic():
+        ClientProject.objects.filter(client=client).exclude(project__in=projects).delete()
+        existing = set(ClientProject.objects.filter(client=client).values_list("project_id", flat=True))
+        for project in projects:
+            if project.id not in existing:
+                ClientProject.objects.create(client=client, project=project, workspace_id=client.workspace_id)
+    return None
+
+
+def create_contract(client, data):
+    """New package for the client; it replaces the active one (the balance moves over). Returns (contract, error)."""
+    contract = ClientContract(client=client, workspace_id=client.workspace_id)
+    errors = _apply_contract(contract, data)
+    if contract.hours_per_month is None:
+        errors.append("Informe as horas por mês.")
+    opening = None
+    if data.get("opening_balance") not in (None, "", 0, "0"):
+        opening = billing.parse_hours(data.get("opening_balance"))
+        if opening is None:
+            errors.append("Saldo inicial inválido.")
+    if errors:
+        return None, " ".join(errors)
+    with transaction.atomic():
+        contract.save()
+        # One active package per client: the new one replaces the previous, and what is left of
+        # the previous one moves over with its original expiry (nothing disappears silently).
+        for previous in ClientContract.objects.filter(client=client, is_active=True).exclude(pk=contract.pk):
+            billing.close_contract(previous, replaced_by=contract)
+        billing.refresh_contract(contract)
+        if opening:
+            billing.adjust(contract, opening, "Saldo inicial ao cadastrar o contrato")
+    return contract, None
+
+
+def update_contract(contract, data):
+    """Change an active package, or end it with ``is_active: false``. Returns (contract, error)."""
+    if not contract.is_active:
+        return None, "Contrato encerrado não pode ser alterado. Cadastre um novo contrato."
+    errors = _apply_contract(contract, data)
+    if errors:
+        return None, " ".join(errors)
+    with transaction.atomic():
+        contract.save()
+        if data.get("is_active") is False:
+            # Ending a package writes off what is left (a replacement is a new contract instead).
+            billing.close_contract(contract)
+        else:
+            billing.refresh_contract(contract)
+    contract.refresh_from_db()
+    return contract, None
 
 
 def _apply_contract(contract, data):
@@ -506,26 +542,9 @@ class ClientContractsEndpoint(BaseAPIView):
         client = _get_client(slug, client_id)
         if client is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        contract = ClientContract(client=client, workspace_id=client.workspace_id)
-        errors = _apply_contract(contract, request.data)
-        if contract.hours_per_month is None:
-            errors.append("Informe as horas por mês.")
-        opening = None
-        if request.data.get("opening_balance") not in (None, "", 0, "0"):
-            opening = billing.parse_hours(request.data.get("opening_balance"))
-            if opening is None:
-                errors.append("Saldo inicial inválido.")
-        if errors:
-            return _error(" ".join(errors))
-        with transaction.atomic():
-            contract.save()
-            # One active package per client: the new one replaces the previous, and what is left of
-            # the previous one moves over with its original expiry (nothing disappears silently).
-            for previous in ClientContract.objects.filter(client=client, is_active=True).exclude(pk=contract.pk):
-                billing.close_contract(previous, replaced_by=contract)
-            billing.refresh_contract(contract)
-            if opening:
-                billing.adjust(contract, opening, "Saldo inicial ao cadastrar o contrato")
+        contract, error = create_contract(client, request.data)
+        if error:
+            return _error(error)
         return Response(_contract(contract), status=status.HTTP_201_CREATED)
 
 
@@ -535,19 +554,9 @@ class ClientContractDetailEndpoint(BaseAPIView):
         contract = ClientContract.objects.filter(workspace__slug=slug, client_id=client_id, pk=contract_id).first()
         if contract is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        if not contract.is_active:
-            return _error("Contrato encerrado não pode ser alterado. Cadastre um novo contrato.")
-        errors = _apply_contract(contract, request.data)
-        if errors:
-            return _error(" ".join(errors))
-        with transaction.atomic():
-            contract.save()
-            if request.data.get("is_active") is False:
-                # Ending a package writes off what is left (a replacement is a new contract instead).
-                billing.close_contract(contract)
-            else:
-                billing.refresh_contract(contract)
-        contract.refresh_from_db()
+        contract, error = update_contract(contract, request.data)
+        if error:
+            return _error(error)
         return Response(_contract(contract))
 
 

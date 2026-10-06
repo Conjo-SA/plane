@@ -30,7 +30,15 @@ SERVER_INFO = {
 SERVER_INSTRUCTIONS = (
     "Tasks MCP server. Use the workspace_slug (e.g. 'my-company') to scope every call. "
     "Projects accept either their UUID or their short identifier (e.g. 'PLANE') and work "
-    "items accept either their UUID or their human identifier (e.g. 'PLANE-123')."
+    "items accept either their UUID or their human identifier (e.g. 'PLANE-123'). "
+    "Board: list_states/list_labels/list_cycles/list_modules give the UUIDs other tools take; "
+    "list_work_items filters by state, state_group, label, cycle, module, assignee and parent, "
+    "and bulk_update_work_items changes many items at once. New requests wait in the intake "
+    "(list_intake_items, triage_intake_item) before reaching the board. "
+    "Clients and hours: clients accept their UUID, name or CNPJ/CPF. Time entries need the person "
+    "who did the work (member e-mail). Only 'evolution' work items debit the client's hour package "
+    "when their estimate is approved; 'maintenance' and 'internal' are counted but never debited. "
+    "Every write is recorded in the work item history as 'Assistente (MCP)'."
 )
 
 # JSON-RPC 2.0 error codes
@@ -62,9 +70,7 @@ def _error(request_id, code, message, data=None):
 
 def _enabled_tools(server: MCPServer):
     return [
-        tool
-        for tool in sorted(TOOL_REGISTRY.values(), key=lambda tool: tool.name)
-        if server.is_tool_enabled(tool.name)
+        tool for tool in sorted(TOOL_REGISTRY.values(), key=lambda tool: tool.name) if server.is_tool_enabled(tool.name)
     ]
 
 

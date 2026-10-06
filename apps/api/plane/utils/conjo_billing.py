@@ -499,6 +499,37 @@ def close_contract(contract, replaced_by=None, on=None):
     return moved
 
 
+def kind_change_touches_statement(issue):
+    """Whether changing the work kind would debit or give back client hours (an admin decision)."""
+    from plane.db.models import IntakePortalBudget
+
+    if open_debit(issue) is not None:
+        return True
+    return (
+        contract_for_issue(issue) is not None
+        and IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").exists()
+    )
+
+
+@transaction.atomic
+def change_work_kind(issue, kind, reason=""):
+    """Set evolution, maintenance or internal and keep the statement consistent with it.
+
+    Leaving evolution reverses the open debit; coming back to it debits the approved estimate again.
+    """
+    from plane.db.models import IntakePortalBudget, IssueWorkKind
+
+    IssueWorkKind.objects.update_or_create(issue=issue, defaults={"kind": kind, "project_id": issue.project_id})
+    debit = open_debit(issue)
+    if kind != IssueWorkKind.EVOLUTION and debit is not None:
+        label = dict(IssueWorkKind.KIND_CHOICES)[kind]
+        reverse_debit(debit, note=f"Tipo alterado para {label}: não desconta do pacote{reason}")
+    elif kind == IssueWorkKind.EVOLUTION and debit is None:
+        budget = IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").first()
+        if budget is not None:
+            debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "")
+
+
 # --------------------------------------------------------------------------- #
 # Summaries
 # --------------------------------------------------------------------------- #

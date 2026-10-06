@@ -28,9 +28,7 @@ class MCPServer(BaseModel):
     name = models.CharField(max_length=255, default="Plane MCP Server")
     description = models.TextField(blank=True)
     is_enabled = models.BooleanField(default=False)
-    token = models.CharField(
-        max_length=255, unique=True, default=generate_mcp_token, db_index=True
-    )
+    token = models.CharField(max_length=255, unique=True, default=generate_mcp_token, db_index=True)
     # Names of registry tools that are explicitly disabled. Empty means
     # every registered tool is available.
     disabled_tools = models.JSONField(default=list, blank=True)
@@ -69,9 +67,7 @@ class MCPToolCallLog(BaseModel):
 
     tool_name = models.CharField(max_length=255, db_index=True)
     arguments = models.JSONField(default=dict, blank=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="success", db_index=True
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="success", db_index=True)
     error_message = models.TextField(blank=True)
     duration_ms = models.PositiveIntegerField(default=0)
 

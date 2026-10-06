@@ -26,6 +26,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   states: "States",
   labels: "Labels",
   pages: "Pages",
+  intake: "Intake",
+  time: "Time spent",
+  clients: "Clients and hour packages",
+  development: "Development (GitHub)",
 };
 
 export function MCPToolsCatalog(props: Props) {
