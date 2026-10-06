@@ -100,3 +100,13 @@ from .description import Description, DescriptionVersion
 
 from .conjo_chat import ProjectChatIntegration
 from .conjo_github import IssueDevelopmentLink, ProjectGitHubSettings
+from .conjo_billing import (
+    Client,
+    ClientContact,
+    ClientContract,
+    ClientProject,
+    ClientTimelineNote,
+    HourLedgerEntry,
+    IssueWorkKind,
+    IssueWorkLog,
+)

@@ -363,6 +363,7 @@ CELERY_IMPORTS = (
     "plane.bgtasks.intake_portal_task",
     "plane.bgtasks.conjo_chat_task",
     "plane.bgtasks.conjo_github_task",
+    "plane.bgtasks.conjo_billing_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))

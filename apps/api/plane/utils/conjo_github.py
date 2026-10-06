@@ -31,6 +31,8 @@ KEY_RE_STRICT = re.compile(KEY_PATTERN)
 KEY_RE_ANY_CASE = re.compile(KEY_PATTERN, re.IGNORECASE)
 
 COMMAND_RE = re.compile(r"(?<![\w#])#([A-Za-z][\w-]*)")
+# "#time 1h30" logs time spent (Jira syntax).
+TIME_RE = re.compile(r"(?<![\w#])#time[ \t]+(\d[\w.,]*)", re.IGNORECASE)
 COMMENT_RE = re.compile(r"(?<![\w#])#comment\b[ \t]*(.*?)(?=(?<![\w#])#[A-Za-z]|$)", re.IGNORECASE)
 
 # Generic transition words → state group, used when no state name matches.
@@ -105,7 +107,7 @@ def find_keys(text, any_case=False):
 def parse_smart_commands(message):
     """Map each key to the commands written on the same line.
 
-    Returns ``{(IDENT, seq): {"comments": [str], "transitions": [str]}}``.
+    Returns ``{(IDENT, seq): {"comments": [str], "transitions": [str], "times": [str]}}``.
     """
     result = {}
     for line in (message or "").splitlines():
@@ -113,13 +115,15 @@ def parse_smart_commands(message):
         if not keys:
             continue
         comments = [c.strip() for c in COMMENT_RE.findall(line) if c.strip()]
+        times = [t.strip() for t in TIME_RE.findall(line) if t.strip()]
         transitions = [cmd for cmd in COMMAND_RE.findall(line) if cmd.lower() not in NON_TRANSITION_COMMANDS]
-        if not comments and not transitions:
+        if not comments and not transitions and not times:
             continue
         for key in keys:
-            entry = result.setdefault(key, {"comments": [], "transitions": []})
+            entry = result.setdefault(key, {"comments": [], "transitions": [], "times": []})
             entry["comments"].extend(comments)
             entry["transitions"].extend(transitions)
+            entry["times"].extend(times)
     return result
 
 

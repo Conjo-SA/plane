@@ -45,6 +45,10 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.conf.beat_schedule = {
     # Intra day recurring jobs
+    "conjo-hour-packages-daily": {
+        "task": "plane.bgtasks.conjo_billing_task.refresh_hour_packages",
+        "schedule": crontab(hour=3, minute=5),  # UTC 03:05 (00:05 in Brasília): credits and expirations
+    },
     "conjo-github-sync-hourly": {
         "task": "plane.bgtasks.conjo_github_task.sync_github_history",
         "schedule": crontab(minute=17),  # Every hour: recover webhooks GitHub never delivered

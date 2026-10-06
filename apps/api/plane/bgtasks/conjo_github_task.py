@@ -284,6 +284,28 @@ def add_comment(issue, actor, text, commit_url, short_sha, repository):
     )
 
 
+def log_commit_time(issue, actor, duration, short_sha, repository):
+    """``MAN-12 #time 1h30``: time spent, once per commit."""
+    from plane.db.models import IssueWorkLog
+    from plane.utils.conjo_billing import parse_duration, today
+
+    minutes = parse_duration(duration)
+    if not minutes or minutes > 24 * 60:
+        return
+    IssueWorkLog.objects.get_or_create(
+        issue=issue,
+        source=IssueWorkLog.SOURCE_COMMIT,
+        external_id=short_sha,
+        defaults={
+            "project_id": issue.project_id,
+            "member": actor,
+            "minutes": minutes,
+            "logged_on": today(),
+            "description": f"via commit {short_sha} em {repository}",
+        },
+    )
+
+
 def apply_smart_commands(issue, commands, actor, commit_url, short_sha, repository):
     from plane.db.models import State
 
@@ -292,6 +314,8 @@ def apply_smart_commands(issue, commands, actor, commit_url, short_sha, reposito
         return
     for text in commands.get("comments", []):
         add_comment(issue, actor, text, commit_url, short_sha, repository)
+    for duration in commands.get("times", []):
+        log_commit_time(issue, actor, duration, short_sha, repository)
     states = list(State.objects.filter(project_id=issue.project_id))
     for command in commands.get("transitions", []):
         state = resolve_state(states, command)

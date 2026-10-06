@@ -4,6 +4,7 @@
 
 # Python imports
 import json
+from uuid import UUID
 
 # Django imports
 from django.conf import settings
@@ -265,7 +266,23 @@ class IntakePortalTicketsEndpoint(BaseAPIView):
             }
             for intake_issue in intake_issues
         ]
-        return Response({"email": session.email, "tickets": tickets}, status=status.HTTP_200_OK)
+        # Conjo: the client's hour package (for registered contacts) and how each ticket counts.
+        from plane.db.models import IssueWorkKind
+        from plane.utils.conjo_billing import portal_package
+
+        kinds = dict(
+            IssueWorkKind.objects.filter(issue_id__in=[t["id"] for t in tickets]).values_list("issue_id", "kind")
+        )
+        for ticket in tickets:
+            ticket["work_kind"] = kinds.get(UUID(ticket["id"]))
+        return Response(
+            {
+                "email": session.email,
+                "tickets": tickets,
+                "package": portal_package(portal.project_id, session.email),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class IntakePortalTicketDetailEndpoint(BaseAPIView):
@@ -569,6 +586,12 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             )
 
         budget.refresh_from_db()
+
+        if is_approval:
+            # Conjo: an approved estimate debits the client's hour package (evolution only).
+            from plane.bgtasks.conjo_billing_task import debit_approved_estimate
+
+            debit_approved_estimate(intake_issue.issue_id, budget.estimated_hours, session.email)
 
         hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
         decision_label = "aprovado" if is_approval else "recusado"
