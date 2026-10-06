@@ -45,6 +45,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // local components
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
+import { IssueDevelopmentCardIndicator } from "@/components/issues/issue-detail-widgets/development";
 
 export interface IIssueProperties {
   issue: TIssue;
@@ -481,6 +482,15 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
           </div>
         </Tooltip>
       </WithDisplayPropertiesHOC>
+
+      {/* Conjo: pull request state from GitHub */}
+      {!isEpic && (
+        <IssueDevelopmentCardIndicator
+          workspaceSlug={workspaceSlug?.toString()}
+          projectId={issue.project_id ?? undefined}
+          issueId={issue.id}
+        />
+      )}
 
       {/* label */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="labels">

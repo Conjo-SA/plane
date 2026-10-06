@@ -257,3 +257,116 @@ class TestDevelopmentEndpoints:
         response = session_client.patch(url, {"pr_merged_state": str(states["done"].id)}, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["pr_merged_state"] == str(states["done"].id)
+
+
+def fake_github(pages):
+    """Stand-in for github_pages: returns the canned items for each path."""
+
+    def github_pages(path, params=None):
+        return iter(pages.get(path, []))
+
+    return github_pages
+
+
+@pytest.mark.contract
+class TestGitHubHistorySync:
+    def _pages(self):
+        recent = "2026-10-06T12:00:00Z"
+        return {
+            "/orgs/Conjo-SA/repos": [
+                {
+                    "full_name": "Conjo-SA/app",
+                    "html_url": "https://github.com/Conjo-SA/app",
+                    "default_branch": "main",
+                    "pushed_at": recent,
+                },
+            ],
+            "/repos/Conjo-SA/app/pulls": [
+                {
+                    "number": 9,
+                    "title": "MAN-1 corrige login",
+                    "body": "",
+                    "html_url": "https://github.com/Conjo-SA/app/pull/9",
+                    "state": "closed",
+                    "merged": True,
+                    "draft": False,
+                    "head": {"ref": "man-1-login"},
+                    "base": {"ref": "main"},
+                    "updated_at": recent,
+                    "user": {"login": "dev", "id": 1, "avatar_url": ""},
+                },
+            ],
+            "/repos/Conjo-SA/app/branches": [{"name": "man-1-login"}, {"name": "main"}],
+            "/repos/Conjo-SA/app/commits": [
+                {
+                    "sha": "b" * 40,
+                    "html_url": "https://github.com/Conjo-SA/app/commit/" + "b" * 40,
+                    "commit": {
+                        "message": "MAN-1 #done corrige",
+                        "author": {"name": "Dev", "email": "x@y.z", "date": recent},
+                    },
+                    "author": {"login": "dev"},
+                },
+            ],
+        }
+
+    def test_imports_history_quietly(self, settings, project, issue, states, create_user, sync_tasks):
+        settings.CONJO_GITHUB_TOKEN = "token"
+        settings.CONJO_GITHUB_ORG = "Conjo-SA"
+        ProjectGitHubSettings.objects.create(project=project, pr_merged_state=states["done"])
+        create_user.email = "x@y.z"
+        create_user.save()
+        with (
+            mock.patch.object(conjo_github_task, "github_pages", fake_github(self._pages())),
+            mock.patch.object(conjo_github_task, "_is_before", return_value=False),
+        ):
+            conjo_github_task.sync_github_history(days=90)
+
+        kinds = sorted(IssueDevelopmentLink.objects.filter(issue=issue).values_list("kind", flat=True))
+        assert kinds == ["branch", "commit", "pull_request"]
+        assert IssueDevelopmentLink.objects.get(issue=issue, kind="pull_request").state == "merged"
+        # History never moves work items, comments or posts to the chat.
+        issue.refresh_from_db()
+        assert issue.state_id == states["todo"].id
+        assert not IssueComment.objects.filter(issue=issue).exists()
+        assert sync_tasks["chat"].call_count == 0
+        assert cache.get(conjo_github_task.LAST_SYNC_CACHE_KEY)["repositories"] == 1
+
+    def test_resync_is_idempotent(self, settings, issue):
+        settings.CONJO_GITHUB_TOKEN = "token"
+        settings.CONJO_GITHUB_ORG = "Conjo-SA"
+        with (
+            mock.patch.object(conjo_github_task, "github_pages", fake_github(self._pages())),
+            mock.patch.object(conjo_github_task, "_is_before", return_value=False),
+        ):
+            conjo_github_task.sync_github_history(days=90)
+            conjo_github_task.sync_github_history(days=90)
+        assert IssueDevelopmentLink.objects.filter(issue=issue).count() == 3
+
+    def test_without_token_does_nothing(self, settings, issue):
+        settings.CONJO_GITHUB_TOKEN = ""
+        with mock.patch.object(conjo_github_task, "github_pages") as pages:
+            conjo_github_task.sync_github_history(days=90)
+        pages.assert_not_called()
+
+    def test_sync_endpoint(self, session_client, settings, workspace, project):
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/github-integration/sync/"
+        settings.CONJO_GITHUB_TOKEN = ""
+        assert session_client.post(url).status_code == status.HTTP_400_BAD_REQUEST
+
+        settings.CONJO_GITHUB_TOKEN = "token"
+        with mock.patch.object(conjo_github_task.sync_github_history, "delay") as delay:
+            assert session_client.post(url).status_code == status.HTTP_202_ACCEPTED
+            assert session_client.post(url).json().get("already_running") is True
+        delay.assert_called_once_with(days=90)
+
+
+@pytest.mark.contract
+class TestDevelopmentSummary:
+    def test_summary_per_issue(self, session_client, workspace, project, issue, api_client):
+        send(api_client, "pull_request", pr_payload("opened", number=1))
+        send(api_client, "pull_request", pr_payload("closed", number=2, merged=True, state="closed"))
+        send(api_client, "create", {"ref": "man-1-x", "ref_type": "branch", "repository": REPO, "sender": SENDER})
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/development-summary/"
+        data = session_client.get(url).json()
+        assert data[str(issue.id)] == {"pull_requests": 2, "branches": 1, "commits": 0, "pr_state": "open"}

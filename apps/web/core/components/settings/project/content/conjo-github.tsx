@@ -6,8 +6,10 @@
 
 import { Check, ChevronDown, Copy, Info, X } from "lucide-react";
 import { observer } from "mobx-react";
+import { useState } from "react";
 import useSWR from "swr";
 // plane imports
+import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { GitHubIntegrationService } from "@plane/services";
 import type { TProjectGitHubSettings, TProjectGitHubSettingsUpdate } from "@plane/types";
@@ -104,6 +106,9 @@ export const GitHubSettings = observer(function GitHubSettings(props: Props) {
   return (
     <div className="space-y-6">
       <WebhookStatus settings={settings} />
+      {settings.webhook_configured && (
+        <HistorySync settings={settings} workspaceSlug={workspaceSlug} projectId={projectId} />
+      )}
       <HowToLink identifier={settings.project_identifier} />
 
       <SettingsBoxedControlItem
@@ -206,6 +211,57 @@ function WebhookStatus({ settings }: { settings: TProjectGitHubSettings }) {
           : "Nenhum evento recebido ainda."}
       </p>
     </div>
+  );
+}
+
+function HistorySync(props: { settings: TProjectGitHubSettings; workspaceSlug: string; projectId: string }) {
+  const { settings, workspaceSlug, projectId } = props;
+  const [isStarting, setIsStarting] = useState(false);
+  const [started, setStarted] = useState(false);
+
+  const handleSync = async () => {
+    setIsStarting(true);
+    try {
+      await githubIntegrationService.syncHistory(workspaceSlug, projectId);
+      setStarted(true);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Importação iniciada",
+        message: "Os últimos 90 dias do GitHub estão sendo importados. Leva alguns minutos.",
+      });
+    } catch (err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Erro!",
+        message: getErrorMessage(err, "Não foi possível iniciar a importação."),
+      });
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  return (
+    <SettingsBoxedControlItem
+      title="Histórico do GitHub"
+      description={
+        !settings.history_sync_configured
+          ? "Para importar o histórico, o administrador precisa definir o token do GitHub (CONJO_GITHUB_TOKEN) no servidor."
+          : settings.last_sync
+            ? `Última sincronização: ${formatDateTime(settings.last_sync.at)} (${settings.last_sync.repositories} repositórios, últimos ${settings.last_sync.days} dias). A cada hora o Tasks confere os últimos 2 dias.`
+            : "Importa branches, commits e pull requests dos últimos 90 dias que citam tarefas. Depois, a cada hora, o Tasks confere os últimos 2 dias."
+      }
+      control={
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={isStarting}
+          disabled={isStarting || started || !settings.history_sync_configured}
+          onClick={() => void handleSync()}
+        >
+          {started ? "Importando…" : "Importar histórico (90 dias)"}
+        </Button>
+      }
+    />
   );
 }
 

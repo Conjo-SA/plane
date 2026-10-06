@@ -21,6 +21,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
 
 ri = redis_instance()
 
+
 # Configurable metrics push interval (in minutes)
 # Default: 360 (6 hours), set to 5 for development/testing
 def _get_metrics_push_interval_minutes() -> int:
@@ -33,6 +34,7 @@ def _get_metrics_push_interval_minutes() -> int:
     except (ValueError, OverflowError):
         return 360
 
+
 METRICS_PUSH_INTERVAL_MINUTES = _get_metrics_push_interval_minutes()
 
 app = Celery("plane")
@@ -43,6 +45,11 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.conf.beat_schedule = {
     # Intra day recurring jobs
+    "conjo-github-sync-hourly": {
+        "task": "plane.bgtasks.conjo_github_task.sync_github_history",
+        "schedule": crontab(minute=17),  # Every hour: recover webhooks GitHub never delivered
+        "kwargs": {"days": 2},
+    },
     "check-every-five-minutes-to-send-email-notifications": {
         "task": "plane.bgtasks.email_notification_task.stack_email_notification",
         "schedule": crontab(minute="*/5"),  # Every 5 minutes

@@ -6,7 +6,12 @@
 
 // plane imports
 import { API_BASE_URL } from "@plane/constants";
-import type { TIssueDevelopment, TProjectGitHubSettings, TProjectGitHubSettingsUpdate } from "@plane/types";
+import type {
+  TIssueDevelopment,
+  TProjectDevelopmentSummary,
+  TProjectGitHubSettings,
+  TProjectGitHubSettingsUpdate,
+} from "@plane/types";
 // api service
 import { APIService } from "../api.service";
 
@@ -73,6 +78,39 @@ export class GitHubIntegrationService extends APIService {
     issueId: string
   ): Promise<TIssueDevelopment> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/development/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
+  /**
+   * Starts importing the last 90 days of GitHub history (branches, commits, pull requests).
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @returns {Promise<{ ok: boolean; days?: number; already_running?: boolean }>} Accepted
+   * @throws {Error} If the API request fails
+   */
+  async syncHistory(
+    workspaceSlug: string,
+    projectId: string
+  ): Promise<{ ok: boolean; days?: number; already_running?: boolean }> {
+    return this.post(`${this.settingsUrl(workspaceSlug, projectId)}sync/`, {})
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
+  /**
+   * Development counts and pull request state of every work item of a project (for the cards).
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @returns {Promise<TProjectDevelopmentSummary>} Work item id → summary
+   * @throws {Error} If the API request fails
+   */
+  async retrieveDevelopmentSummary(workspaceSlug: string, projectId: string): Promise<TProjectDevelopmentSummary> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/development-summary/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response;

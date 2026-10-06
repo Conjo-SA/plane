@@ -23,6 +23,8 @@ from plane.app.serializers import IssueDevelopmentLinkSerializer, ProjectGitHubS
 from plane.app.views.base import BaseAPIView
 from plane.bgtasks.conjo_github_task import (
     LAST_EVENT_CACHE_KEY,
+    LAST_SYNC_CACHE_KEY,
+    sync_github_history,
     compact_payload,
     process_github_event,
     record_last_event,
@@ -95,6 +97,8 @@ def settings_payload(obj):
         webhook_configured=is_configured(),
         webhook_url=webhook_url(),
         last_event=cache.get(LAST_EVENT_CACHE_KEY),
+        history_sync_configured=bool(settings.CONJO_GITHUB_TOKEN),
+        last_sync=cache.get(LAST_SYNC_CACHE_KEY),
         project_identifier=obj.project.identifier,
     )
     return data
@@ -124,6 +128,28 @@ class ProjectGitHubSettingsEndpoint(BaseAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+HISTORY_DAYS = 90
+SYNC_LOCK_KEY = "conjo_github:sync_requested"
+SYNC_LOCK_SECONDS = 10 * 60
+
+
+class ProjectGitHubSyncEndpoint(BaseAPIView):
+    """Import the last 90 days of the organization's branches, commits and pull requests."""
+
+    @allow_permission([ROLE.ADMIN])
+    def post(self, request, slug, project_id):
+        if not settings.CONJO_GITHUB_TOKEN:
+            return Response(
+                {"error": "Importação indisponível: falta o token do GitHub (CONJO_GITHUB_TOKEN) no servidor."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # One import at a time for the whole workspace (it covers every project).
+        if not cache.add(SYNC_LOCK_KEY, 1, SYNC_LOCK_SECONDS):
+            return Response({"ok": True, "already_running": True}, status=status.HTTP_202_ACCEPTED)
+        sync_github_history.delay(days=HISTORY_DAYS)
+        return Response({"ok": True, "days": HISTORY_DAYS}, status=status.HTTP_202_ACCEPTED)
+
+
 class IssueDevelopmentEndpoint(BaseAPIView):
     """Branches, commits and pull requests linked to a work item (the "Desenvolvimento" panel)."""
 
@@ -149,3 +175,33 @@ class IssueDevelopmentEndpoint(BaseAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# Pull request state shown on a card when an item has several: the one still moving wins.
+PR_STATE_PRIORITY = ("open", "draft", "merged", "closed")
+
+
+class ProjectDevelopmentSummaryEndpoint(BaseAPIView):
+    """Per work item counts and pull request state, for the board and list cards (one request per project)."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id):
+        rows = IssueDevelopmentLink.objects.filter(
+            workspace__slug=slug, project_id=project_id, issue__deleted_at__isnull=True
+        ).values_list("issue_id", "kind", "state")
+        summary = {}
+        for issue_id, kind, state in rows:
+            item = summary.setdefault(
+                str(issue_id), {"pull_requests": 0, "branches": 0, "commits": 0, "pr_states": set()}
+            )
+            if kind == IssueDevelopmentLink.KIND_PULL_REQUEST:
+                item["pull_requests"] += 1
+                item["pr_states"].add(state)
+            elif kind == IssueDevelopmentLink.KIND_BRANCH:
+                item["branches"] += 1
+            else:
+                item["commits"] += 1
+        for item in summary.values():
+            states = item.pop("pr_states")
+            item["pr_state"] = next((s for s in PR_STATE_PRIORITY if s in states), None)
+        return Response(summary, status=status.HTTP_200_OK)

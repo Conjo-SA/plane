@@ -12,6 +12,7 @@ pull request automations and the pull request notices in the project's chat room
 import json
 import logging
 import uuid
+from datetime import timedelta
 
 # Third party imports
 from celery import shared_task
@@ -195,8 +196,8 @@ def get_project_settings(project_id):
     )
 
 
-def upsert_link(issue, kind, repository, external_id, fields):
-    """Create or update a development link. Returns ``(link, created)``."""
+def upsert_link(issue, kind, repository, external_id, fields, create_only=False):
+    """Create or update a development link (only create with ``create_only``). Returns ``(link, created)``."""
     from plane.db.models import IssueDevelopmentLink
 
     lookup = {
@@ -207,6 +208,8 @@ def upsert_link(issue, kind, repository, external_id, fields):
         "external_id": str(external_id),
     }
     link = IssueDevelopmentLink.objects.filter(**lookup).first()
+    if link is not None and create_only:
+        return link, False
     if link is not None:
         for key, value in fields.items():
             setattr(link, key, value)
@@ -301,7 +304,7 @@ def apply_smart_commands(issue, commands, actor, commit_url, short_sha, reposito
 # --------------------------------------------------------------------------- #
 
 
-def handle_branch(workspace, data, deleted=False):
+def handle_branch(workspace, data, deleted=False, quiet=False):
     from plane.db.models import IssueDevelopmentLink
 
     repository = data["repository"]["full_name"]
@@ -332,6 +335,8 @@ def handle_branch(workspace, data, deleted=False):
                 "author_avatar_url": sender["avatar_url"],
                 "event_at": timezone.now(),
             },
+            # A history sync must not move a branch's date or author on every run.
+            create_only=quiet,
         )
 
 
@@ -344,9 +349,12 @@ def handle_push(workspace, data):
         return
     handle_branch(workspace, data)
 
-    repository = data["repository"]["full_name"]
-    branch = ref[len("refs/heads/") :]
-    for commit in data["commits"]:
+    link_commits(workspace, data["repository"]["full_name"], ref[len("refs/heads/") :], data["commits"])
+
+
+def link_commits(workspace, repository, branch, commits, quiet=False):
+    """Link commits that mention work items; smart commands run unless ``quiet`` (history sync)."""
+    for commit in commits:
         message = commit["message"]
         keys = find_keys(message)
         if not keys:
@@ -374,7 +382,7 @@ def handle_push(workspace, data):
             )
             # Commands run once per commit, even if it is pushed to other branches later.
             commands = smart.get((issue.project.identifier.upper(), issue.sequence_id))
-            if not created or not commands:
+            if quiet or not created or not commands:
                 continue
             if actor is None:
                 actor = user_for(workspace.id, email=author["email"]) or False
@@ -394,9 +402,10 @@ def pr_state(data):
     return "draft" if data["draft"] else "open"
 
 
-def handle_pull_request(workspace, data):
+def handle_pull_request(workspace, data, quiet=False):
+    """Link a pull request; automations and chat notices run unless ``quiet`` (history sync)."""
     action = data["action"]
-    if action not in (
+    if not quiet and action not in (
         "opened",
         "edited",
         "reopened",
@@ -431,7 +440,7 @@ def handle_pull_request(workspace, data):
                 "metadata": {"head": data["head"], "base": data["base"]},
             },
         )
-        if not (became_open or became_merged):
+        if quiet or not (became_open or became_merged):
             continue
 
         project_settings = get_project_settings(issue.project_id)
@@ -476,6 +485,124 @@ def process_github_event(event, data):
             handle_branch(workspace, data, deleted=True)
         elif event == "pull_request":
             handle_pull_request(workspace, data)
+    except Exception as e:
+        log_exception(e)
+
+
+# --------------------------------------------------------------------------- #
+# History sync (GitHub API): import the last days and recover missed webhooks
+# --------------------------------------------------------------------------- #
+
+GITHUB_API = "https://api.github.com"
+LAST_SYNC_CACHE_KEY = "conjo_github:last_sync"
+MAX_PAGES = 10
+
+
+def github_pages(path, params=None):
+    """Yield the items of a paginated GitHub REST listing (follows the Link header)."""
+    import requests
+
+    url = GITHUB_API + path
+    headers = {
+        "Authorization": f"Bearer {settings.CONJO_GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    for _ in range(MAX_PAGES):
+        response = requests.get(url, params=params, headers=headers, timeout=30)
+        response.raise_for_status()
+        yield from response.json()
+        url = response.links.get("next", {}).get("url")
+        params = None
+        if not url:
+            return
+
+
+def _is_before(value, since):
+    moment = parse_datetime(value) if isinstance(value, str) else None
+    return moment is not None and moment < since
+
+
+def _api_commit(commit):
+    """A REST commit in the webhook's compact shape."""
+    info = commit.get("commit") or {}
+    author = info.get("author") or {}
+    return {
+        "id": commit.get("sha") or "",
+        "message": (info.get("message") or "")[:4000],
+        "url": commit.get("html_url") or "",
+        "timestamp": author.get("date"),
+        "author": {
+            "name": author.get("name") or "",
+            "email": author.get("email") or "",
+            "username": (commit.get("author") or {}).get("login") or "",
+        },
+    }
+
+
+def sync_repository(workspace, repo, since):
+    full_name = repo["full_name"]
+    repository = {"full_name": full_name, "html_url": repo.get("html_url") or ""}
+    no_sender = {"login": "", "id": None, "avatar_url": ""}
+
+    for pr in github_pages(
+        f"/repos/{full_name}/pulls", {"state": "all", "sort": "updated", "direction": "desc", "per_page": 100}
+    ):
+        if _is_before(pr.get("updated_at"), since):
+            break
+        data = compact_payload(
+            "pull_request", {"action": "synced", "pull_request": pr, "repository": repository, "sender": no_sender}
+        )
+        handle_pull_request(workspace, data, quiet=True)
+
+    keyed_branches = []
+    for branch in github_pages(f"/repos/{full_name}/branches", {"per_page": 100}):
+        name = branch.get("name") or ""
+        if find_keys(name, any_case=True):
+            keyed_branches.append(name)
+            handle_branch(workspace, {"repository": repository, "sender": no_sender, "ref": name}, quiet=True)
+
+    default_branch = repo.get("default_branch") or "main"
+    for branch in [default_branch, *[b for b in keyed_branches if b != default_branch]]:
+        commits = [
+            _api_commit(c)
+            for c in github_pages(
+                f"/repos/{full_name}/commits", {"sha": branch, "since": since.isoformat(), "per_page": 100}
+            )
+        ]
+        link_commits(workspace, full_name, branch, commits, quiet=True)
+
+
+@shared_task
+def sync_github_history(days=2):
+    """Import branches, commits and pull requests of the last ``days`` that mention work items.
+
+    Runs hourly with a short window to recover webhooks that never arrived, and on demand
+    (Configurações → GitHub) with 90 days to import the history.
+    """
+    if not settings.CONJO_GITHUB_TOKEN:
+        return
+    workspace = get_workspace()
+    if workspace is None:
+        return
+    since = timezone.now() - timedelta(days=days)
+    repositories = 0
+    try:
+        for repo in github_pages(
+            f"/orgs/{settings.CONJO_GITHUB_ORG}/repos", {"sort": "pushed", "direction": "desc", "per_page": 100}
+        ):
+            if _is_before(repo.get("pushed_at"), since):
+                break
+            try:
+                sync_repository(workspace, repo, since)
+                repositories += 1
+            except Exception as e:
+                log_exception(e)
+        cache.set(
+            LAST_SYNC_CACHE_KEY,
+            {"at": timezone.now().isoformat(), "days": days, "repositories": repositories},
+            None,
+        )
     except Exception as e:
         log_exception(e)
 

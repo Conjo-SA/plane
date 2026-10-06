@@ -43,8 +43,22 @@ export type TProjectGitHubSettings = {
   webhook_configured: boolean;
   webhook_url: string;
   last_event: { event: string; repository: string; at: string } | null;
+  /** False when the server has no CONJO_GITHUB_TOKEN, so history can't be imported. */
+  history_sync_configured: boolean;
+  last_sync: { at: string; days: number; repositories: number } | null;
   project_identifier: string;
 };
+
+export type TDevelopmentSummaryItem = {
+  pull_requests: number;
+  branches: number;
+  commits: number;
+  /** Most relevant pull request state: open, draft, merged or closed. */
+  pr_state: "open" | "draft" | "merged" | "closed" | null;
+};
+
+/** Work item id → its development summary (only items with links are present). */
+export type TProjectDevelopmentSummary = Record<string, TDevelopmentSummaryItem>;
 
 export type TProjectGitHubSettingsUpdate = Partial<
   Pick<TProjectGitHubSettings, "smart_commits" | "pr_opened_state" | "pr_merged_state">

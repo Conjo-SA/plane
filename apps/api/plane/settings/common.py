@@ -451,6 +451,10 @@ TASKS_PUBLIC_URL = (os.environ.get("TASKS_PUBLIC_URL") or WEB_URL or "https://ta
 # accepted only when the shared secret is set; keys are resolved in this workspace.
 CONJO_GITHUB_WEBHOOK_SECRET = os.environ.get("CONJO_GITHUB_WEBHOOK_SECRET") or ""
 CONJO_GITHUB_WORKSPACE_SLUG = os.environ.get("CONJO_GITHUB_WORKSPACE_SLUG") or "conjosa"
+# Read-only token (fine-grained: Contents, Pull requests, Metadata) to import history and recover
+# missed webhooks from the organization's repositories.
+CONJO_GITHUB_TOKEN = os.environ.get("CONJO_GITHUB_TOKEN") or ""
+CONJO_GITHUB_ORG = os.environ.get("CONJO_GITHUB_ORG") or "Conjo-SA"
 
 HARD_DELETE_AFTER_DAYS = int(os.environ.get("HARD_DELETE_AFTER_DAYS", 60))
 

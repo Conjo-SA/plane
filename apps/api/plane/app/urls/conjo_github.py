@@ -4,7 +4,13 @@
 
 from django.urls import path
 
-from plane.app.views import GitHubWebhookEndpoint, IssueDevelopmentEndpoint, ProjectGitHubSettingsEndpoint
+from plane.app.views import (
+    GitHubWebhookEndpoint,
+    IssueDevelopmentEndpoint,
+    ProjectGitHubSettingsEndpoint,
+    ProjectGitHubSyncEndpoint,
+    ProjectDevelopmentSummaryEndpoint,
+)
 
 
 urlpatterns = [
@@ -15,8 +21,18 @@ urlpatterns = [
         name="project-github-integration",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/github-integration/sync/",
+        ProjectGitHubSyncEndpoint.as_view(),
+        name="project-github-integration-sync",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/development/",
         IssueDevelopmentEndpoint.as_view(),
         name="issue-development",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/development-summary/",
+        ProjectDevelopmentSummaryEndpoint.as_view(),
+        name="project-development-summary",
     ),
 ]
