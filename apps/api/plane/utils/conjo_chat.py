@@ -187,7 +187,7 @@ def _project_room_payload(project):
     ident = project.identifier
     url = board_url(project)
     name = f"Tasks · {ident}"
-    topic = f"Avisos do projeto {project.name} no Conjo Tasks"
+    topic = f"Conversa e avisos do projeto {project.name} no Conjo Tasks"
     project_state = {
         "workspace_slug": project.workspace.slug,
         "project_id": str(project.id),
@@ -214,6 +214,14 @@ def _put_state(room_id, event_type, content, state_key=""):
     )
 
 
+def _open_room_to_members(room_id):
+    """Let every member post in rooms created when they were notice-only (events_default 50)."""
+    power_levels = matrix_request("GET", f"/_matrix/client/v3/rooms/{_q(room_id)}/state/m.room.power_levels/")
+    if power_levels.get("events_default", 0) > 0:
+        power_levels["events_default"] = 0
+        _put_state(room_id, "m.room.power_levels", power_levels)
+
+
 def create_project_room(project, room_id=None):
     """Create (or refresh, when ``room_id`` is given) the project's notice room.
 
@@ -227,6 +235,7 @@ def create_project_room(project, room_id=None):
             _put_state(room_id, "m.room.topic", {"topic": topic})
             _put_state(room_id, PROJECT_STATE_EVENT, project_state)
             _put_state(room_id, WIDGET_STATE_EVENT, widget, state_key=WIDGET_ID)
+            _open_room_to_members(room_id)
             return room_id, name
         except MatrixRetryableError:
             raise
@@ -247,7 +256,8 @@ def create_project_room(project, room_id=None):
         # The bot is the room creator: Synapse already gives it power 100 (and in
         # room version 12+ creators may not appear in "users" at all).
         "power_level_content_override": {
-            "events_default": 50,
+            # Every member can talk in the room; changing its settings stays with moderators.
+            "events_default": 0,
             "users_default": 0,
         },
         "initial_state": [

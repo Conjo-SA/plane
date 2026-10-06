@@ -25,7 +25,7 @@ desligada e a tela do projeto mostra "Chat não configurado neste servidor".
    (`POST /api/workspaces/<slug>/projects/<id>/chat-integration/create-room/`)
    faz login como `@tasks:<server_name>` e cria a sala `Tasks · <IDENT>` com
    alias `#tasks-<ident>` (sem alias se ele já existir), sem criptografia, sem
-   federação, pública no diretório interno e só o bot/moderadores podem postar.
+   federação, pública no diretório interno; todos os membros conversam e só moderadores mudam as configurações. "Recriar/atualizar sala" também libera a escrita em salas criadas quando eram só de avisos.
    A sala recebe o estado `br.com.conjosa.tasks.project` e o widget
    `conjo_tasks_board` apontando para o board. Repetir a ação numa sala já
    criada apenas reaplica nome, tópico, estado e widget.
