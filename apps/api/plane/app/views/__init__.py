@@ -246,3 +246,4 @@ from .conjo_chat import (
     ProjectChatIntegrationRoomEndpoint,
     ProjectChatIntegrationTestEndpoint,
 )
+from .conjo_github import GitHubWebhookEndpoint, IssueDevelopmentEndpoint, ProjectGitHubSettingsEndpoint

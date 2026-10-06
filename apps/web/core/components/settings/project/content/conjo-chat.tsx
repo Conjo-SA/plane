@@ -49,6 +49,11 @@ const NOTIFY_OPTIONS: { key: TProjectChatIntegrationNotifyKey; title: string; de
     title: "Comentários",
     description: "Avisa quando uma tarefa recebe um novo comentário.",
   },
+  {
+    key: "notify_github",
+    title: "Pull requests do GitHub",
+    description: "Avisa quando um pull request que cita uma tarefa do projeto é aberto ou mergeado.",
+  },
 ];
 
 const HELP_TEXT =

@@ -524,6 +524,9 @@
     },
     "conjo_chat": {
       "label": "Conjo Chat"
+    },
+    "conjo_github": {
+      "label": "GitHub"
     }
   }
 }

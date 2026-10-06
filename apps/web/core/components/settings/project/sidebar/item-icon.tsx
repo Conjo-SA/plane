@@ -5,7 +5,7 @@
  */
 
 import type { LucideIcon } from "lucide-react";
-import { MessagesSquare, Users, Zap } from "lucide-react";
+import { GitBranch, MessagesSquare, Users, Zap } from "lucide-react";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
 import {
@@ -35,4 +35,5 @@ export const PROJECT_SETTINGS_ICONS: Record<TProjectSettingsTabs, LucideIcon | R
   estimates: EstimatePropertyIcon,
   automations: Zap,
   conjo_chat: MessagesSquare,
+  conjo_github: GitBranch,
 };

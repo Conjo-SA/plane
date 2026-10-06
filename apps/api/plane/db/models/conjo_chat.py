@@ -19,6 +19,8 @@ class ProjectChatIntegration(ProjectBaseModel):
     notify_state_changed = models.BooleanField(default=True)
     notify_assignee_changed = models.BooleanField(default=True)
     notify_comment_created = models.BooleanField(default=True)
+    # Pull requests opened/merged on GitHub that mention a work item.
+    notify_github = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "ProjectChatIntegration"

@@ -7,6 +7,7 @@
 export * from "./ai";
 export * from "./auth";
 export * from "./conjo-chat";
+export * from "./conjo-github";
 export * from "./cycle";
 export * from "./dashboard";
 export * from "./developer";

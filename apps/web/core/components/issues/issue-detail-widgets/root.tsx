@@ -9,6 +9,7 @@ import React from "react";
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
 // local imports
 import { IssueDetailWidgetActionButtons } from "./action-buttons";
+import { IssueDevelopmentCollapsible } from "./development";
 import { IssueDetailWidgetCollapsibles } from "./issue-detail-widget-collapsibles";
 import { IssueDetailWidgetModals } from "./issue-detail-widget-modals";
 
@@ -52,6 +53,7 @@ export function IssueDetailWidgets(props: Props) {
           issueServiceType={issueServiceType}
           hideWidgets={hideWidgets}
         />
+        <IssueDevelopmentCollapsible workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
       </div>
       {renderWidgetModals && (
         <IssueDetailWidgetModals

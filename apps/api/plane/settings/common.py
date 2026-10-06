@@ -362,6 +362,7 @@ CELERY_IMPORTS = (
     # intake portal notifications
     "plane.bgtasks.intake_portal_task",
     "plane.bgtasks.conjo_chat_task",
+    "plane.bgtasks.conjo_github_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))
@@ -445,6 +446,11 @@ CONJO_CHAT_BOT_PASSWORD = os.environ.get("CONJO_CHAT_BOT_PASSWORD") or ""
 CONJO_CHAT_SERVER_NAME = os.environ.get("CONJO_CHAT_SERVER_NAME") or "chat.conjosa.com.br"
 # Public base URL of this Plane instance, used to build links sent to the chat.
 TASKS_PUBLIC_URL = (os.environ.get("TASKS_PUBLIC_URL") or WEB_URL or "https://tasks.conjosa.com.br").rstrip("/")
+
+# GitHub integration (Jira-like development panel, smart commits). Webhooks are
+# accepted only when the shared secret is set; keys are resolved in this workspace.
+CONJO_GITHUB_WEBHOOK_SECRET = os.environ.get("CONJO_GITHUB_WEBHOOK_SECRET") or ""
+CONJO_GITHUB_WORKSPACE_SLUG = os.environ.get("CONJO_GITHUB_WORKSPACE_SLUG") or "conjosa"
 
 HARD_DELETE_AFTER_DAYS = int(os.environ.get("HARD_DELETE_AFTER_DAYS", 60))
 

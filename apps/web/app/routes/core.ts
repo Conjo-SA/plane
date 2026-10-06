@@ -350,6 +350,11 @@ export const coreRoutes: RouteConfigEntry[] = [
               ":workspaceSlug/settings/projects/:projectId/chat",
               "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/chat/page.tsx"
             ),
+            // GitHub integration (development panel, smart commits)
+            route(
+              ":workspaceSlug/settings/projects/:projectId/github",
+              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/github/page.tsx"
+            ),
           ]),
         ]),
       ]),

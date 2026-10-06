@@ -138,3 +138,4 @@ from .draft import (
 )
 
 from .conjo_chat import ProjectChatIntegrationSerializer
+from .conjo_github import IssueDevelopmentLinkSerializer, ProjectGitHubSettingsSerializer

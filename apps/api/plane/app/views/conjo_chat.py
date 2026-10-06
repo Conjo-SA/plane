@@ -28,6 +28,7 @@ EDITABLE_FIELDS = [
     "notify_state_changed",
     "notify_assignee_changed",
     "notify_comment_created",
+    "notify_github",
 ]
 
 NOT_CONFIGURED_ERROR = "Chat não configurado neste servidor."

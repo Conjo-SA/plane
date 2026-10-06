@@ -29,6 +29,7 @@ class ProjectChatIntegrationSerializer(BaseSerializer):
             "notify_state_changed",
             "notify_assignee_changed",
             "notify_comment_created",
+            "notify_github",
             "chat_configured",
         ]
         read_only_fields = ["id", "project", "room_id", "room_name"]
