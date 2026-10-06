@@ -12,11 +12,18 @@ into `isError: True` tool results.
 
 # Python imports
 import datetime
+import json
+import uuid
+from urllib.parse import urlparse
 from uuid import UUID
 
 # Django imports
+from django.conf import settings
+from django.contrib.auth.hashers import make_password
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError
 from django.db.models import Q
+from django.utils import timezone
 
 # Module imports
 from plane.db.models import (
@@ -33,6 +40,7 @@ from plane.db.models import (
     Project,
     ProjectMember,
     State,
+    User,
     Workspace,
     WorkspaceMember,
 )
@@ -623,6 +631,70 @@ def _set_issue_labels(issue, project_instance, label_ids):
     )
 
 
+# ---------------------------------------------------------------------------
+# Activity (Conjo): MCP writes are recorded like the app's, so they show in the
+# work item history and reach notifications and the project's chat room.
+# ---------------------------------------------------------------------------
+
+MCP_BOT_USERNAME = "conjo_mcp_bot"
+
+
+def _mcp_actor():
+    """The "Assistente (MCP)" bot: the MCP token belongs to the instance, not to a person."""
+    bot = User.objects.filter(username=MCP_BOT_USERNAME).first()
+    if bot is not None:
+        return bot
+    host = urlparse(getattr(settings, "TASKS_PUBLIC_URL", "") or settings.WEB_URL or "").hostname or "tasks.local"
+    try:
+        return User.objects.create(
+            username=MCP_BOT_USERNAME,
+            display_name="Assistente (MCP)",
+            first_name="Assistente",
+            last_name="(MCP)",
+            is_bot=True,
+            bot_type="CONJO_MCP",
+            email=f"mcp-bot@{host}",
+            password=make_password(uuid.uuid4().hex),
+            is_password_autoset=True,
+        )
+    except IntegrityError:
+        return User.objects.filter(username=MCP_BOT_USERNAME).first()
+
+
+def _record_activity(activity_type, issue, actor, requested_data, current_instance=None):
+    from plane.bgtasks.issue_activities_task import issue_activity
+
+    issue_activity.delay(
+        type=activity_type,
+        requested_data=json.dumps(requested_data, cls=DjangoJSONEncoder),
+        current_instance=json.dumps(current_instance, cls=DjangoJSONEncoder) if current_instance is not None else None,
+        issue_id=str(issue.id),
+        actor_id=str(actor.id),
+        project_id=str(issue.project_id),
+        epoch=int(timezone.now().timestamp()),
+        notification=True,
+        origin=getattr(settings, "TASKS_PUBLIC_URL", None) or settings.WEB_URL,
+    )
+
+
+def _issue_snapshot(issue):
+    """Tracked fields in the shape the activity pipeline compares (ids as strings)."""
+    return {
+        "name": issue.name,
+        "description_html": issue.description_html,
+        "priority": issue.priority,
+        "state_id": str(issue.state_id) if issue.state_id else None,
+        "start_date": issue.start_date.isoformat() if issue.start_date else None,
+        "target_date": issue.target_date.isoformat() if issue.target_date else None,
+        "assignee_ids": [
+            str(a) for a in IssueAssignee.objects.filter(issue=issue).values_list("assignee_id", flat=True)
+        ],
+        "label_ids": [
+            str(label) for label in IssueLabel.objects.filter(issue=issue).values_list("label_id", flat=True)
+        ],
+    }
+
+
 @register_tool(
     name="create_work_item",
     description=(
@@ -688,7 +760,8 @@ def create_work_item(
         project_issue_types__project_id=project_instance.id, is_default=True
     ).first()
 
-    issue = Issue.objects.create(
+    actor = _mcp_actor()
+    issue = Issue(
         name=name,
         description_html=description_html or "<p></p>",
         priority=priority or "none",
@@ -698,9 +771,12 @@ def create_work_item(
         start_date=_parse_date(start_date, "start_date"),
         target_date=_parse_date(target_date, "target_date"),
     )
+    # No request user behind the MCP token: name the bot as the author explicitly.
+    issue.save(created_by_id=actor.id)
 
     _set_issue_assignees(issue, project_instance, assignee_ids)
     _set_issue_labels(issue, project_instance, label_ids)
+    _record_activity("issue.activity.created", issue, actor, _issue_snapshot(issue))
 
     return _serialize_issue(issue, include_description=True)
 
@@ -744,6 +820,7 @@ def update_work_item(
 ):
     issue = _get_issue(workspace_slug, work_item)
     _validate_priority(priority)
+    before = _issue_snapshot(issue)
 
     update_fields = []
     if name is not None:
@@ -772,6 +849,17 @@ def update_work_item(
     _set_issue_assignees(issue, issue.project, assignee_ids)
     _set_issue_labels(issue, issue.project, label_ids)
 
+    after = _issue_snapshot(issue)
+    changed = {field: value for field, value in after.items() if value != before[field]}
+    if changed:
+        _record_activity(
+            "issue.activity.updated",
+            issue,
+            _mcp_actor(),
+            changed,
+            {field: before[field] for field in changed},
+        )
+
     return _serialize_issue(issue, include_description=True)
 
 
@@ -794,11 +882,12 @@ def add_work_item_comment(workspace_slug, work_item, comment_html):
     if not comment_html:
         raise MCPToolError("'comment_html' is required")
     issue = _get_issue(workspace_slug, work_item)
-    comment = IssueComment.objects.create(
-        issue=issue,
-        project=issue.project,
-        comment_html=comment_html,
-    )
+    actor = _mcp_actor()
+    comment = IssueComment(issue=issue, project=issue.project, comment_html=comment_html, actor=actor)
+    comment.save(created_by_id=actor.id)
+    from plane.app.serializers import IssueCommentSerializer
+
+    _record_activity("comment.activity.created", issue, actor, IssueCommentSerializer(comment).data)
     return {
         "id": str(comment.id),
         "work_item": _issue_identifier(issue),
