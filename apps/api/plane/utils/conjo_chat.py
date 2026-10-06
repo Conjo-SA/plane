@@ -244,8 +244,9 @@ def create_project_room(project, room_id=None):
         "visibility": "public",
         "creation_content": {"m.federate": False},
         "room_alias_name": f"tasks-{project.identifier.lower()}",
+        # The bot is the room creator: Synapse already gives it power 100 (and in
+        # room version 12+ creators may not appear in "users" at all).
         "power_level_content_override": {
-            "users": {bot_user_id(): 100},
             "events_default": 50,
             "users_default": 0,
         },
