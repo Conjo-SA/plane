@@ -56,6 +56,8 @@ export type TPackageSummary = {
   available: string;
   debited_this_month: string;
   low_balance: boolean;
+  /** Hours that expire on the first expiry date (all lots sharing it), or null without lots. */
+  next_expiring?: { hours: string; expires_on: string | null } | null;
   /** Valid lots, the one that expires first first. */
   lots: THourLot[];
 };

@@ -191,7 +191,8 @@ else:
     CORS_ALLOW_ALL_ORIGINS = True
     secure_origins = False
 
-CORS_ALLOW_HEADERS = [*default_headers, "X-API-Key"]
+# X-Portal-Token: session of the public request portal (space app) when it runs on another origin.
+CORS_ALLOW_HEADERS = [*default_headers, "X-API-Key", "X-Portal-Token"]
 
 # Application Settings
 WSGI_APPLICATION = "plane.wsgi.application"

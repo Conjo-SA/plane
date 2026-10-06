@@ -17,14 +17,20 @@ import calendar
 import datetime
 import re
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 # Django imports
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
 ZERO = Decimal("0")
 CENT = Decimal("0.01")
+# Largest amount accepted for a single entry (fits the ledger columns with room for sums).
+MAX_HOURS = Decimal("9999")
+# Months, expirations and "today" follow the business calendar, not the server's UTC clock.
+BILLING_TZ = ZoneInfo(getattr(settings, "CONJO_BILLING_TIMEZONE", "America/Sao_Paulo"))
 
 
 # --------------------------------------------------------------------------- #
@@ -91,7 +97,25 @@ def lot_expiry(period, accumulation_months):
 
 
 def today():
-    return timezone.localdate()
+    return timezone.localdate(timezone=BILLING_TZ)
+
+
+def local_date(moment):
+    return timezone.localdate(moment, timezone=BILLING_TZ)
+
+
+def parse_hours(value, allow_negative=False):
+    """Hours typed by a person ("8", "1,5", "-2"): ``None`` unless finite, non zero and within MAX_HOURS."""
+    try:
+        hours = Decimal(str(value).strip().replace(",", "."))
+    except (ArithmeticError, TypeError, ValueError):
+        return None
+    if not hours.is_finite():
+        return None
+    hours = hours.quantize(CENT, ROUND_HALF_UP)
+    if hours == 0 or abs(hours) > MAX_HOURS or (hours < 0 and not allow_negative):
+        return None
+    return hours
 
 
 # --------------------------------------------------------------------------- #
@@ -177,22 +201,41 @@ def consume(contract, hours, on):
 # --------------------------------------------------------------------------- #
 
 
+def lock_contract(contract):
+    """Serialize every change to a contract's statement (credits, debits, reversals, adjustments).
+
+    Pages fire several requests at once and each one brings the statement up to date; without this
+    two of them could credit the same month twice. Must run inside a transaction.
+    """
+    from plane.db.models import ClientContract
+
+    return ClientContract.objects.select_for_update().get(pk=contract.pk)
+
+
 @transaction.atomic
 def ensure_monthly_credits(contract, on=None):
     """Credit every month from the contract start (or its creation) up to ``on``. Idempotent."""
     from plane.db.models import HourLedgerEntry
 
     on = on or today()
+    contract = lock_contract(contract)
+    if not contract.is_active:
+        # A replaced or paused package earns nothing; reactivating it does not backfill the gap either.
+        return []
     first = month_start(contract.starts_on)
-    created = month_start(timezone.localdate(contract.created_at)) if contract.created_at else first
+    created = month_start(local_date(contract.created_at)) if contract.created_at else first
     # A contract registered today for a client that started long ago does not invent past credits:
     # the current balance comes in as an adjustment.
     period = max(first, created)
     last = month_start(on) if on.day >= contract.credit_day else add_months(month_start(on), -1)
     if contract.ends_on:
         last = min(last, month_start(contract.ends_on))
+    # One monthly credit per client and month, across contracts: a package that replaces another in
+    # the middle of a month starts crediting the following month (the old one already credited this one).
     existing = set(
-        HourLedgerEntry.objects.filter(contract=contract, kind=HourLedgerEntry.CREDIT).values_list("period", flat=True)
+        HourLedgerEntry.objects.filter(contract__client_id=contract.client_id, kind=HourLedgerEntry.CREDIT).values_list(
+            "period", flat=True
+        )
     )
     created_entries = []
     while period <= last:
@@ -220,6 +263,7 @@ def expire_lots(contract, on=None):
     from plane.db.models import HourLedgerEntry
 
     on = on or today()
+    lock_contract(contract)
     expired = []
     for lot in HourLedgerEntry.objects.select_for_update().filter(
         contract=contract, remaining__gt=0, expires_on__lt=on
@@ -268,9 +312,13 @@ def debit_for_estimate(issue, hours, approved_by_email="", on=None):
     contract = contract_for_issue(issue, on)
     if contract is None:
         return None
+    # Checked again under the lock: two approvals (or kind changes) at once debit only once.
+    contract = lock_contract(contract)
     if kind is None:
         # An approved estimate is an evolution unless the team said otherwise.
-        IssueWorkKind.objects.create(issue=issue, project_id=issue.project_id, kind=IssueWorkKind.EVOLUTION)
+        IssueWorkKind.objects.get_or_create(
+            issue=issue, defaults={"project_id": issue.project_id, "kind": IssueWorkKind.EVOLUTION}
+        )
     if open_debit(issue) is not None:
         return None
 
@@ -311,6 +359,7 @@ def reverse_debit(debit, note="", on=None):
     from plane.db.models import HourLedgerEntry
 
     on = on or today()
+    lock_contract(debit.contract)
     if debit.kind != HourLedgerEntry.DEBIT or debit.reversals.exists():
         return None
     restored = ZERO
@@ -322,10 +371,29 @@ def reverse_debit(debit, note="", on=None):
         lot.remaining = (lot.remaining or ZERO) + hours
         lot.save(update_fields=["remaining", "updated_at"])
         restored += hours
-    # The excess of that estimate no longer applies either.
-    HourLedgerEntry.objects.filter(
-        contract=debit.contract, kind=HourLedgerEntry.EXCESS, issue_id=debit.issue_id, exported_at__isnull=True
-    ).delete()
+    # The excess of that estimate no longer applies either. What finance already received gets a
+    # counter-entry instead of disappearing, so the next export cancels it.
+    excess = HourLedgerEntry.objects.filter(
+        contract=debit.contract, kind=HourLedgerEntry.EXCESS, issue_id=debit.issue_id, hours__gt=0
+    )
+    excess.filter(exported_at__isnull=True).delete()
+    exported = excess.filter(exported_at__isnull=False).aggregate(total=Sum("hours"))["total"] or ZERO
+    cancelled = (
+        HourLedgerEntry.objects.filter(
+            contract=debit.contract, kind=HourLedgerEntry.EXCESS, issue_id=debit.issue_id, hours__lt=0
+        ).aggregate(total=Sum("hours"))["total"]
+        or ZERO
+    )
+    if exported + cancelled > 0:
+        HourLedgerEntry.objects.create(
+            workspace_id=debit.workspace_id,
+            contract=debit.contract,
+            kind=HourLedgerEntry.EXCESS,
+            hours=-(exported + cancelled),
+            occurred_on=on,
+            issue_id=debit.issue_id,
+            note="Excedente cancelado pelo estorno",
+        )
     return HourLedgerEntry.objects.create(
         workspace_id=debit.workspace_id,
         contract=debit.contract,
@@ -340,11 +408,17 @@ def reverse_debit(debit, note="", on=None):
 
 @transaction.atomic
 def adjust(contract, hours, note, on=None):
-    """Manual adjustment: positive opens a lot valid like a monthly credit; negative consumes lots."""
+    """Manual adjustment: positive opens a lot valid like a monthly credit; negative consumes lots.
+
+    A negative adjustment larger than the balance raises ``ValueError`` (nothing is written).
+    """
     from plane.db.models import HourLedgerEntry
 
     on = on or today()
     hours = Decimal(hours).quantize(CENT, ROUND_HALF_UP)
+    contract = lock_contract(contract)
+    if hours < 0 and -hours > balance(contract, on):
+        raise ValueError("insufficient balance")
     if hours > 0:
         period = month_start(on)
         return HourLedgerEntry.objects.create(
@@ -370,10 +444,59 @@ def adjust(contract, hours, note, on=None):
     )
 
 
+@transaction.atomic
 def refresh_contract(contract, on=None):
     """Bring a contract's statement up to date (credits due, expirations)."""
     ensure_monthly_credits(contract, on)
     expire_lots(contract, on)
+
+
+@transaction.atomic
+def close_contract(contract, replaced_by=None, on=None):
+    """End a package: what is left moves to the package that replaces it (same expiry), or expires.
+
+    Leaving the old lots alive would make hours disappear silently, since only active contracts are
+    refreshed.
+    """
+    from plane.db.models import HourLedgerEntry
+
+    on = on or today()
+    contract = lock_contract(contract)
+    refresh_contract(contract, on)
+    moved = ZERO
+    for lot in available_lots(contract, on, lock=True):
+        left = lot.remaining
+        lot.remaining = ZERO
+        lot.save(update_fields=["remaining", "updated_at"])
+        label = lot.period.strftime("%m/%Y") if lot.period else lot.occurred_on.strftime("%d/%m/%Y")
+        target = f"transferida para {replaced_by.name}" if replaced_by else "encerrada com o contrato"
+        HourLedgerEntry.objects.create(
+            workspace_id=contract.workspace_id,
+            contract=contract,
+            kind=HourLedgerEntry.EXPIRATION,
+            hours=-left,
+            occurred_on=on,
+            note=f"Sobra do crédito de {label} {target}",
+            allocations=[{"lot": str(lot.id), "hours": str(left)}],
+        )
+        if replaced_by is not None:
+            HourLedgerEntry.objects.create(
+                workspace_id=replaced_by.workspace_id,
+                contract=replaced_by,
+                kind=HourLedgerEntry.ADJUSTMENT,
+                hours=left,
+                remaining=left,
+                period=lot.period,
+                expires_on=lot.expires_on,
+                occurred_on=on,
+                note=f"Saldo de {label} trazido de {contract.name}",
+            )
+        moved += left
+    contract.is_active = False
+    if not contract.ends_on or contract.ends_on > on:
+        contract.ends_on = on
+    contract.save(update_fields=["is_active", "ends_on", "updated_at"])
+    return moved
 
 
 # --------------------------------------------------------------------------- #
@@ -394,13 +517,27 @@ def package_summary(contract, on=None):
         )["total"]
         or ZERO
     )
+    # Only reversals of this month's debits count, so the number never goes below zero.
     reversed_ = (
         HourLedgerEntry.objects.filter(
-            contract=contract, kind=HourLedgerEntry.REVERSAL, occurred_on__gte=month
+            contract=contract,
+            kind=HourLedgerEntry.REVERSAL,
+            occurred_on__gte=month,
+            reversed_entry__occurred_on__gte=month,
         ).aggregate(total=Sum("hours"))["total"]
         or ZERO
     )
     available = sum((lot.remaining for lot in lots), ZERO)
+    # Everything that expires on the first expiry date (lots often share it, e.g. a credit and an adjustment).
+    first_expiry = lots[0].expires_on if lots else None
+    next_expiring = (
+        {
+            "hours": str(sum((lot.remaining for lot in lots if lot.expires_on == first_expiry), ZERO)),
+            "expires_on": first_expiry.isoformat() if first_expiry else None,
+        }
+        if lots
+        else None
+    )
     threshold = (contract.hours_per_month * contract.low_balance_percent / 100).quantize(CENT, ROUND_HALF_UP)
     return {
         "contract_id": str(contract.id),
@@ -411,6 +548,7 @@ def package_summary(contract, on=None):
         "available": str(available),
         "debited_this_month": str(-(debited + reversed_)),
         "low_balance": available <= threshold,
+        "next_expiring": next_expiring,
         "lots": [
             {
                 "id": str(lot.id),
@@ -441,6 +579,19 @@ def statement(contract, start=None, end=None):
     return rows
 
 
+def can_approve_estimate(project_id, email):
+    """Approving debits the client's package, so only contacts marked "can approve" may do it.
+
+    Projects without a client keep the original rule (whoever opened the ticket decides).
+    """
+    from plane.db.models import ClientContact
+
+    client = client_for_project(project_id)
+    if client is None:
+        return True
+    return bool(email) and ClientContact.objects.filter(client=client, email__iexact=email, can_approve=True).exists()
+
+
 def portal_package(project_id, email):
     """Package numbers for the public portal, only for a contact registered on the client."""
     from plane.db.models import ClientContact
@@ -455,11 +606,10 @@ def portal_package(project_id, email):
         return None
     refresh_contract(contract)
     summary = package_summary(contract)
-    lots = summary["lots"]
     return {
         "client_name": client.name,
         "available": summary["available"],
         "hours_per_month": summary["hours_per_month"],
         "accumulation_months": summary["accumulation_months"],
-        "next_expiring": {"hours": lots[0]["remaining"], "expires_on": lots[0]["expires_on"]} if lots else None,
+        "next_expiring": summary["next_expiring"],
     }

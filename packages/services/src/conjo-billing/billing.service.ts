@@ -167,16 +167,20 @@ export class ConjoBillingService extends APIService {
   }
 
   /** URL of the CSV export (debits, reversals and excess hours of a period) for the finance system. */
-  ledgerExportUrl(
-    workspaceSlug: string,
-    clientId: string,
-    params: { from?: string; to?: string; mark_exported?: boolean }
-  ): string {
+  ledgerExportUrl(workspaceSlug: string, clientId: string, params: { from?: string; to?: string }): string {
     const query = new URLSearchParams();
     if (params.from) query.set("from", params.from);
     if (params.to) query.set("to", params.to);
-    if (params.mark_exported) query.set("mark_exported", "1");
     return `${API_BASE_URL}${this.clientUrl(workspaceSlug, clientId)}/ledger/export/?${query.toString()}`;
+  }
+
+  /** Marks the period's excess hours as sent to the finance system (so they are not billed twice). */
+  async markLedgerExported(
+    workspaceSlug: string,
+    clientId: string,
+    params: { from?: string; to?: string }
+  ): Promise<{ marked: number }> {
+    return this.call(this.post(`${this.clientUrl(workspaceSlug, clientId)}/ledger/export/`, params));
   }
 
   // Timeline

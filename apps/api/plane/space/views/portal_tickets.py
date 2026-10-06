@@ -9,6 +9,7 @@ from uuid import UUID
 # Django imports
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape, strip_tags
 
@@ -24,7 +25,9 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import FileAsset, IntakeIssue, IntakePortalBudget, IssueAssignee, IssueComment, IssueLabel
 from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.settings.storage import S3Storage
+from plane.utils.conjo_billing import can_approve_estimate
 from plane.utils.content_validator import validate_html_content
+from plane.utils.exception_logger import log_exception
 from plane.utils.intake_portal import serialize_portal_budget
 from plane.utils.mailjet import is_email_provider_configured
 from plane.utils.uuid import is_valid_uuid
@@ -329,6 +332,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
                 "labels": serialize_ticket_labels(issue.id),
                 "assignees": serialize_ticket_assignees(issue.id),
                 "budget": serialize_portal_budget(IntakePortalBudget.objects.filter(issue_id=issue.id).first()),
+                "can_approve_budget": can_approve_estimate(intake_issue.project_id, session.email),
                 "comments": serialize_ticket_comments(issue.id),
                 "attachments": serialize_ticket_attachments(anchor, issue.id),
             },
@@ -554,6 +558,14 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             )
 
         is_approval = action == "approve"
+        if is_approval and not can_approve_estimate(intake_issue.project_id, session.email):
+            return Response(
+                {
+                    "error": "Seu e-mail não está autorizado a aprovar orçamentos. "
+                    "Peça para o responsável pelo contrato aprovar."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         reason = "" if is_approval else (request.data.get("reason") or "").strip()[:MAX_BUDGET_REASON_LENGTH]
 
         decision_fields = (
@@ -574,9 +586,29 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
         # Only a pending estimate can be decided, and the conditional update is
         # what enforces it: two concurrent clicks cannot both win, and an
         # approval can never be repeated or undone.
-        decided_count = IntakePortalBudget.objects.filter(
-            pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
-        ).update(**decision_fields)
+        # Conjo: approving and debiting the client's hour package happen together; if the debit fails
+        # the approval is rolled back, so an estimate is never approved without its debit.
+        from plane.bgtasks.conjo_billing_task import notify_low_balance
+        from plane.utils.conjo_billing import debit_for_estimate
+
+        try:
+            with transaction.atomic():
+                decided_count = IntakePortalBudget.objects.filter(
+                    pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
+                ).update(**decision_fields)
+                debit = None
+                if decided_count and is_approval:
+                    debit = debit_for_estimate(intake_issue.issue, budget.estimated_hours, session.email)
+        except Exception as e:
+            log_exception(e)
+            return Response(
+                {"error": "Não foi possível registrar a aprovação agora. Tente novamente em instantes."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if debit is not None:
+            transaction.on_commit(
+                lambda: notify_low_balance.delay(str(debit.contract_id), str(intake_issue.project_id))
+            )
         if not decided_count:
             budget.refresh_from_db()
             already = "aprovado" if budget.status == IntakePortalBudgetStatus.APPROVED else "recusado"
@@ -586,12 +618,6 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             )
 
         budget.refresh_from_db()
-
-        if is_approval:
-            # Conjo: an approved estimate debits the client's hour package (evolution only).
-            from plane.bgtasks.conjo_billing_task import debit_approved_estimate
-
-            debit_approved_estimate(intake_issue.issue_id, budget.estimated_hours, session.email)
 
         hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
         decision_label = "aprovado" if is_approval else "recusado"

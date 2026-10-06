@@ -384,7 +384,9 @@ export default function PortalTicketDetailPage() {
                           ? "Orçamento aprovado"
                           : budget.is_rejected
                             ? "Orçamento recusado"
-                            : "Orçamento aguardando sua resposta"}
+                            : ticket.can_approve_budget === false
+                              ? "Orçamento aguardando aprovação"
+                              : "Orçamento aguardando sua resposta"}
                       </h2>
                       <p className="mt-1 text-20 font-semibold text-primary">{budget.estimated_hours} horas</p>
                       {hourPackage && !budget.is_approved && !budget.is_rejected && (
@@ -472,14 +474,21 @@ export default function PortalTicketDetailPage() {
                               </>
                             ) : (
                               <>
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  prependIcon={<CheckCircle2 />}
-                                  onClick={() => setIsConfirmingApproval(true)}
-                                >
-                                  Aprovar orçamento
-                                </Button>
+                                {ticket.can_approve_budget === false ? (
+                                  <p className="w-full text-12 text-secondary">
+                                    A aprovação fica com o responsável pelo contrato na sua empresa. Avise essa pessoa
+                                    para aprovar por aqui.
+                                  </p>
+                                ) : (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    prependIcon={<CheckCircle2 />}
+                                    onClick={() => setIsConfirmingApproval(true)}
+                                  >
+                                    Aprovar orçamento
+                                  </Button>
+                                )}
                                 <Button
                                   variant="secondary"
                                   size="sm"

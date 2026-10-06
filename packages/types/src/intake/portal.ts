@@ -208,6 +208,8 @@ export type TIntakePortalTicketDetail = TIntakePortalTicket & {
   labels: TIntakePortalTicketLabel[];
   assignees: string[];
   budget: TIntakePortalBudget | null;
+  /** False when the project's client only lets some contacts approve estimates (they debit the package). */
+  can_approve_budget?: boolean;
   comments: TIntakePortalTicketComment[];
   attachments: TIntakePortalTicketAttachment[];
 };

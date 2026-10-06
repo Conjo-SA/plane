@@ -32,7 +32,8 @@ KEY_RE_ANY_CASE = re.compile(KEY_PATTERN, re.IGNORECASE)
 
 COMMAND_RE = re.compile(r"(?<![\w#])#([A-Za-z][\w-]*)")
 # "#time 1h30" logs time spent (Jira syntax).
-TIME_RE = re.compile(r"(?<![\w#])#time[ \t]+(\d[\w.,]*)", re.IGNORECASE)
+# "#time 1h30", "#time 1,5h", "#time 1h 30m", "#time 45min".
+TIME_RE = re.compile(r"(?<![\w#])#time[ \t]+(\d[\w.,]*(?:[ \t]+\d+[ \t]*m(?:in)?\b)?)", re.IGNORECASE)
 COMMENT_RE = re.compile(r"(?<![\w#])#comment\b[ \t]*(.*?)(?=(?<![\w#])#[A-Za-z]|$)", re.IGNORECASE)
 
 # Generic transition words → state group, used when no state name matches.

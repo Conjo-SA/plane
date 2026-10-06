@@ -285,7 +285,7 @@ function LogForm(props: ContentProps) {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[96px_150px_minmax(0,1fr)_auto]"
+      className="grid grid-cols-[96px_minmax(0,1fr)] items-end gap-2"
     >
       <Field label="Duração">
         <Input
@@ -306,7 +306,7 @@ function LogForm(props: ContentProps) {
           aria-label="Data"
         />
       </Field>
-      <Field label="O que foi feito (opcional)" className="col-span-2 sm:col-span-1">
+      <Field label="O que foi feito (opcional)" className="col-span-2">
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -318,7 +318,7 @@ function LogForm(props: ContentProps) {
       <Button
         type="submit"
         size="xl"
-        className="col-span-2 sm:col-span-1"
+        className="col-span-2 justify-self-end"
         loading={submitting}
         disabled={!duration.trim()}
       >
@@ -505,7 +505,7 @@ function EditEntryRow(props: EditEntryRowProps) {
   return (
     <form
       onSubmit={(event) => void handleSave(event)}
-      className="grid grid-cols-2 items-center gap-2 bg-layer-1 px-3.5 py-2.5 sm:grid-cols-[88px_150px_minmax(0,1fr)_auto]"
+      className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2 bg-layer-1 px-3.5 py-2.5"
     >
       <Input
         value={duration}
@@ -527,9 +527,9 @@ function EditEntryRow(props: EditEntryRowProps) {
         onChange={(e) => setDescription(e.target.value)}
         placeholder="O que foi feito"
         aria-label="O que foi feito"
-        className="col-span-2 w-full sm:col-span-1"
+        className="col-span-2 w-full"
       />
-      <div className="col-span-2 flex items-center justify-end gap-1.5 sm:col-span-1">
+      <div className="col-span-2 flex items-center justify-end gap-1.5">
         <Button type="button" variant="secondary" size="lg" disabled={saving} onClick={() => onDone(null)}>
           Cancelar
         </Button>

@@ -29,6 +29,7 @@ from django.utils.html import escape
 # Module imports
 from plane.utils.conjo_chat import MatrixRetryableError, send_html_message
 from plane.utils.conjo_chat import is_configured as chat_is_configured
+from plane.utils.conjo_billing import local_date
 from plane.utils.conjo_github import find_keys, parse_smart_commands, resolve_state
 from plane.utils.exception_logger import log_exception
 
@@ -284,12 +285,14 @@ def add_comment(issue, actor, text, commit_url, short_sha, repository):
     )
 
 
-def log_commit_time(issue, actor, duration, short_sha, repository):
-    """``MAN-12 #time 1h30``: time spent, once per commit."""
+def log_commit_time(issue, actor, durations, short_sha, repository, logged_on=None):
+    """``MAN-12 #time 1h30``: time spent, once per commit (several ``#time`` in one commit add up)."""
     from plane.db.models import IssueWorkLog
     from plane.utils.conjo_billing import parse_duration, today
 
-    minutes = parse_duration(duration)
+    if isinstance(durations, str):
+        durations = [durations]
+    minutes = sum(parse_duration(duration) or 0 for duration in durations)
     if not minutes or minutes > 24 * 60:
         return
     IssueWorkLog.objects.get_or_create(
@@ -300,10 +303,24 @@ def log_commit_time(issue, actor, duration, short_sha, repository):
             "project_id": issue.project_id,
             "member": actor,
             "minutes": minutes,
-            "logged_on": today(),
+            "logged_on": min(logged_on or today(), today()),
             "description": f"via commit {short_sha} em {repository}",
         },
     )
+
+
+def can_act_on(issue, actor):
+    """Smart commands write as the author: only active members (not guests) of the item's project."""
+    from plane.db.models import ProjectMember
+
+    return ProjectMember.objects.filter(
+        project_id=issue.project_id, member=actor, is_active=True, role__gte=15
+    ).exists()
+
+
+def smart_commits_enabled(project_id):
+    project_settings = get_project_settings(project_id)
+    return project_settings is None or project_settings.smart_commits
 
 
 def apply_smart_commands(issue, commands, actor, commit_url, short_sha, repository):
@@ -314,8 +331,6 @@ def apply_smart_commands(issue, commands, actor, commit_url, short_sha, reposito
         return
     for text in commands.get("comments", []):
         add_comment(issue, actor, text, commit_url, short_sha, repository)
-    for duration in commands.get("times", []):
-        log_commit_time(issue, actor, duration, short_sha, repository)
     states = list(State.objects.filter(project_id=issue.project_id))
     for command in commands.get("transitions", []):
         state = resolve_state(states, command)
@@ -404,18 +419,35 @@ def link_commits(workspace, repository, branch, commits, quiet=False):
                     "metadata": {"branch": branch, "message": message[:2000]},
                 },
             )
-            # Commands run once per commit, even if it is pushed to other branches later.
             commands = smart.get((issue.project.identifier.upper(), issue.sequence_id))
-            if quiet or not created or not commands:
+            if not commands or not smart_commits_enabled(issue.project_id):
                 continue
             if actor is None:
                 actor = user_for(workspace.id, email=author["email"]) or False
-            if actor:
-                apply_smart_commands(issue, commands, actor, commit["url"], short_sha, repository)
-            else:
+            if not actor or not can_act_on(issue, actor):
                 logger.info(
-                    "conjo_github: smart commit %s ignored, author %s has no account", short_sha, author["email"]
+                    "conjo_github: smart commit %s ignored, author %s is not a member of %s",
+                    short_sha,
+                    author["email"],
+                    issue.project.identifier,
                 )
+                continue
+            # Time is idempotent per commit, so it is also picked up by the history sync (with the
+            # commit's date) and when the webhook arrives after the sync already linked the commit.
+            if commands.get("times"):
+                committed = parse_time(commit["timestamp"])
+                log_commit_time(
+                    issue,
+                    actor,
+                    commands["times"],
+                    short_sha,
+                    repository,
+                    logged_on=local_date(committed) if committed else None,
+                )
+            # Comments and transitions run once per commit, never from the history sync.
+            if quiet or not created:
+                continue
+            apply_smart_commands(issue, commands, actor, commit["url"], short_sha, repository)
 
 
 def pr_state(data):

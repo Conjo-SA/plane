@@ -6,6 +6,7 @@
 
 # Python imports
 import logging
+from decimal import Decimal
 from uuid import uuid4
 
 # Third party imports
@@ -19,6 +20,12 @@ from plane.utils import conjo_billing as billing
 from plane.utils.exception_logger import log_exception
 
 logger = logging.getLogger("plane.worker")
+
+
+def _hours(value):
+    """ "12.50" -> "12,5", "0" -> "0" (Brazilian notation, no trailing zeros)."""
+    text = f"{Decimal(value).normalize():f}"
+    return text.replace(".", ",")
 
 
 @shared_task
@@ -66,11 +73,11 @@ def notify_low_balance(contract_id, project_id):
         integration = ProjectChatIntegration.objects.filter(project_id=project_id).first()
         if integration is None or not integration.enabled or not integration.room_id:
             return
-        available = summary["available"].rstrip("0").rstrip(".")
+        available = _hours(summary["available"])
         client = contract.client.name
         html = (
             f"<b>Saldo baixo</b> no pacote de <b>{escape(client)}</b>: {escape(available)}h disponíveis "
-            f"de {escape(summary['hours_per_month'].rstrip('0').rstrip('.'))}h por mês."
+            f"de {escape(_hours(summary['hours_per_month']))}h por mês."
         )
         body = f"Saldo baixo no pacote de {client}: {available}h disponíveis."
         send_html_message(integration.room_id, html, body, txn_id=uuid4().hex)

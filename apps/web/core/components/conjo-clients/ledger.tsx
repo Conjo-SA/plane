@@ -225,13 +225,14 @@ function SummaryCard({ label, value, extra }: { label: string; value: string; ex
 
 function SummaryCards(props: { pkg: TPackageSummary; month: string; maintenanceMinutes: number | null }) {
   const { pkg, month, maintenanceMinutes } = props;
-  const first = pkg.lots[0];
+  const first =
+    pkg.next_expiring ?? (pkg.lots[0] ? { hours: pkg.lots[0].remaining, expires_on: pkg.lots[0].expires_on } : null);
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <SummaryCard label="Disponível" value={formatHours(pkg.available)} extra={`de ${formatHours(pkg.max_balance)}`} />
       <SummaryCard
         label="Vence primeiro"
-        value={first ? formatHours(first.remaining) : "—"}
+        value={first ? formatHours(first.hours) : "—"}
         extra={first?.expires_on ? `em ${formatDayMonth(first.expires_on)}` : undefined}
       />
       <SummaryCard label={`Debitado em ${month}`} value={formatHours(pkg.debited_this_month)} />

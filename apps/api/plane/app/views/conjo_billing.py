@@ -7,13 +7,13 @@
 # Python imports
 import csv
 import datetime
-from decimal import Decimal, InvalidOperation
 
 # Django imports
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.text import slugify
 
 # Third party imports
 from rest_framework import status
@@ -36,8 +36,10 @@ from plane.db.models import (
     Project,
     ProjectMember,
     Workspace,
+    WorkspaceMember,
 )
 from plane.utils import conjo_billing as billing
+from plane.utils.uuid import is_valid_uuid
 from plane.utils.conjo_timeline import TYPES, build_timeline
 
 NOT_FOUND = {"error": "Não encontrado."}
@@ -56,11 +58,21 @@ def _date(value, default=None):
         return None
 
 
-def _decimal(value):
-    try:
-        return Decimal(str(value).replace(",", "."))
-    except (InvalidOperation, TypeError, ValueError):
-        return None
+def _is_workspace_admin(user, slug):
+    return WorkspaceMember.objects.filter(
+        workspace__slug=slug, member=user, role=ROLE.ADMIN.value, is_active=True
+    ).exists()
+
+
+def _visible_project_ids(user, slug, project_ids):
+    """Projects of ``project_ids`` whose work items ``user`` may see (admins see the whole workspace)."""
+    project_ids = {str(p) for p in project_ids}
+    if _is_workspace_admin(user, slug):
+        return project_ids
+    member_of = ProjectMember.objects.filter(
+        project_id__in=project_ids, member=user, is_active=True, role__gte=ROLE.MEMBER.value
+    ).values_list("project_id", flat=True)
+    return {str(p) for p in member_of}
 
 
 def _user(user):
@@ -124,6 +136,16 @@ class IssueTimeEndpoint(BaseAPIView):
         issue = _get_issue(slug, project_id, issue_id)
         if issue is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        is_guest = ProjectMember.objects.filter(
+            project_id=project_id, member=request.user, role=ROLE.GUEST.value, is_active=True
+        ).exists()
+        if is_guest:
+            # Same rule as the work item itself; estimates and the client stay with the team.
+            if not issue.project.guest_view_all_features and issue.created_by_id != request.user.id:
+                return _error("Você não tem acesso a esta tarefa.", status.HTTP_403_FORBIDDEN)
+            payload = _issue_time_payload(issue)
+            payload.update(budget=None, debited_hours=None, client=None)
+            return Response(payload)
         return Response(_issue_time_payload(issue))
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -203,6 +225,21 @@ class IssueWorkKindEndpoint(BaseAPIView):
         kind = request.data.get("kind")
         if kind not in dict(IssueWorkKind.KIND_CHOICES):
             return _error("Tipo inválido.")
+        current = billing.work_kind(issue)
+        if kind == current:
+            return Response(_issue_time_payload(issue))
+        # Changing the kind of an item with an approved estimate debits or gives back client hours,
+        # which is a statement operation: only administrators can do it (same as a manual reversal).
+        touches_statement = billing.open_debit(issue) is not None or (
+            billing.contract_for_issue(issue) is not None
+            and IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").exists()
+        )
+        if touches_statement and not _is_workspace_admin(request.user, slug):
+            return _error(
+                "Esta tarefa tem orçamento aprovado: só um administrador pode mudar o tipo, porque isso altera o "
+                "saldo do cliente.",
+                status.HTTP_403_FORBIDDEN,
+            )
         with transaction.atomic():
             IssueWorkKind.objects.update_or_create(issue=issue, defaults={"kind": kind, "project_id": issue.project_id})
             debit = billing.open_debit(issue)
@@ -397,7 +434,10 @@ class ClientProjectsEndpoint(BaseAPIView):
         client = _get_client(slug, client_id)
         if client is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        project_ids = [str(p) for p in request.data.get("project_ids") or []]
+        raw_ids = request.data.get("project_ids") or []
+        if not isinstance(raw_ids, list) or not all(is_valid_uuid(str(p)) for p in raw_ids):
+            return _error("Lista de projetos inválida.")
+        project_ids = [str(p) for p in raw_ids]
         projects = list(Project.objects.filter(workspace__slug=slug, pk__in=project_ids))
         taken = ClientProject.objects.filter(project__in=projects).exclude(client=client).select_related("client")
         if taken:
@@ -417,8 +457,8 @@ def _apply_contract(contract, data):
     if "name" in data:
         contract.name = (data.get("name") or "").strip()[:255]
     if "hours_per_month" in data:
-        hours = _decimal(data.get("hours_per_month"))
-        if hours is None or hours <= 0:
+        hours = billing.parse_hours(data.get("hours_per_month"))
+        if hours is None or hours > 744:
             errors.append("Horas por mês inválidas.")
         else:
             contract.hours_per_month = hours
@@ -451,8 +491,6 @@ def _apply_contract(contract, data):
             contract.low_balance_percent = max(0, min(100, int(data.get("low_balance_percent"))))
         except (TypeError, ValueError):
             errors.append("Percentual de aviso inválido.")
-    if "is_active" in data:
-        contract.is_active = bool(data.get("is_active"))
     if not contract.name:
         errors.append("Informe o nome do contrato.")
     if not contract.starts_on:
@@ -472,16 +510,21 @@ class ClientContractsEndpoint(BaseAPIView):
         errors = _apply_contract(contract, request.data)
         if contract.hours_per_month is None:
             errors.append("Informe as horas por mês.")
+        opening = None
+        if request.data.get("opening_balance") not in (None, "", 0, "0"):
+            opening = billing.parse_hours(request.data.get("opening_balance"))
+            if opening is None:
+                errors.append("Saldo inicial inválido.")
         if errors:
             return _error(" ".join(errors))
         with transaction.atomic():
-            if contract.is_active:
-                # One active package per client: the new one replaces the previous.
-                ClientContract.objects.filter(client=client, is_active=True).update(is_active=False)
             contract.save()
+            # One active package per client: the new one replaces the previous, and what is left of
+            # the previous one moves over with its original expiry (nothing disappears silently).
+            for previous in ClientContract.objects.filter(client=client, is_active=True).exclude(pk=contract.pk):
+                billing.close_contract(previous, replaced_by=contract)
             billing.refresh_contract(contract)
-            opening = _decimal(request.data.get("opening_balance"))
-            if opening and opening > 0:
+            if opening:
                 billing.adjust(contract, opening, "Saldo inicial ao cadastrar o contrato")
         return Response(_contract(contract), status=status.HTTP_201_CREATED)
 
@@ -492,16 +535,19 @@ class ClientContractDetailEndpoint(BaseAPIView):
         contract = ClientContract.objects.filter(workspace__slug=slug, client_id=client_id, pk=contract_id).first()
         if contract is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        if not contract.is_active:
+            return _error("Contrato encerrado não pode ser alterado. Cadastre um novo contrato.")
         errors = _apply_contract(contract, request.data)
         if errors:
             return _error(" ".join(errors))
         with transaction.atomic():
-            if contract.is_active:
-                ClientContract.objects.filter(client_id=client_id, is_active=True).exclude(pk=contract.pk).update(
-                    is_active=False
-                )
             contract.save()
-            billing.refresh_contract(contract)
+            if request.data.get("is_active") is False:
+                # Ending a package writes off what is left (a replacement is a new contract instead).
+                billing.close_contract(contract)
+            else:
+                billing.refresh_contract(contract)
+        contract.refresh_from_db()
         return Response(_contract(contract))
 
 
@@ -510,8 +556,10 @@ class ClientContractDetailEndpoint(BaseAPIView):
 # --------------------------------------------------------------------------- #
 
 
-def _ledger_entry(entry, running):
+def _ledger_entry(entry, running, visible_projects=None):
     issue = entry.issue
+    if issue is not None and visible_projects is not None and str(issue.project_id) not in visible_projects:
+        issue = None
     return {
         "id": str(entry.id),
         "kind": entry.kind,
@@ -549,6 +597,8 @@ def _contract_for_client(slug, client_id, contract_id=None):
 class ClientLedgerEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
+        if _get_client(slug, client_id) is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         contract = _contract_for_client(slug, client_id, request.query_params.get("contract"))
         if contract is None:
             return Response({"package": None, "entries": []})
@@ -560,9 +610,11 @@ class ClientLedgerEndpoint(BaseAPIView):
             str(lot.id): lot.period.isoformat() if lot.period else None
             for lot in HourLedgerEntry.objects.filter(contract=contract, period__isnull=False)
         }
+        client = contract.client
+        visible = _visible_project_ids(request.user, slug, client.client_projects.values_list("project_id", flat=True))
         entries = []
         for entry, running in rows:
-            data = _ledger_entry(entry, running)
+            data = _ledger_entry(entry, running, visible)
             data["lot_periods"] = [lot_period.get(lot) for lot in data["lots"] if lot_period.get(lot)]
             entries.append(data)
         return Response(
@@ -576,14 +628,17 @@ class ClientLedgerAdjustEndpoint(BaseAPIView):
         contract = _contract_for_client(slug, client_id, request.data.get("contract"))
         if contract is None:
             return _error("O cliente não tem contrato ativo.")
-        hours = _decimal(request.data.get("hours"))
-        note = (request.data.get("note") or "").strip()
-        if hours is None or hours == 0:
-            return _error("Informe as horas do ajuste (positivas ou negativas).")
+        hours = billing.parse_hours(request.data.get("hours"), allow_negative=True)
+        note = (request.data.get("note") or "").strip()[:2000]
+        if hours is None:
+            return _error("Informe as horas do ajuste (positivas ou negativas, até 9999).")
         if not note:
             return _error("Ajustes exigem uma justificativa.")
         billing.refresh_contract(contract)
-        billing.adjust(contract, hours, note)
+        try:
+            billing.adjust(contract, hours, note)
+        except ValueError:
+            return _error(f"Saldo insuficiente: o pacote tem {billing.balance(contract)}h disponíveis.")
         return Response(billing.package_summary(contract), status=status.HTTP_201_CREATED)
 
 
@@ -595,22 +650,69 @@ class ClientLedgerReverseEndpoint(BaseAPIView):
         ).first()
         if debit is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        reversal = billing.reverse_debit(debit, note=(request.data.get("note") or "").strip())
+        reversal = billing.reverse_debit(debit, note=(request.data.get("note") or "").strip()[:2000])
         if reversal is None:
             return _error("Este débito já foi estornado.")
         return Response(billing.package_summary(debit.contract))
 
 
+def _csv_cell(value):
+    """Text a spreadsheet will not run: titles come from the public form, so formulas are neutralized."""
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
+def _export_period(params):
+    start = _date(params.get("from"), billing.month_start(billing.today()))
+    end = _date(params.get("to"), billing.today())
+    if start is None or end is None or end < start:
+        return None, None
+    return start, end
+
+
+def _export_entries(client, start, end):
+    return (
+        HourLedgerEntry.objects.filter(
+            contract__client=client,
+            occurred_on__gte=start,
+            occurred_on__lte=end,
+            kind__in=[HourLedgerEntry.DEBIT, HourLedgerEntry.REVERSAL, HourLedgerEntry.EXCESS],
+        )
+        .select_related("issue__project", "contract")
+        .order_by("occurred_on", "created_at")
+    )
+
+
 class ClientLedgerExportEndpoint(BaseAPIView):
-    """CSV for the finance system: debits and excess hours of a period."""
+    """CSV for the finance system: debits and excess hours of a period.
+
+    GET downloads; POST marks the period's excess hours as sent to finance (a state change never
+    rides on a GET, which a link or an image could trigger).
+    """
+
+    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, client_id):
+        client = _get_client(slug, client_id)
+        if client is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        start, end = _export_period(request.data)
+        if start is None:
+            return _error("Período inválido.")
+        marked = (
+            _export_entries(client, start, end)
+            .filter(kind=HourLedgerEntry.EXCESS, exported_at__isnull=True)
+            .update(exported_at=timezone.now())
+        )
+        return Response({"marked": marked})
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def get(self, request, slug, client_id):
         client = _get_client(slug, client_id)
         if client is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        start = _date(request.query_params.get("from"), billing.month_start(billing.today()))
-        end = _date(request.query_params.get("to"), billing.today())
+        start, end = _export_period(request.query_params)
+        if start is None:
+            return _error("Período inválido.")
         entries = (
             HourLedgerEntry.objects.filter(
                 contract__client=client,
@@ -622,33 +724,32 @@ class ClientLedgerExportEndpoint(BaseAPIView):
             .order_by("occurred_on", "created_at")
         )
         response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="horas-{client.name}-{start}-{end}.csv"'
+        filename = f"horas-{slugify(client.name) or 'cliente'}-{start}-{end}.csv"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         response.write("﻿")
         writer = csv.writer(response, delimiter=";")
         writer.writerow(
             ["data", "cliente", "contrato", "movimento", "tarefa", "titulo", "horas", "aprovado_por", "observacao"]
         )
         labels = dict(HourLedgerEntry.KIND_CHOICES)
-        excess_ids = []
         for entry in entries:
             issue = entry.issue
             writer.writerow(
                 [
-                    entry.occurred_on.strftime("%d/%m/%Y"),
-                    client.name,
-                    entry.contract.name,
-                    labels.get(entry.kind, entry.kind),
-                    f"{issue.project.identifier}-{issue.sequence_id}" if issue else "",
-                    issue.name if issue else "",
-                    str(entry.hours).replace(".", ","),
-                    entry.approved_by_email,
-                    entry.note,
+                    _csv_cell(value)
+                    for value in (
+                        entry.occurred_on.strftime("%d/%m/%Y"),
+                        client.name,
+                        entry.contract.name,
+                        labels.get(entry.kind, entry.kind),
+                        f"{issue.project.identifier}-{issue.sequence_id}" if issue else "",
+                        issue.name if issue else "",
+                        str(entry.hours).replace(".", ","),
+                        entry.approved_by_email,
+                        entry.note,
+                    )
                 ]
             )
-            if entry.kind == HourLedgerEntry.EXCESS and entry.exported_at is None:
-                excess_ids.append(entry.id)
-        if excess_ids and request.query_params.get("mark_exported") == "1":
-            HourLedgerEntry.objects.filter(pk__in=excess_ids).update(exported_at=timezone.now())
         return response
 
 
@@ -671,8 +772,11 @@ class ClientTimelineEndpoint(BaseAPIView):
             limit = max(5, min(100, int(request.query_params.get("limit") or 40)))
         except ValueError:
             limit = 40
+        visible = _visible_project_ids(request.user, slug, client.client_projects.values_list("project_id", flat=True))
         try:
-            return Response(build_timeline(client, types, request.query_params.get("before"), limit))
+            return Response(
+                build_timeline(client, types, request.query_params.get("before"), limit, visible_project_ids=visible)
+            )
         except ValueError:
             return _error("Cursor inválido.")
 
@@ -695,7 +799,8 @@ class ClientTimelineNotesEndpoint(BaseAPIView):
         except ValueError:
             return _error("Data inválida.")
         if timezone.is_naive(when):
-            when = timezone.make_aware(when)
+            # A time typed without an offset is the team's local time.
+            when = timezone.make_aware(when, billing.BILLING_TZ)
         valid_contacts = {str(c) for c in client.contacts.values_list("id", flat=True)}
         note = ClientTimelineNote.objects.create(
             client=client,
@@ -715,11 +820,7 @@ class ClientTimelineNoteDetailEndpoint(BaseAPIView):
         if note is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         if note.created_by_id != request.user.id:
-            from plane.db.models import WorkspaceMember
-
-            if not WorkspaceMember.objects.filter(
-                workspace__slug=slug, member=request.user, role=ROLE.ADMIN.value, is_active=True
-            ).exists():
+            if not _is_workspace_admin(request.user, slug):
                 return _error("Só quem registrou (ou um administrador) pode apagar.", status.HTTP_403_FORBIDDEN)
         note.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

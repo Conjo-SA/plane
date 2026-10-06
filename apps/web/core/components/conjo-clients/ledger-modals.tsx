@@ -190,17 +190,14 @@ export function ExportLedgerModal(
 ) {
   const { isOpen, workspaceSlug, clientId, from, to, onClose, onExported } = props;
   const [markExported, setMarkExported] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) setMarkExported(true);
   }, [isOpen]);
 
-  const handleSubmit = () => {
-    const url = conjoBillingService.ledgerExportUrl(workspaceSlug, clientId, {
-      from,
-      to,
-      mark_exported: markExported,
-    });
+  const handleSubmit = async () => {
+    const url = conjoBillingService.ledgerExportUrl(workspaceSlug, clientId, { from, to });
     // The export is a plain authenticated GET: let the browser download it.
     const link = document.createElement("a");
     link.href = url;
@@ -209,8 +206,24 @@ export function ExportLedgerModal(
     document.body.appendChild(link);
     link.click();
     link.remove();
-    if (markExported) onExported();
-    onClose();
+    if (!markExported) {
+      onClose();
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await conjoBillingService.markLedgerExported(workspaceSlug, clientId, { from, to });
+      onExported();
+      onClose();
+    } catch (err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "CSV baixado, mas o excedente não foi marcado",
+        message: getErrorMessage(err, "Tente marcar de novo antes de enviar ao financeiro."),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -219,7 +232,7 @@ export function ExportLedgerModal(
       title="Exportar para o financeiro"
       description={`Baixa um CSV com os débitos, estornos e excedentes de ${formatFullDate(from)} a ${formatFullDate(to)}.`}
       submitLabel="Baixar CSV"
-      isSubmitting={false}
+      isSubmitting={isSubmitting}
       onClose={onClose}
       onSubmit={handleSubmit}
     >

@@ -290,7 +290,8 @@ function renderLedgerEvent(event: Extract<TClientTimelineEvent, { type: "ledger"
 
 export function TimelineEvent({ event, workspaceSlug, canDeleteNote, onDeleteNote }: Props) {
   const { marker, title, body, details } = renderEvent(event, workspaceSlug);
-  const time = formatTime(event.at);
+  // Statement entries are dated, not timed: showing a clock time there would be invented.
+  const time = event.type === "ledger" ? "" : formatTime(event.at);
   const detailLine = [...details.filter(Boolean), time].filter(Boolean);
   const showDelete = event.type === "note" && !!onDeleteNote && !!canDeleteNote?.(event.author);
 

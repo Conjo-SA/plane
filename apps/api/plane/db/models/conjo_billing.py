@@ -191,6 +191,20 @@ class HourLedgerEntry(ClientBaseModel):
         verbose_name_plural = "HourLedgerEntries"
         db_table = "conjo_hour_ledger"
         ordering = ("-occurred_on", "-created_at")
+        constraints = [
+            # Last line of defence against concurrent refreshes: one monthly credit per period.
+            models.UniqueConstraint(
+                fields=["contract", "period"],
+                condition=models.Q(kind="credit", deleted_at__isnull=True),
+                name="conjo_hour_ledger_one_credit_per_period",
+            ),
+            # A debit is reversed at most once.
+            models.UniqueConstraint(
+                fields=["reversed_entry"],
+                condition=models.Q(reversed_entry__isnull=False, deleted_at__isnull=True),
+                name="conjo_hour_ledger_one_reversal_per_debit",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.kind} {self.hours}h <{self.contract_id}>"

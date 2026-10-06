@@ -24,10 +24,13 @@ TYPES = (TYPE_REQUESTS, TYPE_HOURS, TYPE_CONTACTS, TYPE_DELIVERIES)
 
 
 def _aware(value):
+    from plane.utils.conjo_billing import BILLING_TZ
+
     if isinstance(value, datetime.datetime):
-        return value if timezone.is_aware(value) else timezone.make_aware(value)
-    # Dates (statement entries) sort at noon of their day.
-    return timezone.make_aware(datetime.datetime.combine(value, datetime.time(12, 0)))
+        return value if timezone.is_aware(value) else timezone.make_aware(value, BILLING_TZ)
+    # Dates (statement entries) have no time: they sit at noon of their day in the business calendar,
+    # so they group under the right day; the page shows them without a time.
+    return timezone.make_aware(datetime.datetime.combine(value, datetime.time(12, 0)), BILLING_TZ)
 
 
 def _ident(issue):
@@ -38,8 +41,12 @@ def _issue_ref(issue):
     return {"id": str(issue.id), "project_id": str(issue.project_id), "key": _ident(issue), "name": issue.name}
 
 
-def build_timeline(client, types=None, before=None, limit=40):
-    """Newest first. ``types`` filters (see TYPES); ``before`` is an ISO datetime cursor."""
+def build_timeline(client, types=None, before=None, limit=40, visible_project_ids=None):
+    """Newest first. ``types`` filters (see TYPES); ``before`` is an ISO datetime cursor.
+
+    ``visible_project_ids`` limits work items, requests and pull requests to projects the reader can
+    see (``None`` means all of the client's projects).
+    """
     from plane.db.models import (
         ClientContact,
         HourLedgerEntry,
@@ -55,8 +62,11 @@ def build_timeline(client, types=None, before=None, limit=40):
     wanted = set(types or TYPES)
     cursor = datetime.datetime.fromisoformat(before) if before else None
     if cursor is not None and timezone.is_naive(cursor):
-        cursor = timezone.make_aware(cursor)
+        cursor = _aware(cursor)
     project_ids = list(client.client_projects.values_list("project_id", flat=True))
+    if visible_project_ids is not None:
+        project_ids = [p for p in project_ids if str(p) in visible_project_ids]
+    visible = {str(p) for p in project_ids}
     events = []
 
     def add(at, kind, data):
@@ -96,7 +106,9 @@ def build_timeline(client, types=None, before=None, limit=40):
                     "hours": str(entry.hours),
                     "note": entry.note,
                     "expires_on": entry.expires_on.isoformat() if entry.expires_on else None,
-                    "issue": _issue_ref(entry.issue) if entry.issue else None,
+                    "issue": _issue_ref(entry.issue)
+                    if entry.issue and str(entry.issue.project_id) in visible
+                    else None,
                 },
             )
 
