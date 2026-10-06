@@ -32,7 +32,7 @@ export function IssueUser(props: TIssueUser) {
   return (
     <>
       {customUserName || !hasActor ? (
-        <span className="font-medium text-primary">{customUserName || requesterName || "Plane"}</span>
+        <span className="font-medium text-primary">{customUserName || requesterName || "Tasks"}</span>
       ) : (
         <Link
           href={`/${activity?.workspace_detail?.slug}/profile/${activity?.actor_detail?.id}`}

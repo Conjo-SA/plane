@@ -32,7 +32,7 @@ export function MCPConnectorConfig(props: Props) {
   const clientConfigSnippet = JSON.stringify(
     {
       mcpServers: {
-        plane: {
+        tasks: {
           type: "http",
           url: serverUrl,
           headers: {

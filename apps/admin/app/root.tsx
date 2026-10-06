@@ -22,7 +22,8 @@ import "@fontsource/material-symbols-rounded";
 import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Tasks Admin | Conjo SA";
-const APP_DESCRIPTION = "Administração da instância do Tasks, a ferramenta de gestão de projetos e tarefas da Conjo SA.";
+const APP_DESCRIPTION =
+  "Administração da instância do Tasks, a ferramenta de gestão de projetos e tarefas da Conjo SA.";
 
 export const links: LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "180x180", href: appleTouchIcon },
