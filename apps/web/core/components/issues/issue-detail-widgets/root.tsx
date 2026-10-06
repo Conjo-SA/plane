@@ -12,6 +12,7 @@ import { IssueDetailWidgetActionButtons } from "./action-buttons";
 import { IssueDevelopmentCollapsible } from "./development";
 import { IssueDetailWidgetCollapsibles } from "./issue-detail-widget-collapsibles";
 import { IssueDetailWidgetModals } from "./issue-detail-widget-modals";
+import { IssueTimeCollapsible } from "./time";
 
 type Props = {
   workspaceSlug: string;
@@ -52,6 +53,12 @@ export function IssueDetailWidgets(props: Props) {
           disabled={disabled}
           issueServiceType={issueServiceType}
           hideWidgets={hideWidgets}
+        />
+        <IssueTimeCollapsible
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issueId}
+          disabled={disabled}
         />
         <IssueDevelopmentCollapsible workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
       </div>
