@@ -26,7 +26,7 @@ const MCPServerPage = observer(function MCPServerPage(_props: Route.ComponentPro
       header={{
         title: "MCP server",
         description:
-          "Expose this Plane instance over the Model Context Protocol so AI assistants can read and write workspaces, projects and work items.",
+          "Expose this Tasks instance over the Model Context Protocol so AI assistants can read and write workspaces, projects and work items.",
       }}
     >
       {config ? (

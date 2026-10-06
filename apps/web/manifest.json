@@ -4,9 +4,9 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "name": "Plane | Accelerate software development with peace.",
-  "short_name": "Plane",
-  "description": "Plane accelerated the software development by order of magnitude for agencies and product companies.",
+  "name": "Tasks | Conjo SA",
+  "short_name": "Tasks",
+  "description": "Tasks — gestão de projetos e tarefas da Conjo SA.",
   "icons": [
     {
       "src": "/icon-192x192.png",

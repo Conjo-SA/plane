@@ -20,4 +20,4 @@ export const SPACE_SITE_DESCRIPTION = "Tasks é uma ferramenta de gerenciamento 
 export const SPACE_SITE_KEYWORDS =
   "software development, customer feedback, software, accelerate, code management, release management, project management, work items tracking, agile, scrum, kanban, collaboration";
 export const SPACE_SITE_URL = "https://www.conjosa.com.br/";
-export const SPACE_TWITTER_USER_NAME = "planepowers";
+export const SPACE_TWITTER_USER_NAME = "";

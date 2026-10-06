@@ -2,7 +2,7 @@
   "name": "@plane/editor",
   "version": "1.4.0",
   "private": true,
-  "description": "Core Editor that powers Plane",
+  "description": "Core Editor that powers Tasks",
   "keywords": [
     "editor",
     "markdown",

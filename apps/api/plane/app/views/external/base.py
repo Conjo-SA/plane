@@ -166,7 +166,7 @@ def get_llm_response(
         }
 
         return (
-            "You are Plane AI Assistant.\n"
+            "You are Tasks AI Assistant.\n"
             "SPDD Context:\n"
             f"- Scope: {scope}\n"
             f"- Workspace: {workspace_slug}\n"

@@ -282,7 +282,7 @@ _WORK_ITEM_PROPERTY = {
 
 @register_tool(
     name="list_workspaces",
-    description="List all workspaces in this Plane instance.",
+    description="List all workspaces in this Tasks instance.",
     input_schema={"type": "object", "properties": {}, "additionalProperties": False},
     category="workspaces",
 )

@@ -60,7 +60,7 @@ class Command(BaseCommand):
                 {
                     "From": {"Email": from_email, "Name": from_name},
                     "To": [{"Email": receiver_email}],
-                    "Subject": "Teste de envio — Plane",
+                    "Subject": "Teste de envio — Tasks",
                     "TextPart": "Se você recebeu este e-mail, o Mailjet está configurado corretamente.",
                     "HTMLPart": "<p>Se você recebeu este e-mail, o Mailjet está configurado corretamente.</p>",
                 }
