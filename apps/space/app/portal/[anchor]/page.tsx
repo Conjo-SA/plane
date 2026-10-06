@@ -16,6 +16,7 @@ import { Input } from "@plane/ui";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
+import { PortalPackageBalanceCard } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
 import { clearPortalSession, getPortalSession, setPortalSession } from "@/helpers/portal-session";
@@ -202,38 +203,48 @@ export default function PortalTicketsPage() {
                 <div className="flex justify-center py-12">
                   <LogoSpinner />
                 </div>
-              ) : !ticketList?.tickets?.length ? (
-                <div className="flex flex-col items-center gap-3 py-12 text-center">
-                  <Ticket className="size-8 text-tertiary" />
-                  <p className="text-14 text-secondary">Nenhum chamado encontrado para {session.email}.</p>
-                </div>
               ) : (
-                <ul className="divide-y divide-subtle-1 overflow-hidden rounded-lg border border-subtle">
-                  {ticketList.tickets.map((ticket) => (
-                    <li key={ticket.id}>
-                      <Link
-                        to={`/portal/${anchor}/${ticket.id}`}
-                        className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-layer-1"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-14 font-medium text-primary">{ticket.name}</p>
-                          <p className="mt-0.5 text-11 text-tertiary">
-                            #{ticket.sequence_id} · {ticket.project_name} · {formatDate(ticket.created_at)}
-                          </p>
-                        </div>
-                        {ticket.state && (
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-11 font-medium ${
-                              STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
-                            }`}
+                <div className="space-y-5">
+                  {ticketList?.package && <PortalPackageBalanceCard pkg={ticketList.package} />}
+                  {!ticketList?.tickets?.length ? (
+                    <div className="flex flex-col items-center gap-3 py-12 text-center">
+                      <Ticket className="size-8 text-tertiary" />
+                      <p className="text-14 text-secondary">Nenhum chamado encontrado para {session.email}.</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-subtle-1 overflow-hidden rounded-lg border border-subtle">
+                      {ticketList.tickets.map((ticket) => (
+                        <li key={ticket.id}>
+                          <Link
+                            to={`/portal/${anchor}/${ticket.id}`}
+                            className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-layer-1"
                           >
-                            {ticket.state}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-14 font-medium text-primary">{ticket.name}</p>
+                              <p className="mt-0.5 text-11 text-tertiary">
+                                #{ticket.sequence_id} · {ticket.project_name} · {formatDate(ticket.created_at)}
+                              </p>
+                              {ticket.work_kind === "maintenance" && (
+                                <p className="mt-0.5 text-12 text-secondary">
+                                  Correção de bug · não desconta do pacote
+                                </p>
+                              )}
+                            </div>
+                            {ticket.state && (
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-1 text-11 font-medium ${
+                                  STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
+                                }`}
+                              >
+                                {ticket.state}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
           </div>

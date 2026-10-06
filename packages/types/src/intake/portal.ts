@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { TWorkKind } from "../conjo-billing";
 import type { TIssuePriorities } from "../issues";
 
 /**
@@ -99,11 +100,26 @@ export type TIntakePortalTicket = {
   state: string | null;
   state_group: string | null;
   intake_status: number;
+  /** Conjo: how the work counts against the client's hour package (list endpoint only). */
+  work_kind?: TWorkKind | null;
+};
+
+/**
+ * Conjo: hour package of the requester's client. Only sent when the requester
+ * is a registered contact of the client. Hours are decimal strings ("37.00").
+ */
+export type TIntakePortalPackage = {
+  client_name: string;
+  available: string;
+  hours_per_month: string;
+  accumulation_months: number;
+  next_expiring: { hours: string; expires_on: string | null } | null;
 };
 
 export type TIntakePortalTicketList = {
   email: string;
   tickets: TIntakePortalTicket[];
+  package?: TIntakePortalPackage | null;
 };
 
 export type TIntakePortalTicketComment = {

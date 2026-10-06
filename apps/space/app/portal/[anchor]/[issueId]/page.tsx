@@ -30,6 +30,7 @@ import { getAttachmentPreviewKind } from "@plane/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
+import { PortalBalanceAfterApproval } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
 import { getPortalSession } from "@/helpers/portal-session";
@@ -138,6 +139,14 @@ export default function PortalTicketDetailPage() {
     anchor && issueId && session ? `PORTAL_TICKET_${anchor}_${issueId}` : null,
     anchor && issueId && session ? () => intakePortalService.retrieveTicket(anchor, issueId, session.token) : null
   );
+
+  // Conjo: hour package of the client, sent with the ticket list (same SWR key as the list page).
+  const { data: ticketList } = useSWR(
+    anchor && session ? `PORTAL_TICKETS_${anchor}_${session.email}` : null,
+    anchor && session ? () => intakePortalService.listTickets(anchor, session.token) : null,
+    { revalidateOnFocus: false }
+  );
+  const hourPackage = ticketList?.package ?? null;
 
   const isUploading = pendingAttachments.some((attachment) => attachment.status === "uploading");
 
@@ -378,6 +387,9 @@ export default function PortalTicketDetailPage() {
                             : "Orçamento aguardando sua resposta"}
                       </h2>
                       <p className="mt-1 text-20 font-semibold text-primary">{budget.estimated_hours} horas</p>
+                      {hourPackage && !budget.is_approved && !budget.is_rejected && (
+                        <PortalBalanceAfterApproval pkg={hourPackage} estimatedHours={budget.estimated_hours} />
+                      )}
                       {budget.note && <p className="mt-2 text-13 text-secondary">{budget.note}</p>}
 
                       {budget.is_approved ? (
