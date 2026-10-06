@@ -23,7 +23,7 @@ def get_or_create_mcp_server() -> MCPServer:
     """Return the singleton MCP server config, creating it on first access."""
     server = MCPServer.get_instance()
     if server is None:
-        server = MCPServer.objects.create(name="Plane MCP Server")
+        server = MCPServer.objects.create(name="Tasks MCP Server")
     return server
 
 

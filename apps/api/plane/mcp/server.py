@@ -23,12 +23,12 @@ PROTOCOL_VERSION = "2025-06-18"
 
 SERVER_INFO = {
     "name": "plane-mcp",
-    "title": "Plane MCP Server",
+    "title": "Tasks MCP Server",
     "version": "1.0.0",
 }
 
 SERVER_INSTRUCTIONS = (
-    "Plane MCP server. Use the workspace_slug (e.g. 'my-company') to scope every call. "
+    "Tasks MCP server. Use the workspace_slug (e.g. 'my-company') to scope every call. "
     "Projects accept either their UUID or their short identifier (e.g. 'PLANE') and work "
     "items accept either their UUID or their human identifier (e.g. 'PLANE-123')."
 )
