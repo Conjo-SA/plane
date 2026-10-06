@@ -105,6 +105,24 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
         ]),
 
+        // Conjo: clients (CRM and hour packages)
+        layout("./(all)/[workspaceSlug]/(projects)/clients/layout.tsx", [
+          route(":workspaceSlug/clients", "./(all)/[workspaceSlug]/(projects)/clients/page.tsx"),
+          route(":workspaceSlug/clients/:clientId", "./(all)/[workspaceSlug]/(projects)/clients/[clientId]/page.tsx"),
+          route(
+            ":workspaceSlug/clients/:clientId/ledger",
+            "./(all)/[workspaceSlug]/(projects)/clients/[clientId]/ledger/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/clients/:clientId/contract",
+            "./(all)/[workspaceSlug]/(projects)/clients/[clientId]/contract/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/clients/:clientId/contract/:contractId",
+            "./(all)/[workspaceSlug]/(projects)/clients/[clientId]/contract/[contractId]/page.tsx"
+          ),
+        ]),
+
         // Workspace Views
         layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [
           route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
