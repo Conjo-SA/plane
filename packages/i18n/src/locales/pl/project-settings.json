@@ -521,6 +521,9 @@
           }
         }
       }
+    },
+    "conjo_chat": {
+      "label": "Conjo Chat"
     }
   }
 }

@@ -14,6 +14,7 @@ export * from "./calendar";
 export * from "./charts";
 export * from "./command-palette";
 export * from "./common";
+export * from "./conjo-chat";
 export * from "./cycle";
 export * from "./dashboard";
 export * from "./de-dupe";

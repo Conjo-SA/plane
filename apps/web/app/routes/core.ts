@@ -345,6 +345,11 @@ export const coreRoutes: RouteConfigEntry[] = [
                 "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/automations/page.tsx"
               ),
             ]),
+            // Conjo Chat (Matrix) integration
+            route(
+              ":workspaceSlug/settings/projects/:projectId/chat",
+              "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/chat/page.tsx"
+            ),
           ]),
         ]),
       ]),

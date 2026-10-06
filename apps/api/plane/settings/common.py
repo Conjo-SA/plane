@@ -361,6 +361,7 @@ CELERY_IMPORTS = (
     "plane.bgtasks.issue_description_version_sync",
     # intake portal notifications
     "plane.bgtasks.intake_portal_task",
+    "plane.bgtasks.conjo_chat_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))
@@ -433,6 +434,17 @@ LIVE_URL = urljoin(LIVE_BASE_URL, LIVE_BASE_PATH) if LIVE_BASE_URL else None
 
 # WEB URL
 WEB_URL = os.environ.get("WEB_URL")
+
+# Conjo Chat (Matrix) integration — project rooms receive work item notices.
+# The integration stays disabled unless both the homeserver URL and the bot
+# password are set.
+CONJO_CHAT_HOMESERVER_URL = (os.environ.get("CONJO_CHAT_HOMESERVER_URL") or "").rstrip("/")
+CONJO_CHAT_WEB_URL = (os.environ.get("CONJO_CHAT_WEB_URL") or CONJO_CHAT_HOMESERVER_URL).rstrip("/")
+CONJO_CHAT_BOT_USER = os.environ.get("CONJO_CHAT_BOT_USER") or "tasks"
+CONJO_CHAT_BOT_PASSWORD = os.environ.get("CONJO_CHAT_BOT_PASSWORD") or ""
+CONJO_CHAT_SERVER_NAME = os.environ.get("CONJO_CHAT_SERVER_NAME") or "chat.conjosa.com.br"
+# Public base URL of this Plane instance, used to build links sent to the chat.
+TASKS_PUBLIC_URL = (os.environ.get("TASKS_PUBLIC_URL") or WEB_URL or "https://tasks.conjosa.com.br").rstrip("/")
 
 HARD_DELETE_AFTER_DAYS = int(os.environ.get("HARD_DELETE_AFTER_DAYS", 60))
 

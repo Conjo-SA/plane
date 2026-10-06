@@ -30,7 +30,8 @@ export type TProjectSettingsTabs =
   | "states"
   | "labels"
   | "estimates"
-  | "automations";
+  | "automations"
+  | "conjo_chat";
 export type TProjectSettingsItem = {
   key: TProjectSettingsTabs;
   i18n_label: string;

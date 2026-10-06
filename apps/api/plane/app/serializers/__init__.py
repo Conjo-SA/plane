@@ -136,3 +136,5 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+
+from .conjo_chat import ProjectChatIntegrationSerializer

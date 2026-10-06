@@ -17,6 +17,7 @@ from django.utils import timezone
 # Module imports
 from plane.app.serializers import IssueActivitySerializer
 from plane.bgtasks.notification_task import notifications
+from plane.bgtasks.conjo_chat_task import enqueue_chat_notifications
 from plane.db.models import (
     CommentReaction,
     Cycle,
@@ -1643,6 +1644,15 @@ def issue_activity(
 
         # Keep portal requesters in the loop whenever their ticket changes.
         notify_intake_portal_requester(issue_id=issue_id, actor_id=actor_id, activities=issue_activities_created)
+
+        # Relay creation, state, assignee and comment changes to the project's chat room.
+        enqueue_chat_notifications(
+            type=type,
+            issue_id=issue_id,
+            actor_id=actor_id,
+            project_id=project_id,
+            activities=issue_activities_created,
+        )
 
         if notification:
             notifications.delay(
