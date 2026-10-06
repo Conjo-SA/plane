@@ -280,15 +280,20 @@ def create_project_room(project, room_id=None):
     return new_room_id, name
 
 
-def send_html_message(room_id, html, body, txn_id=None):
+def send_html_message(room_id, html, body, txn_id=None, mention_room=False):
+    """Send a message; ``mention_room`` notifies everyone in the room (@room)."""
     txn_id = txn_id or uuid4().hex
+    content = {
+        "msgtype": "m.text",
+        "body": body,
+        "format": "org.matrix.custom.html",
+        "formatted_body": html,
+    }
+    if mention_room:
+        # Intentional mentions (MSC3952); the bot has the room's "notifications.room" power.
+        content["m.mentions"] = {"room": True}
     return matrix_request(
         "PUT",
         f"/_matrix/client/v3/rooms/{_q(room_id)}/send/m.room.message/{_q(txn_id)}",
-        json={
-            "msgtype": "m.text",
-            "body": body,
-            "format": "org.matrix.custom.html",
-            "formatted_body": html,
-        },
+        json=content,
     )

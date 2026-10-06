@@ -53,9 +53,48 @@ def comment_excerpt(text):
     return text
 
 
+PRIORITY_LABELS = {"urgent": "Urgente", "high": "Alta", "medium": "Média", "low": "Baixa"}
+
+
+def build_intake_message(issue, intake_issue, h_issue, t_issue, link):
+    """Objective notice for a request that came from the public form (Entrada), tagging everyone."""
+    from plane.db.models import FileAsset
+
+    requester = (intake_issue.extra or {}).get("requester_name") or ""
+    email = intake_issue.source_email or ""
+    client = f"{requester} ({email})" if requester and email else requester or email or "não informado"
+    details = [("Cliente", client)]
+    priority = PRIORITY_LABELS.get(issue.priority)
+    if priority:
+        details.append(("Prioridade", priority))
+    labels = ", ".join(issue.labels.values_list("name", flat=True))
+    if labels:
+        details.append(("Etiqueta", labels))
+    attachments = FileAsset.objects.filter(
+        issue_id=issue.id, entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True
+    ).count()
+    excerpt = comment_excerpt(issue.description_html)
+
+    html_details = " · ".join(f"<b>{escape(k)}:</b> {escape(v)}" for k, v in details)
+    text_details = " · ".join(f"{k}: {v}" for k, v in details)
+    if attachments:
+        html_details += f" · {attachments} anexo{'s' if attachments > 1 else ''}"
+        text_details += f" · {attachments} anexo{'s' if attachments > 1 else ''}"
+
+    html = f"<b>Nova solicitação na Entrada</b> · {h_issue}<br>{html_details}"
+    body = f"Nova solicitação na Entrada · {t_issue}\n{text_details}"
+    if excerpt:
+        html += f"<br><i>“{escape(excerpt)}”</i>"
+        body += f"\n“{excerpt}”"
+    html += "<br>@room"
+    body += f"\n{link}\n@room"
+    return html, body, True
+
+
 def build_message(event, actor, issue, slug):
-    """Return ``(html, body)`` for one event, or ``None`` when it can't be rendered."""
-    from plane.db.models import IssueComment, User
+    """Return ``(html, body, mention_room)`` for one event, or ``None`` when it can't be rendered."""
+    from plane.db.models import IntakeIssue, IssueComment, User
+    from plane.db.models.intake import SourceType
 
     ident = f"{issue.project.identifier}-{issue.sequence_id}"
     link = f"{settings.TASKS_PUBLIC_URL}/{slug}/browse/{ident}/"
@@ -67,6 +106,9 @@ def build_message(event, actor, issue, slug):
 
     kind = event.get("kind")
     if kind == KIND_CREATED:
+        intake_issue = IntakeIssue.objects.filter(issue_id=issue.id, source=SourceType.PORTAL).first()
+        if intake_issue is not None:
+            return build_intake_message(issue, intake_issue, h_issue, t_issue, link)
         html = f"{h_actor} criou {h_issue}"
         body = f"{actor} criou {t_issue}"
     elif kind == KIND_STATE:
@@ -89,9 +131,7 @@ def build_message(event, actor, issue, slug):
             html = f"{h_actor} removeu <b>{escape(name)}</b> de {h_issue}"
             body = f"{actor} removeu {name} de {t_issue}"
     elif kind == KIND_COMMENT:
-        comment = (
-            IssueComment.objects.filter(pk=event.get("comment_id")).first() if event.get("comment_id") else None
-        )
+        comment = IssueComment.objects.filter(pk=event.get("comment_id")).first() if event.get("comment_id") else None
         if comment is not None:
             text = comment_excerpt(comment.comment_stripped or comment.comment_html)
         else:
@@ -103,7 +143,7 @@ def build_message(event, actor, issue, slug):
     else:
         return None
 
-    return html, f"{body}\n{link}"
+    return html, f"{body}\n{link}", False
 
 
 @shared_task(bind=True, max_retries=5)
@@ -118,9 +158,7 @@ def notify_chat_room(self, project_id, issue_id, actor_id, events):
     try:
         if not is_configured() or not events:
             return
-        integration = (
-            ProjectChatIntegration.objects.filter(project_id=project_id).select_related("workspace").first()
-        )
+        integration = ProjectChatIntegration.objects.filter(project_id=project_id).select_related("workspace").first()
         if integration is None or not integration.enabled or not integration.room_id:
             return
 
@@ -138,8 +176,8 @@ def notify_chat_room(self, project_id, issue_id, actor_id, events):
             message = build_message(event, actor, issue, slug)
             if message is None:
                 continue
-            html, body = message
-            send_html_message(integration.room_id, html, body, txn_id=event.get("txn_id"))
+            html, body, mention_room = message
+            send_html_message(integration.room_id, html, body, txn_id=event.get("txn_id"), mention_room=mention_room)
     except MatrixRetryableError as e:
         if self.request.retries >= self.max_retries:
             log_exception(e)
@@ -203,8 +241,6 @@ def enqueue_chat_notifications(type, issue_id, actor_id, project_id, activities)
         for event in events:
             event["txn_id"] = uuid4().hex
 
-        notify_chat_room.delay(
-            str(project_id), str(issue_id), str(actor_id) if actor_id else None, events
-        )
+        notify_chat_room.delay(str(project_id), str(issue_id), str(actor_id) if actor_id else None, events)
     except Exception as e:
         log_exception(e)
