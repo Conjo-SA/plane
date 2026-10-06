@@ -10,61 +10,61 @@ import type { TIssuePriorities } from "../issues";
  * Request form configuration of a project, managed from the project settings.
  */
 export type TIntakePortal = {
-    id: string;
-    anchor: string;
-    slug: string | null;
-    is_enabled: boolean;
-    title: string;
-    description: string;
-    success_message: string;
-    is_attachment_enabled: boolean;
-    intake: string;
-    project: string;
-    workspace: string;
+  id: string;
+  anchor: string;
+  slug: string | null;
+  is_enabled: boolean;
+  title: string;
+  description: string;
+  success_message: string;
+  is_attachment_enabled: boolean;
+  intake: string;
+  project: string;
+  workspace: string;
 };
 
 /**
  * Label applied to every work item submitted through a tagged portal URL.
  */
 export type TIntakePortalTag = {
-    id: string;
-    name: string;
-    color: string;
+  id: string;
+  name: string;
+  color: string;
 };
 
 /**
  * Public presentation data of a request form, exposed without authentication.
  */
 export type TIntakePortalMeta = {
-    anchor: string;
-    slug: string | null;
-    title: string;
-    description: string;
-    success_message: string;
-    is_attachment_enabled: boolean;
-    project_name: string;
-    workspace_name: string;
-    logo_props: Record<string, unknown>;
-    tag: TIntakePortalTag | null;
+  anchor: string;
+  slug: string | null;
+  title: string;
+  description: string;
+  success_message: string;
+  is_attachment_enabled: boolean;
+  project_name: string;
+  workspace_name: string;
+  logo_props: Record<string, unknown>;
+  tag: TIntakePortalTag | null;
 };
 
 /**
  * Payload submitted by an external requester through the public request form.
  */
 export type TIntakePortalSubmission = {
-    name: string;
-    description_html: string;
-    priority: TIssuePriorities;
-    requester_name: string;
-    requester_email: string;
-    tag?: string;
-    attachment_ids?: string[];
+  name: string;
+  description_html: string;
+  priority: TIssuePriorities;
+  requester_name: string;
+  requester_email: string;
+  tag?: string;
+  attachment_ids?: string[];
 };
 
 export type TIntakePortalSubmissionResponse = {
-    id: string;
-    sequence_id: number;
-    success_message: string;
+  id: string;
+  sequence_id: number;
+  success_message: string;
 };
 
 /**
@@ -72,75 +72,75 @@ export type TIntakePortalSubmissionResponse = {
  * attachment straight to object storage.
  */
 export type TIntakePortalAssetUpload = {
-    asset_id: string;
-    upload_data: {
-        url: string;
-        fields: Record<string, string>;
-    };
+  asset_id: string;
+  upload_data: {
+    url: string;
+    fields: Record<string, string>;
+  };
 };
 /**
  * Session issued to a requester after confirming ownership of their email.
  */
 export type TIntakePortalSession = {
-    token: string;
-    email: string;
+  token: string;
+  email: string;
 };
 
 /**
  * Ticket summary shown in the requester portal.
  */
 export type TIntakePortalTicket = {
-    id: string;
-    name: string;
-    sequence_id: number;
-    priority: TIssuePriorities;
-    created_at: string;
-    project_name: string;
-    state: string | null;
-    state_group: string | null;
-    intake_status: number;
+  id: string;
+  name: string;
+  sequence_id: number;
+  priority: TIssuePriorities;
+  created_at: string;
+  project_name: string;
+  state: string | null;
+  state_group: string | null;
+  intake_status: number;
 };
 
 export type TIntakePortalTicketList = {
-    email: string;
-    tickets: TIntakePortalTicket[];
+  email: string;
+  tickets: TIntakePortalTicket[];
 };
 
 export type TIntakePortalTicketComment = {
-    id: string;
-    comment_html: string;
-    created_at: string;
-    /** True when the reply was written by the requester from the portal. */
-    is_requester: boolean;
-    author: string;
+  id: string;
+  comment_html: string;
+  created_at: string;
+  /** True when the reply was written by the requester from the portal. */
+  is_requester: boolean;
+  author: string;
 };
 
 /**
  * File attached to a ticket, exposed with a portal scoped download route.
  */
 export type TIntakePortalTicketAttachment = {
-    id: string;
-    name: string;
-    type: string;
-    size: number;
-    created_at: string;
-    download_url: string;
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  created_at: string;
+  download_url: string;
 };
 
 /**
  * Reply submitted by a requester from the portal.
  */
 export type TIntakePortalCommentSubmission = {
-    comment_html: string;
-    attachment_ids?: string[];
+  comment_html: string;
+  attachment_ids?: string[];
 };
 
 /**
  * Label applied to a ticket, shown to the requester as its classification.
  */
 export type TIntakePortalTicketLabel = {
-    name: string;
-    color: string;
+  name: string;
+  color: string;
 };
 
 export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -151,26 +151,26 @@ export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED";
  * terminal, so the team can send a revised estimate.
  */
 export type TIntakePortalBudget = {
-    id: string;
-    estimated_hours: number;
-    note: string;
-    status: TIntakePortalBudgetStatus;
-    is_approved: boolean;
-    is_rejected: boolean;
-    requested_at: string | null;
-    approved_at: string | null;
-    approved_by_email: string | null;
-    rejected_at: string | null;
-    rejected_by_email: string | null;
-    rejection_reason: string;
+  id: string;
+  estimated_hours: number;
+  note: string;
+  status: TIntakePortalBudgetStatus;
+  is_approved: boolean;
+  is_rejected: boolean;
+  requested_at: string | null;
+  approved_at: string | null;
+  approved_by_email: string | null;
+  rejected_at: string | null;
+  rejected_by_email: string | null;
+  rejection_reason: string;
 };
 
 /**
  * Estimate submitted by the team for the requester to approve.
  */
 export type TIntakePortalBudgetSubmission = {
-    estimated_hours: number;
-    note?: string;
+  estimated_hours: number;
+  note?: string;
 };
 
 /**
@@ -178,20 +178,20 @@ export type TIntakePortalBudgetSubmission = {
  * portal have a requester who can approve one.
  */
 export type TIntakePortalBudgetContext = {
-    is_portal_ticket: boolean;
-    budget: TIntakePortalBudget | null;
+  is_portal_ticket: boolean;
+  budget: TIntakePortalBudget | null;
 };
 
 export type TIntakePortalTicketDetail = TIntakePortalTicket & {
-    description_html: string;
-    project_identifier: string;
-    updated_at: string;
-    target_date: string | null;
-    completed_at: string | null;
-    is_attachment_enabled: boolean;
-    labels: TIntakePortalTicketLabel[];
-    assignees: string[];
-    budget: TIntakePortalBudget | null;
-    comments: TIntakePortalTicketComment[];
-    attachments: TIntakePortalTicketAttachment[];
+  description_html: string;
+  project_identifier: string;
+  updated_at: string;
+  target_date: string | null;
+  completed_at: string | null;
+  is_attachment_enabled: boolean;
+  labels: TIntakePortalTicketLabel[];
+  assignees: string[];
+  budget: TIntakePortalBudget | null;
+  comments: TIntakePortalTicketComment[];
+  attachments: TIntakePortalTicketAttachment[];
 };
