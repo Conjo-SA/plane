@@ -197,6 +197,71 @@ class TestTimeEndpoints:
         data = session_client.delete(f"{url}{entry_id}/").json()
         assert data["total_minutes"] == 0 and not IssueWorkLog.objects.exists()
 
+    def test_manual_time_requires_description(self, session_client, workspace, project):
+        issue = make_issue(project)
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/time/"
+        for payload in (
+            {"duration": "1h"},
+            {"duration": "1h", "description": ""},
+            {"duration": "1h", "description": "  "},
+        ):
+            response = session_client.post(url, payload, format="json")
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json()["error"] == "Descreva o que foi feito."
+        assert not IssueWorkLog.objects.filter(issue=issue).exists()
+
+        response = session_client.post(url, {"duration": "1h", "description": " ajuste no filtro "}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        entry_id = response.json()["entries"][0]["id"]
+        assert IssueWorkLog.objects.get(pk=entry_id).description == "ajuste no filtro"
+
+        # Editing cannot clear the description.
+        response = session_client.patch(f"{url}{entry_id}/", {"description": "   "}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["error"] == "Descreva o que foi feito."
+        assert IssueWorkLog.objects.get(pk=entry_id).description == "ajuste no filtro"
+
+    def test_old_entry_without_description_saves_only_with_one(self, session_client, workspace, project, create_user):
+        issue = make_issue(project)
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/time/"
+        old = IssueWorkLog.objects.create(
+            issue=issue, project=project, member=create_user, minutes=60, logged_on=billing.today(), description=""
+        )
+        # Still listed (valid), but an edit that keeps it empty is refused.
+        assert session_client.get(url).json()["total_minutes"] == 60
+        response = session_client.patch(f"{url}{old.id}/", {"duration": "2h"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        old.refresh_from_db()
+        assert old.minutes == 60
+        response = session_client.patch(f"{url}{old.id}/", {"duration": "2h", "description": "revisão"}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        old.refresh_from_db()
+        assert old.minutes == 120 and old.description == "revisão"
+
+    def test_commit_time_without_description_still_accepted(self, session_client, workspace, project, create_user):
+        from plane.bgtasks.conjo_github_task import log_commit_time
+
+        issue = make_issue(project)
+        log_commit_time(issue, create_user, "1h", "abc1234", "x/y")
+        entry = IssueWorkLog.objects.get(issue=issue, source=IssueWorkLog.SOURCE_COMMIT)
+        assert entry.minutes == 60
+        # Automatic entries keep their old rules: an edit may leave the description empty.
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/time/{entry.id}/"
+        response = session_client.patch(url, {"description": ""}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        entry.refresh_from_db()
+        assert entry.description == ""
+        chat = IssueWorkLog.objects.create(
+            issue=issue,
+            project=project,
+            member=create_user,
+            minutes=30,
+            logged_on=billing.today(),
+            source=IssueWorkLog.SOURCE_CHAT,
+        )
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/time/{chat.id}/"
+        assert session_client.patch(url, {"duration": "45min"}, format="json").status_code == status.HTTP_200_OK
+
 
 @pytest.mark.contract
 class TestClientEndpoints:

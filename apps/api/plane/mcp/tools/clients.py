@@ -153,8 +153,8 @@ def get_work_item_time(workspace_slug, work_item):
     name="log_work_item_time",
     description=(
         "Lança o tempo que alguém gastou num item. A pessoa precisa ser membro (não convidado) do projeto. "
-        "logged_on padrão é hoje e não pode ser no futuro. Lançar horas não debita o pacote do cliente (o débito "
-        "vem do orçamento aprovado)."
+        "logged_on padrão é hoje e não pode ser no futuro. description (o que foi feito) é obrigatória. Lançar "
+        "horas não debita o pacote do cliente (o débito vem do orçamento aprovado)."
     ),
     input_schema=_schema(
         {
@@ -163,13 +163,14 @@ def get_work_item_time(workspace_slug, work_item):
             "member": {"type": "string", "maxLength": 254, "description": "E-mail ou UUID de quem fez o trabalho"},
             "duration": _DURATION,
             "logged_on": _date_property("Dia do trabalho ISO (AAAA-MM-DD)"),
-            "description": _text_property("O que foi feito", 2000),
+            "description": {**_text_property("O que foi feito (obrigatório)", 2000), "minLength": 1},
         },
-        ["workspace_slug", "work_item", "member", "duration"],
+        ["workspace_slug", "work_item", "member", "duration", "description"],
     ),
     category="time",
 )
-def log_work_item_time(workspace_slug, work_item, member, duration, logged_on=None, description=""):
+def log_work_item_time(workspace_slug, work_item, member, duration, logged_on=None, description=None):
+    description = _work_log_description(description)
     issue = _get_issue(workspace_slug, work_item)
     user = _project_member(issue, member)
     minutes = billing.parse_duration(duration)
@@ -184,10 +185,18 @@ def log_work_item_time(workspace_slug, work_item, member, duration, logged_on=No
         member=user,
         minutes=minutes,
         logged_on=day,
-        description=_clean_text(description, "description", 2000),
+        description=description,
     )
     entry.save(created_by_id=_mcp_actor().id)
     return {"logged": {"id": str(entry.id), "minutes": minutes}, **_time_payload(issue)}
+
+
+def _work_log_description(value):
+    """Manual entries always say what was done (commit entries are described by the commit itself)."""
+    text = _clean_text(value, "description", 2000)
+    if not text:
+        raise MCPToolError("'description' é obrigatória: descreva o que foi feito")
+    return text
 
 
 def _work_log(issue, entry_id):
@@ -199,7 +208,10 @@ def _work_log(issue, entry_id):
 
 @register_tool(
     name="update_work_item_time",
-    description="Corrige um lançamento de horas (duração, dia ou descrição).",
+    description=(
+        "Corrige um lançamento de horas (duração, dia ou descrição). A descrição não pode ficar vazia em "
+        "lançamentos manuais: um lançamento antigo sem descrição só é salvo se a correção trouxer description."
+    ),
     input_schema=_schema(
         {
             **_WORKSPACE_SLUG_PROPERTY,
@@ -207,7 +219,7 @@ def _work_log(issue, entry_id):
             **_ENTRY_ID,
             "duration": _DURATION,
             "logged_on": _date_property("Dia do trabalho ISO (AAAA-MM-DD)"),
-            "description": _text_property("O que foi feito", 2000),
+            "description": {**_text_property("O que foi feito (não pode ficar vazio)", 2000), "minLength": 1},
         },
         ["workspace_slug", "work_item", "entry_id"],
     ),
@@ -228,6 +240,8 @@ def update_work_item_time(workspace_slug, work_item, entry_id, duration=None, lo
         entry.logged_on = day
     if description is not None:
         entry.description = _clean_text(description, "description", 2000)
+    if entry.source == IssueWorkLog.SOURCE_MANUAL and not entry.description:
+        raise MCPToolError("'description' é obrigatória: descreva o que foi feito")
     entry.save()
     return _time_payload(issue)
 

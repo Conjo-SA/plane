@@ -56,7 +56,8 @@ export type TProjectClientSummary = {
   issues: Record<string, TClientOption>;
 };
 
-export type TIssueTimeCreate = { duration: string; logged_on?: string; description?: string };
+// "description" (o que foi feito) é obrigatória em lançamentos manuais.
+export type TIssueTimeCreate = { duration: string; logged_on?: string; description: string };
 export type TIssueTimeUpdate = Partial<TIssueTimeCreate>;
 
 export type THourLot = {
