@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { ISSUE_PRIORITIES } from "@plane/constants";
 // plane types
 import { PriorityIcon, StateGroupIcon, WorkItemsIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
@@ -108,7 +109,10 @@ export const RecentIssue = observer(function RecentIssue(props: BlockProps) {
               />
             </div>
           </Tooltip>
-          <Tooltip tooltipHeading="Prioridade" tooltipContent={issueDetails?.priority ?? "Prioridade"}>
+          <Tooltip
+            tooltipHeading="Prioridade"
+            tooltipContent={ISSUE_PRIORITIES.find((p) => p.key === issueDetails?.priority)?.title ?? "Prioridade"}
+          >
             <div>
               <PriorityIcon priority={issueDetails?.priority} withContainer size={12} />
             </div>

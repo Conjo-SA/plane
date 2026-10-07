@@ -35,6 +35,7 @@ import {
 } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IIssueActivity } from "@plane/types";
+import { ISSUE_PRIORITIES } from "@plane/constants";
 import { renderFormattedDate, generateWorkItemLink, capitalizeFirstLetter } from "@plane/utils";
 // helpers
 import { useLabel } from "@/hooks/store/use-label";
@@ -569,7 +570,10 @@ const activityDetails: {
       <>
         definiu a prioridade como{" "}
         <span className="font-medium text-primary">
-          {activity.new_value ? capitalizeFirstLetter(activity.new_value) : "Nenhuma"}
+          {activity.new_value
+            ? (ISSUE_PRIORITIES.find((p) => p.key === activity.new_value)?.title ??
+              capitalizeFirstLetter(activity.new_value))
+            : "Nenhuma"}
         </span>
         {showIssue && (
           <>
