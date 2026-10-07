@@ -30,6 +30,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   time: "Tempo gasto",
   clients: "Clientes e pacotes de horas",
   development: "Desenvolvimento (GitHub)",
+  server: "Servidor",
 };
 
 export function MCPToolsCatalog(props: Props) {
