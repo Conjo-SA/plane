@@ -5,14 +5,17 @@
 """Domain handlers for the Plane MCP server.
 
 Every handler is registered through `@register_tool` and receives plain
-JSON-compatible arguments. Handlers raise `MCPToolError` for expected
-failures (missing entities, invalid payloads) — the MCP server turns them
-into `isError: True` tool results.
+JSON-compatible arguments (already checked against its JSON schema by the
+server). Handlers raise `MCPToolError` for expected failures (missing
+entities, invalid payloads) — the MCP server turns them into `isError: True`
+tool results. Descriptions and messages are in Brazilian Portuguese: the
+company owner reads them in the admin panel.
 """
 
 # Python imports
 import datetime
 import json
+import re
 import uuid
 from urllib.parse import urlparse
 from uuid import UUID
@@ -22,7 +25,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 # Module imports
@@ -45,9 +48,25 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.mcp.tools.registry import register_tool
+from plane.utils.content_validator import validate_html_content
 
 PRIORITY_CHOICES = ("urgent", "high", "medium", "low", "none")
 MODULE_STATUS_CHOICES = ("backlog", "planned", "in-progress", "paused", "completed", "cancelled")
+STATE_GROUP_CHOICES = ("backlog", "unstarted", "started", "completed", "cancelled")
+
+# Limits shared by every tool module
+MAX_NAME_LENGTH = 255
+MAX_TEXT_LENGTH = 10_000
+MAX_HTML_LENGTH = 500_000
+MAX_COMMENT_HTML_LENGTH = 100_000
+MAX_LIST_ITEMS = 100
+# Above this many work items a bulk change must be confirmed.
+BULK_CONFIRM_THRESHOLD = 20
+# Project roles (same values as the app)
+ROLE_ADMIN, ROLE_MEMBER, ROLE_GUEST = 20, 15, 5
+
+_HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+_PROJECT_IDENTIFIER = re.compile(r"^[A-Z0-9]{1,12}$")
 
 
 class MCPToolError(Exception):
@@ -55,7 +74,7 @@ class MCPToolError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Lookup helpers
+# Validation helpers
 # ---------------------------------------------------------------------------
 
 
@@ -67,10 +86,84 @@ def _is_uuid(value):
         return False
 
 
+def _require_uuid(value, field):
+    if not _is_uuid(value):
+        raise MCPToolError(f"'{field}' deve ser um UUID")
+    return str(value)
+
+
+def _uuid_list(values, field, max_items=MAX_LIST_ITEMS):
+    if values is None:
+        return None
+    if not isinstance(values, list):
+        raise MCPToolError(f"'{field}' deve ser uma lista de UUIDs")
+    if len(values) > max_items:
+        raise MCPToolError(f"'{field}' aceita no máximo {max_items} itens")
+    invalid = [str(value) for value in values if not _is_uuid(value)]
+    if invalid:
+        raise MCPToolError(f"'{field}' tem valores que não são UUID: {', '.join(invalid[:5])}")
+    return list(dict.fromkeys(str(value) for value in values))
+
+
+def _clean_text(value, field, max_length=MAX_TEXT_LENGTH, required=False):
+    """Plain text: trimmed, required when asked, never longer than the column allows."""
+    text = str(value or "").strip()
+    if required and not text:
+        raise MCPToolError(f"'{field}' é obrigatório")
+    if len(text) > max_length:
+        raise MCPToolError(f"'{field}' passa do limite de {max_length} caracteres")
+    return text
+
+
+def _clean_html(value, field="description_html", max_length=MAX_HTML_LENGTH):
+    """HTML goes through the same sanitizer as the app (nh3): no scripts, handlers or javascript: links."""
+    if value in (None, ""):
+        return "<p></p>"
+    if len(value) > max_length:
+        raise MCPToolError(f"'{field}' passa do limite de {max_length} caracteres")
+    is_valid, error, clean_html = validate_html_content(value)
+    if not is_valid:
+        raise MCPToolError(f"'{field}' tem HTML inválido: {error}")
+    return clean_html or "<p></p>"
+
+
+def _clean_color(value, field="color"):
+    color = str(value or "").strip()
+    if not _HEX_COLOR.match(color):
+        raise MCPToolError(f"'{field}' deve ser uma cor hexadecimal, ex.: '#3B82F6'")
+    return color
+
+
+def _limit(value, default, maximum):
+    try:
+        return max(1, min(int(value or default), maximum))
+    except (TypeError, ValueError):
+        raise MCPToolError("'limit' deve ser um número inteiro")
+
+
+def _require_confirm(confirm, action):
+    if confirm is not True:
+        raise MCPToolError(f"{action} Envie confirm=true para prosseguir.")
+
+
+def _parse_date(value, field_name):
+    if value in (None, ""):
+        return None
+    try:
+        return datetime.date.fromisoformat(str(value)[:10])
+    except ValueError:
+        raise MCPToolError(f"'{field_name}' deve ser uma data ISO (AAAA-MM-DD)")
+
+
+# ---------------------------------------------------------------------------
+# Lookup helpers (always scoped by the workspace slug)
+# ---------------------------------------------------------------------------
+
+
 def _get_workspace(slug):
-    workspace = Workspace.objects.filter(slug=slug).first()
+    workspace = Workspace.objects.filter(slug=str(slug or "")).first()
     if workspace is None:
-        raise MCPToolError(f"Workspace with slug '{slug}' does not exist")
+        raise MCPToolError(f"O workspace '{slug}' não existe")
     return workspace
 
 
@@ -80,15 +173,15 @@ def _get_project(workspace_slug, project):
     if _is_uuid(project):
         instance = queryset.filter(pk=project).first()
     else:
-        instance = queryset.filter(identifier=str(project).strip().upper()).first()
+        instance = queryset.filter(identifier=str(project or "").strip().upper()).first()
     if instance is None:
-        raise MCPToolError(f"Project '{project}' does not exist in workspace '{workspace_slug}'")
+        raise MCPToolError(f"O projeto '{project}' não existe no workspace '{workspace_slug}'")
     return instance
 
 
 def _get_issue(workspace_slug, issue):
     """Resolve an issue by UUID or by its human identifier (e.g. `PLANE-123`)."""
-    queryset = Issue.objects.filter(workspace__slug=workspace_slug).select_related("project")
+    queryset = Issue.objects.filter(workspace__slug=workspace_slug).select_related("project", "state")
     if _is_uuid(issue):
         instance = queryset.filter(pk=issue).first()
     else:
@@ -96,22 +189,25 @@ def _get_issue(workspace_slug, issue):
             project_identifier, sequence_id = str(issue).rsplit("-", 1)
             sequence_id = int(sequence_id)
         except (ValueError, AttributeError):
-            raise MCPToolError(f"Work item '{issue}' is not a valid UUID or identifier like 'PLANE-123'")
+            raise MCPToolError(f"'{issue}' não é um UUID nem um identificador como 'MAN-123'")
         instance = queryset.filter(
             project__identifier=project_identifier.strip().upper(), sequence_id=sequence_id
         ).first()
     if instance is None:
-        raise MCPToolError(f"Work item '{issue}' does not exist in workspace '{workspace_slug}'")
+        raise MCPToolError(f"O item '{issue}' não existe no workspace '{workspace_slug}'")
     return instance
 
 
-def _parse_date(value, field_name):
-    if value in (None, ""):
-        return None
-    try:
-        return datetime.date.fromisoformat(str(value)[:10])
-    except ValueError:
-        raise MCPToolError(f"'{field_name}' must be an ISO date (YYYY-MM-DD)")
+def _workspace_user(workspace_slug, user_ref, field="member"):
+    """An active workspace member by UUID or e-mail."""
+    members = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, is_active=True).select_related("member")
+    if _is_uuid(user_ref):
+        member = members.filter(member_id=user_ref).first()
+    else:
+        member = members.filter(member__email__iexact=str(user_ref or "").strip()).first()
+    if member is None:
+        raise MCPToolError(f"'{user_ref}' ({field}) não é membro ativo do workspace '{workspace_slug}'")
+    return member.member
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +258,24 @@ def _issue_identifier(issue):
     return f"{project_identifier}-{issue.sequence_id}" if project_identifier else None
 
 
+def issue_prefetch():
+    """Current assignees and labels (the M2M fields would also return soft-deleted links)."""
+    return (
+        Prefetch("issue_assignee", queryset=IssueAssignee.objects.select_related("assignee")),
+        Prefetch("label_issue", queryset=IssueLabel.objects.select_related("label")),
+    )
+
+
+def _active_assignees(issue):
+    return [row.assignee for row in issue.issue_assignee.all() if row.assignee is not None]
+
+
+def _active_labels(issue):
+    return [row.label for row in issue.label_issue.all() if row.label is not None]
+
+
 def _serialize_issue(issue, include_description=False):
+    assignees = _active_assignees(issue)
     data = {
         "id": str(issue.id),
         "identifier": _issue_identifier(issue),
@@ -176,12 +289,9 @@ def _serialize_issue(issue, include_description=False):
         "workspace_id": str(issue.workspace_id),
         "start_date": issue.start_date.isoformat() if issue.start_date else None,
         "target_date": issue.target_date.isoformat() if issue.target_date else None,
-        "assignee_ids": [str(assignee_id) for assignee_id in issue.assignees.values_list("id", flat=True)]
-        if hasattr(issue, "assignees")
-        else [],
-        "label_ids": [str(label_id) for label_id in issue.labels.values_list("id", flat=True)]
-        if hasattr(issue, "labels")
-        else [],
+        "assignee_ids": [str(user.id) for user in assignees],
+        "assignee_emails": [user.email for user in assignees],
+        "label_ids": [str(label.id) for label in _active_labels(issue)],
         "created_at": issue.created_at.isoformat() if issue.created_at else None,
         "updated_at": issue.updated_at.isoformat() if issue.updated_at else None,
     }
@@ -248,7 +358,7 @@ def _serialize_page(page):
     return {
         "id": str(page.id),
         "name": page.name,
-        "access": page.access,
+        "access": "private" if page.access == 1 else "public",
         "is_locked": page.is_locked,
         "is_archived": page.archived_at is not None,
         "owned_by_id": str(page.owned_by_id),
@@ -264,23 +374,68 @@ def _serialize_page(page):
 _WORKSPACE_SLUG_PROPERTY = {
     "workspace_slug": {
         "type": "string",
-        "description": "Slug of the workspace, e.g. 'my-company'",
+        "maxLength": 100,
+        "description": "Slug do workspace, ex.: 'conjo'",
     }
 }
 
 _PROJECT_PROPERTY = {
     "project": {
         "type": "string",
-        "description": "Project UUID or project identifier, e.g. 'PLANE'",
+        "maxLength": 100,
+        "description": "UUID ou identificador do projeto, ex.: 'MAN'",
     }
 }
 
 _WORK_ITEM_PROPERTY = {
     "work_item": {
         "type": "string",
-        "description": "Work item UUID or human identifier, e.g. 'PLANE-123'",
+        "maxLength": 100,
+        "description": "UUID ou identificador do item, ex.: 'MAN-123'",
     }
 }
+
+_CONFIRM_PROPERTY = {
+    "confirm": {
+        "type": "boolean",
+        "description": "Obrigatório e igual a true: confirma uma ação irreversível",
+    }
+}
+
+
+def _name_property(description):
+    return {"type": "string", "maxLength": MAX_NAME_LENGTH, "description": description}
+
+
+def _text_property(description, max_length=MAX_TEXT_LENGTH):
+    return {"type": "string", "maxLength": max_length, "description": description}
+
+
+def _html_property(description, max_length=MAX_HTML_LENGTH):
+    return {"type": "string", "maxLength": max_length, "description": description}
+
+
+def _uuid_list_property(description, max_items=MAX_LIST_ITEMS):
+    return {
+        "type": "array",
+        "items": {"type": "string", "maxLength": 100},
+        "maxItems": max_items,
+        "description": description,
+    }
+
+
+def _date_property(description="Data ISO (AAAA-MM-DD)"):
+    return {"type": "string", "maxLength": 40, "description": description}
+
+
+def _limit_property(default, maximum, description="Quantidade máxima de resultados"):
+    return {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": maximum,
+        "default": default,
+        "description": f"{description} (padrão {default}, máximo {maximum})",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +445,7 @@ _WORK_ITEM_PROPERTY = {
 
 @register_tool(
     name="list_workspaces",
-    description="List all workspaces in this Tasks instance.",
+    description="Lista todos os workspaces desta instância do Tasks.",
     input_schema={"type": "object", "properties": {}, "additionalProperties": False},
     category="workspaces",
 )
@@ -301,7 +456,7 @@ def list_workspaces():
 
 @register_tool(
     name="retrieve_workspace",
-    description="Retrieve details of a single workspace by its slug.",
+    description="Detalhes de um workspace pelo slug.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY},
@@ -321,7 +476,7 @@ def retrieve_workspace(workspace_slug):
 
 @register_tool(
     name="list_projects",
-    description="List all projects in a workspace.",
+    description="Lista os projetos de um workspace (inclusive arquivados, marcados em is_archived).",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY},
@@ -338,7 +493,7 @@ def list_projects(workspace_slug):
 
 @register_tool(
     name="retrieve_project",
-    description="Retrieve details of a single project by UUID or identifier.",
+    description="Detalhes de um projeto pelo UUID ou identificador.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -354,38 +509,53 @@ def retrieve_project(workspace_slug, project):
 @register_tool(
     name="create_project",
     description=(
-        "Create a new project in a workspace. Seeds the default workflow states "
-        "(Backlog, Todo, In Progress, Done, Cancelled, Triage)."
+        "Cria um projeto no workspace com os estados padrão (Backlog, Todo, In Progress, Done, Cancelled). "
+        "Informe admin (e-mail de um membro do workspace) para que alguém administre o projeto; sem isso o "
+        "projeto nasce sem membros e só aparece para quem for adicionado depois (add_project_member)."
     ),
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
-            "name": {"type": "string", "description": "Name of the project"},
+            "name": _name_property("Nome do projeto"),
             "identifier": {
                 "type": "string",
-                "description": "Short uppercase identifier used in work item ids, e.g. 'PLANE'",
+                "description": "Identificador curto em maiúsculas usado nos itens, ex.: 'MAN' (até 12 letras/números)",
                 "maxLength": 12,
             },
-            "description": {"type": "string", "description": "Optional plain-text description"},
+            "description": _text_property("Descrição em texto simples (opcional)"),
+            "admin": {
+                "type": "string",
+                "maxLength": 254,
+                "description": "E-mail ou UUID do membro do workspace que vira administrador do projeto",
+            },
         },
         "required": ["workspace_slug", "name", "identifier"],
         "additionalProperties": False,
     },
     category="projects",
 )
-def create_project(workspace_slug, name, identifier, description=""):
+def create_project(workspace_slug, name, identifier, description="", admin=None):
+    from plane.db.models import ProjectUserProperty
+
     workspace = _get_workspace(workspace_slug)
-    identifier = str(identifier).strip().upper()
+    name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
+    identifier = str(identifier or "").strip().upper()
+    if not _PROJECT_IDENTIFIER.match(identifier):
+        raise MCPToolError("'identifier' deve ter de 1 a 12 letras ou números, sem espaços")
+    description = _clean_text(description, "description")
+    admin_user = _workspace_user(workspace_slug, admin, "admin") if admin else None
 
     if Project.objects.filter(workspace=workspace, identifier=identifier).exists():
-        raise MCPToolError(f"A project with identifier '{identifier}' already exists in this workspace")
+        raise MCPToolError(f"Já existe um projeto com o identificador '{identifier}' neste workspace")
+    if Project.objects.filter(workspace=workspace, name__iexact=name).exists():
+        raise MCPToolError(f"Já existe um projeto chamado '{name}' neste workspace")
 
     try:
         project = Project.objects.create(
             name=name,
             identifier=identifier,
-            description=description or "",
+            description=description,
             workspace=workspace,
         )
         State.objects.bulk_create(
@@ -408,7 +578,17 @@ def create_project(workspace_slug, name, identifier, description=""):
             project.default_state = default_state
             project.save(update_fields=["default_state", "updated_at"])
     except IntegrityError:
-        raise MCPToolError(f"A project with name '{name}' or identifier '{identifier}' already exists")
+        raise MCPToolError(f"Já existe um projeto com o nome '{name}' ou o identificador '{identifier}'")
+
+    if admin_user is not None:
+        workspace_role = (
+            WorkspaceMember.objects.filter(workspace=workspace, member=admin_user, is_active=True)
+            .values_list("role", flat=True)
+            .first()
+        )
+        # Same rule as the app: nobody gets a project role above their workspace role.
+        ProjectMember.objects.create(project=project, member=admin_user, role=min(ROLE_ADMIN, workspace_role or 5))
+        ProjectUserProperty.objects.get_or_create(project=project, user=admin_user, workspace=workspace)
 
     return _serialize_project(project)
 
@@ -417,10 +597,12 @@ def create_project(workspace_slug, name, identifier, description=""):
 # Member tools
 # ---------------------------------------------------------------------------
 
+_ROLE_NAMES = {ROLE_ADMIN: "admin", ROLE_MEMBER: "member", ROLE_GUEST: "guest"}
+
 
 @register_tool(
     name="list_workspace_members",
-    description="List all active members of a workspace.",
+    description="Lista os membros ativos do workspace com o papel (admin, member, guest).",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY},
@@ -434,14 +616,19 @@ def list_workspace_members(workspace_slug):
     members = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, is_active=True).select_related("member")
     return {
         "members": [
-            {**_serialize_user(member.member), "role": member.role} for member in members if member.member is not None
+            {**_serialize_user(member.member), "role": _ROLE_NAMES.get(member.role, member.role)}
+            for member in members
+            if member.member is not None
         ]
     }
 
 
 @register_tool(
     name="list_project_members",
-    description="List all active members of a project.",
+    description=(
+        "Lista os membros ativos de um projeto com o papel. Convidados (guest) não podem ser responsáveis por "
+        "itens nem lançar horas."
+    ),
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -455,7 +642,9 @@ def list_project_members(workspace_slug, project):
     members = ProjectMember.objects.filter(project=project_instance, is_active=True).select_related("member")
     return {
         "members": [
-            {**_serialize_user(member.member), "role": member.role} for member in members if member.member is not None
+            {**_serialize_user(member.member), "role": _ROLE_NAMES.get(member.role, member.role)}
+            for member in members
+            if member.member is not None
         ]
     }
 
@@ -479,6 +668,8 @@ def _filtered_issues(
     parent=None,
     archived=False,
     client=None,
+    due_before=None,
+    overdue=False,
 ):
     # The board: no requests still in triage, no drafts; archived items only when asked for.
     if archived:
@@ -488,7 +679,7 @@ def _filtered_issues(
     queryset = (
         base.filter(workspace__slug=workspace_slug)
         .select_related("project", "state")
-        .prefetch_related("assignees", "labels")
+        .prefetch_related(*issue_prefetch())
     )
     if project is not None:
         queryset = queryset.filter(project=_get_project(workspace_slug, project))
@@ -499,7 +690,7 @@ def _filtered_issues(
     if priority:
         queryset = queryset.filter(priority=priority)
     if assignee_id:
-        queryset = queryset.filter(assignees__id=assignee_id)
+        queryset = queryset.filter(issue_assignee__assignee_id=assignee_id, issue_assignee__deleted_at__isnull=True)
     if label_id:
         queryset = queryset.filter(label_issue__label_id=label_id, label_issue__deleted_at__isnull=True)
     if cycle_id:
@@ -510,6 +701,12 @@ def _filtered_issues(
         queryset = queryset.filter(state__group=state_group)
     if parent:
         queryset = queryset.filter(parent=_get_issue(workspace_slug, parent))
+    if due_before:
+        queryset = queryset.filter(target_date__lte=due_before)
+    if overdue:
+        queryset = queryset.filter(target_date__lt=timezone.localdate()).exclude(
+            state__group__in=("completed", "cancelled")
+        )
     if client:
         from plane.mcp.tools.clients import _get_client
         from plane.utils.conjo_billing import client_issues
@@ -521,41 +718,47 @@ def _filtered_issues(
 @register_tool(
     name="list_work_items",
     description=(
-        "List work items in a workspace or project. Optionally filter by state, "
-        "priority (urgent|high|medium|low|none) or assignee. Returns at most `limit` items."
+        "Lista itens do board de um workspace ou projeto (sem pedidos ainda na Entrada). Filtros combináveis: "
+        "estado, grupo de estado, prioridade, responsável (UUID ou e-mail), etiqueta, ciclo, módulo, item pai, "
+        "cliente, prazo até uma data (due_before) e atrasados (overdue: prazo vencido e não concluídos). "
+        "Pagina com limit/offset."
     ),
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_PROJECT_PROPERTY,
-            "state_id": {"type": "string", "description": "Filter by state UUID"},
+            "state_id": {"type": "string", "maxLength": 100, "description": "UUID do estado"},
             "priority": {
                 "type": "string",
                 "enum": list(PRIORITY_CHOICES),
-                "description": "Filter by priority",
+                "description": "Prioridade",
             },
-            "assignee_id": {"type": "string", "description": "Filter by assignee user UUID"},
-            "label_id": {"type": "string", "description": "Filter by label UUID"},
-            "cycle_id": {"type": "string", "description": "Filter by cycle UUID"},
-            "module_id": {"type": "string", "description": "Filter by module UUID"},
+            "assignee": {
+                "type": "string",
+                "maxLength": 254,
+                "description": "Responsável: e-mail ou UUID do membro (ex.: 'meus itens')",
+            },
+            "assignee_id": {"type": "string", "maxLength": 100, "description": "UUID do responsável (legado)"},
+            "label_id": {"type": "string", "maxLength": 100, "description": "UUID da etiqueta"},
+            "cycle_id": {"type": "string", "maxLength": 100, "description": "UUID do ciclo"},
+            "module_id": {"type": "string", "maxLength": 100, "description": "UUID do módulo"},
             "state_group": {
                 "type": "string",
-                "enum": ["backlog", "unstarted", "started", "completed", "cancelled"],
-                "description": "Filter by state group (e.g. 'started' for everything in progress)",
+                "enum": list(STATE_GROUP_CHOICES),
+                "description": "Grupo de estado (ex.: 'started' para tudo em andamento)",
             },
-            "parent": {"type": "string", "description": "Only sub-work items of this work item"},
+            "parent": {"type": "string", "maxLength": 100, "description": "Só os subitens deste item"},
             "client": {
                 "type": "string",
-                "description": "Only work items of this client (UUID, name or CNPJ), by label on shared boards",
+                "maxLength": 255,
+                "description": "Só itens deste cliente (UUID, nome ou CNPJ), pela etiqueta em boards compartilhados",
             },
-            "archived": {"type": "boolean", "description": "List archived work items instead", "default": False},
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of work items to return (default 50, max 200)",
-                "default": 50,
-            },
-            "offset": {"type": "integer", "description": "Skip this many items (pagination)", "default": 0},
+            "due_before": _date_property("Só itens com prazo até esta data (AAAA-MM-DD), inclusive"),
+            "overdue": {"type": "boolean", "description": "Só itens atrasados (prazo vencido e não concluídos)"},
+            "archived": {"type": "boolean", "description": "Lista os itens arquivados", "default": False},
+            "limit": _limit_property(50, 200),
+            "offset": {"type": "integer", "minimum": 0, "description": "Pula esta quantidade (paginação)"},
         },
         "required": ["workspace_slug"],
         "additionalProperties": False,
@@ -567,6 +770,7 @@ def list_work_items(
     project=None,
     state_id=None,
     priority=None,
+    assignee=None,
     assignee_id=None,
     label_id=None,
     cycle_id=None,
@@ -574,13 +778,17 @@ def list_work_items(
     state_group=None,
     parent=None,
     client=None,
+    due_before=None,
+    overdue=False,
     archived=False,
     limit=50,
     offset=0,
 ):
     _get_workspace(workspace_slug)
     if priority is not None and priority not in PRIORITY_CHOICES:
-        raise MCPToolError(f"priority must be one of {', '.join(PRIORITY_CHOICES)}")
+        raise MCPToolError(f"'priority' deve ser um destes: {', '.join(PRIORITY_CHOICES)}")
+    if state_group is not None and state_group not in STATE_GROUP_CHOICES:
+        raise MCPToolError(f"'state_group' deve ser um destes: {', '.join(STATE_GROUP_CHOICES)}")
     for name, value in (
         ("state_id", state_id),
         ("assignee_id", assignee_id),
@@ -588,9 +796,11 @@ def list_work_items(
         ("cycle_id", cycle_id),
         ("module_id", module_id),
     ):
-        if value and not _is_uuid(value):
-            raise MCPToolError(f"'{name}' must be a UUID")
-    limit = max(1, min(int(limit or 50), 200))
+        if value:
+            _require_uuid(value, name)
+    if assignee:
+        assignee_id = str(_workspace_user(workspace_slug, assignee, "assignee").id)
+    limit = _limit(limit, 50, 200)
     offset = max(0, int(offset or 0))
     queryset = _filtered_issues(
         workspace_slug,
@@ -605,6 +815,8 @@ def list_work_items(
         parent=parent,
         archived=bool(archived),
         client=client,
+        due_before=_parse_date(due_before, "due_before"),
+        overdue=bool(overdue),
     )
     total = queryset.count()
     issues = queryset[offset : offset + limit]
@@ -617,7 +829,10 @@ def list_work_items(
 
 @register_tool(
     name="retrieve_work_item",
-    description="Retrieve a single work item (including its description) by UUID or identifier like 'PLANE-123'.",
+    description=(
+        "Um item completo pelo UUID ou identificador ('MAN-123'): descrição, responsáveis, etiquetas, pai e "
+        "subitens, ciclo, módulos, relações, estimativa (pontos), cliente e situação na Entrada."
+    ),
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_WORK_ITEM_PROPERTY},
@@ -627,22 +842,23 @@ def list_work_items(
     category="work_items",
 )
 def retrieve_work_item(workspace_slug, work_item):
-    from plane.db.models import CycleIssue, IntakeIssue, IssueLink, ModuleIssue
+    from plane.db.models import CycleIssue, FileAsset, IntakeIssue, IssueLink, ModuleIssue
     from plane.mcp.tools.board import _relations_of
+    from plane.utils.conjo_billing import client_resolution
 
     issue = _get_issue(workspace_slug, work_item)
     data = _serialize_issue(issue, include_description=True)
-    from plane.utils.conjo_billing import client_resolution
 
     cycle = CycleIssue.objects.filter(issue=issue).select_related("cycle").first()
     intake = IntakeIssue.objects.filter(issue=issue).first()
     client, client_via = client_resolution(issue)
+    estimate_point = issue.estimate_point if issue.estimate_point_id else None
     data.update(
         assignees=[
             {"id": str(user.id), "display_name": user.display_name, "email": user.email}
-            for user in issue.assignees.all()
+            for user in _active_assignees(issue)
         ],
-        labels=[{"id": str(label.id), "name": label.name} for label in issue.labels.all()],
+        labels=[{"id": str(label.id), "name": label.name} for label in _active_labels(issue)],
         parent=_issue_identifier(issue.parent) if issue.parent_id else None,
         sub_work_items=[
             _issue_identifier(child) for child in Issue.issue_objects.filter(parent=issue).order_by("sequence_id")
@@ -654,10 +870,15 @@ def retrieve_work_item(workspace_slug, work_item):
         ],
         relations=_relations_of(issue),
         links=IssueLink.objects.filter(issue=issue).count(),
+        attachments=FileAsset.objects.filter(
+            issue=issue, entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, is_uploaded=True
+        ).count(),
+        estimate_point={"id": str(estimate_point.id), "value": estimate_point.value} if estimate_point else None,
         is_archived=issue.archived_at is not None,
         intake_status={-2: "pending", -1: "declined", 0: "snoozed", 1: "accepted", 2: "duplicate"}.get(intake.status)
         if intake
         else None,
+        visible_to_client=_client_audience(issue),
         completed_at=issue.completed_at.isoformat() if issue.completed_at else None,
         client={"id": str(client.id), "name": client.name, "via": client_via} if client else None,
     )
@@ -666,18 +887,14 @@ def retrieve_work_item(workspace_slug, work_item):
 
 @register_tool(
     name="search_work_items",
-    description="Full-text search over work item names and descriptions inside a workspace or project.",
+    description="Busca texto no título e na descrição dos itens do board de um workspace ou projeto.",
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_PROJECT_PROPERTY,
-            "query": {"type": "string", "description": "Search text"},
-            "limit": {
-                "type": "integer",
-                "description": "Maximum number of results (default 25, max 100)",
-                "default": 25,
-            },
+            "query": {"type": "string", "maxLength": 255, "description": "Texto a buscar"},
+            "limit": _limit_property(25, 100),
         },
         "required": ["workspace_slug", "query"],
         "additionalProperties": False,
@@ -686,24 +903,23 @@ def retrieve_work_item(workspace_slug, work_item):
 )
 def search_work_items(workspace_slug, query, project=None, limit=25):
     _get_workspace(workspace_slug)
-    if not query:
-        raise MCPToolError("'query' is required")
-    limit = max(1, min(int(limit or 25), 100))
+    query = _clean_text(query, "query", MAX_NAME_LENGTH, required=True)
+    limit = _limit(limit, 25, 100)
     issues = _filtered_issues(workspace_slug, project=project, query=query)[:limit]
     return {"work_items": [_serialize_issue(issue) for issue in issues]}
 
 
 def _validate_priority(priority):
     if priority is not None and priority not in PRIORITY_CHOICES:
-        raise MCPToolError(f"priority must be one of {', '.join(PRIORITY_CHOICES)}")
+        raise MCPToolError(f"'priority' deve ser um destes: {', '.join(PRIORITY_CHOICES)}")
 
 
 def _validate_state(project_instance, state_id):
     if state_id in (None, ""):
         return None
-    state = State.objects.filter(project=project_instance, pk=state_id).first()
+    state = State.objects.filter(project=project_instance, pk=state_id).first() if _is_uuid(state_id) else None
     if state is None:
-        raise MCPToolError(f"State '{state_id}' does not exist in project '{project_instance.identifier}'")
+        raise MCPToolError(f"O estado '{state_id}' não existe no projeto '{project_instance.identifier}'")
     return state
 
 
@@ -713,25 +929,75 @@ def _validate_parent(workspace_slug, project_instance, parent, child=None):
         return None
     parent_issue = _get_issue(workspace_slug, parent)
     if parent_issue.project_id != project_instance.id:
-        raise MCPToolError("The parent must be in the same project")
+        raise MCPToolError("O item pai precisa ser do mesmo projeto")
     if child is not None:
         ancestor = parent_issue
         for _ in range(50):
             if ancestor is None:
                 break
             if ancestor.id == child.id:
-                raise MCPToolError("A work item cannot be the parent of itself or of its own parent")
+                raise MCPToolError("Um item não pode ser pai de si mesmo nem do próprio pai (parent)")
             ancestor = ancestor.parent
     return parent_issue
 
 
+def _validate_assignees(project_instance, assignee_ids):
+    """Assignees must be active members of the project, never guests (the app's rule)."""
+    assignee_ids = _uuid_list(assignee_ids, "assignee_ids")
+    if not assignee_ids:
+        return assignee_ids
+    valid = {
+        str(member_id)
+        for member_id in ProjectMember.objects.filter(
+            project=project_instance, is_active=True, role__gte=ROLE_MEMBER, member_id__in=assignee_ids
+        ).values_list("member_id", flat=True)
+    }
+    invalid = [member_id for member_id in assignee_ids if member_id not in valid]
+    if invalid:
+        raise MCPToolError(
+            "Responsáveis precisam ser membros ativos do projeto (convidados não podem): " + ", ".join(invalid)
+        )
+    return assignee_ids
+
+
+def _validate_labels(project_instance, label_ids):
+    label_ids = _uuid_list(label_ids, "label_ids")
+    if not label_ids:
+        return label_ids
+    valid = {
+        str(label_id)
+        for label_id in Label.objects.filter(project=project_instance, id__in=label_ids).values_list("id", flat=True)
+    }
+    invalid = [label_id for label_id in label_ids if label_id not in valid]
+    if invalid:
+        raise MCPToolError(f"Etiquetas que não são do projeto '{project_instance.identifier}': {', '.join(invalid)}")
+    return label_ids
+
+
+def _resolve_estimate_point(project_instance, estimate_point):
+    """A point of the project's active estimate, by UUID or by value (e.g. '3' or 'M'); '' clears."""
+    from plane.db.models import EstimatePoint
+
+    if estimate_point == "":
+        return None
+    if not project_instance.estimate_id:
+        raise MCPToolError(f"O projeto '{project_instance.identifier}' não usa estimativas")
+    points = EstimatePoint.objects.filter(estimate_id=project_instance.estimate_id, project=project_instance)
+    if _is_uuid(estimate_point):
+        point = points.filter(pk=estimate_point).first()
+    else:
+        point = points.filter(value__iexact=str(estimate_point).strip()).first()
+    if point is None:
+        values = ", ".join(points.order_by("key").values_list("value", flat=True))
+        raise MCPToolError(f"Estimativa '{estimate_point}' não existe no projeto. Valores possíveis: {values}")
+    return point
+
+
 def _set_issue_assignees(issue, project_instance, assignee_ids):
+    """Replace the assignees; ``assignee_ids`` must come from _validate_assignees."""
     if assignee_ids is None:
         return
     IssueAssignee.objects.filter(issue=issue).delete()
-    valid_member_ids = ProjectMember.objects.filter(
-        project=project_instance, is_active=True, member_id__in=assignee_ids
-    ).values_list("member_id", flat=True)
     IssueAssignee.objects.bulk_create(
         [
             IssueAssignee(
@@ -740,7 +1006,7 @@ def _set_issue_assignees(issue, project_instance, assignee_ids):
                 project=project_instance,
                 workspace=issue.workspace,
             )
-            for member_id in valid_member_ids
+            for member_id in assignee_ids
         ],
         batch_size=10,
         ignore_conflicts=True,
@@ -748,10 +1014,10 @@ def _set_issue_assignees(issue, project_instance, assignee_ids):
 
 
 def _set_issue_labels(issue, project_instance, label_ids):
+    """Replace the labels; ``label_ids`` must come from _validate_labels."""
     if label_ids is None:
         return
     IssueLabel.objects.filter(issue=issue).delete()
-    valid_label_ids = Label.objects.filter(project=project_instance, id__in=label_ids).values_list("id", flat=True)
     IssueLabel.objects.bulk_create(
         [
             IssueLabel(
@@ -760,11 +1026,35 @@ def _set_issue_labels(issue, project_instance, label_ids):
                 project=project_instance,
                 workspace=issue.workspace,
             )
-            for label_id in valid_label_ids
+            for label_id in label_ids
         ],
         batch_size=10,
         ignore_conflicts=True,
     )
+
+
+def _client_audience(issue):
+    """Who outside the team can read the item's public comments, or None when nobody can.
+
+    Same rules as the app: the requester of a ticket that came from the request portal, or anyone who
+    opens the project's published board when it accepts comments.
+    """
+    from plane.db.models import DeployBoard, IntakeIssue
+    from plane.db.models.intake import SourceType
+
+    intake = (
+        IntakeIssue.objects.filter(issue=issue, source=SourceType.PORTAL, source_email__isnull=False)
+        .exclude(source_email="")
+        .first()
+    )
+    if intake is not None:
+        name = (intake.extra or {}).get("requester_name") or ""
+        return f"portal: {name} <{intake.source_email}>" if name else f"portal: {intake.source_email}"
+    if DeployBoard.objects.filter(
+        entity_name="project", entity_identifier=issue.project_id, is_disabled=False, is_comments_enabled=True
+    ).exists():
+        return "board publicado do projeto"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -797,9 +1087,12 @@ def _mcp_actor():
         return User.objects.filter(username=MCP_BOT_USERNAME).first()
 
 
-def _record_activity(activity_type, issue, actor, requested_data, current_instance=None):
+def _record_activity(activity_type, issue, actor, requested_data, current_instance=None, intake=None):
     from plane.bgtasks.issue_activities_task import issue_activity
 
+    kwargs = {}
+    if intake is not None:
+        kwargs["intake"] = str(intake)
     issue_activity.delay(
         type=activity_type,
         requested_data=json.dumps(requested_data, cls=DjangoJSONEncoder),
@@ -810,6 +1103,7 @@ def _record_activity(activity_type, issue, actor, requested_data, current_instan
         epoch=int(timezone.now().timestamp()),
         notification=True,
         origin=getattr(settings, "TASKS_PUBLIC_URL", None) or settings.WEB_URL,
+        **kwargs,
     )
 
 
@@ -823,6 +1117,7 @@ def _issue_snapshot(issue):
         "start_date": issue.start_date.isoformat() if issue.start_date else None,
         "target_date": issue.target_date.isoformat() if issue.target_date else None,
         "parent_id": str(issue.parent_id) if issue.parent_id else None,
+        "estimate_point": str(issue.estimate_point_id) if issue.estimate_point_id else None,
         "assignee_ids": [
             str(a) for a in IssueAssignee.objects.filter(issue=issue).values_list("assignee_id", flat=True)
         ],
@@ -832,50 +1127,45 @@ def _issue_snapshot(issue):
     }
 
 
+_WORK_ITEM_FIELDS = {
+    "name": _name_property("Título do item"),
+    "description_html": _html_property("Descrição em HTML (sanitizada como no app)"),
+    "priority": {"type": "string", "enum": list(PRIORITY_CHOICES), "description": "Prioridade"},
+    "state_id": {"type": "string", "maxLength": 100, "description": "UUID do estado (list_states)"},
+    "start_date": _date_property("Data de início ISO (AAAA-MM-DD); '' limpa"),
+    "target_date": _date_property("Prazo ISO (AAAA-MM-DD); '' limpa"),
+    "assignee_ids": _uuid_list_property("UUIDs dos responsáveis (membros do projeto, não convidados); substitui"),
+    "label_ids": _uuid_list_property("UUIDs das etiquetas do projeto; substitui as atuais"),
+    "estimate_point": {
+        "type": "string",
+        "maxLength": 255,
+        "description": "Estimativa do item: valor (ex.: '3', 'M') ou UUID do ponto (list_estimate_points); '' limpa",
+    },
+}
+
+
 @register_tool(
     name="create_work_item",
     description=(
-        "Create a work item in a project. Provide the project by UUID or identifier. "
-        "Optionally set state, priority, dates, assignees and labels."
+        "Cria um item no board de um projeto (registra no histórico e notifica). Opcionalmente define estado, "
+        "prioridade, datas, responsáveis, etiquetas, item pai, estimativa e cliente. Para um pedido que deve "
+        "passar pela triagem, use create_intake_item."
     ),
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
-            "project": {
-                "type": "string",
-                "description": "Project UUID or project identifier, e.g. 'PLANE'",
-            },
-            "name": {"type": "string", "description": "Title of the work item"},
-            "description_html": {
-                "type": "string",
-                "description": "Optional HTML description of the work item",
-            },
-            "priority": {
-                "type": "string",
-                "enum": list(PRIORITY_CHOICES),
-                "description": "Priority of the work item",
-            },
-            "state_id": {"type": "string", "description": "UUID of the workflow state"},
-            "start_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
-            "target_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
-            "assignee_ids": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "User UUIDs of assignees (must be project members)",
-            },
-            "label_ids": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "Label UUIDs to attach",
-            },
+            **_PROJECT_PROPERTY,
+            **_WORK_ITEM_FIELDS,
             "parent": {
                 "type": "string",
-                "description": "Make it a sub-work item of this work item (identifier or UUID, same project)",
+                "maxLength": 100,
+                "description": "Cria como subitem deste item (identificador ou UUID, mesmo projeto)",
             },
             "client": {
                 "type": "string",
-                "description": "Client the work item is for (UUID, name or CNPJ); its board label is applied",
+                "maxLength": 255,
+                "description": "Cliente do item (UUID, nome ou CNPJ); a etiqueta do cliente é aplicada",
             },
         },
         "required": ["workspace_slug", "project", "name"],
@@ -896,32 +1186,42 @@ def create_work_item(
     label_ids=None,
     parent=None,
     client=None,
+    estimate_point=None,
 ):
-    if not name:
-        raise MCPToolError("'name' is required")
+    name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
     _validate_priority(priority)
     project_instance = _get_project(workspace_slug, project)
     state = _validate_state(project_instance, state_id)
     parent_issue = _validate_parent(workspace_slug, project_instance, parent)
+    assignee_ids = _validate_assignees(project_instance, assignee_ids)
+    label_ids = _validate_labels(project_instance, label_ids)
+    point = _resolve_estimate_point(project_instance, estimate_point) if estimate_point else None
+    start = _parse_date(start_date, "start_date")
+    target = _parse_date(target_date, "target_date")
+    if start and target and start > target:
+        raise MCPToolError("'start_date' não pode ser depois de 'target_date'")
     client_instance = None
     if client:
         from plane.mcp.tools.clients import _get_client
 
         client_instance = _get_client(workspace_slug, client)
+        if not client_instance.is_active:
+            raise MCPToolError(f"O cliente '{client_instance.name}' está inativo")
 
     issue_type = IssueType.objects.filter(project_issue_types__project_id=project_instance.id, is_default=True).first()
 
     actor = _mcp_actor()
     issue = Issue(
         name=name,
-        description_html=description_html or "<p></p>",
+        description_html=_clean_html(description_html),
         priority=priority or "none",
         state=state or project_instance.default_state,
         project=project_instance,
         type=issue_type,
-        start_date=_parse_date(start_date, "start_date"),
-        target_date=_parse_date(target_date, "target_date"),
+        start_date=start,
+        target_date=target,
         parent=parent_issue,
+        estimate_point=point,
     )
     # No request user behind the MCP token: name the bot as the author explicitly.
     issue.save(created_by_id=actor.id)
@@ -940,25 +1240,20 @@ def create_work_item(
 @register_tool(
     name="update_work_item",
     description=(
-        "Update fields of an existing work item. Only the provided fields are changed. "
-        "Assignees and labels, when provided, replace the current values."
+        "Altera campos de um item; só os campos enviados mudam (registra no histórico e notifica os "
+        "envolvidos). Responsáveis e etiquetas, quando enviados, substituem os atuais. Mudanças de estado, "
+        "prioridade, prazo, responsáveis e etiquetas em chamados do portal geram e-mail ao cliente."
     ),
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_WORK_ITEM_PROPERTY,
-            "name": {"type": "string"},
-            "description_html": {"type": "string"},
-            "priority": {"type": "string", "enum": list(PRIORITY_CHOICES)},
-            "state_id": {"type": "string", "description": "UUID of the workflow state"},
-            "start_date": {"type": "string", "description": "ISO date (YYYY-MM-DD) or empty string to clear"},
-            "target_date": {"type": "string", "description": "ISO date (YYYY-MM-DD) or empty string to clear"},
-            "assignee_ids": {"type": "array", "items": {"type": "string"}},
-            "label_ids": {"type": "array", "items": {"type": "string"}},
+            **_WORK_ITEM_FIELDS,
             "parent": {
                 "type": "string",
-                "description": "Parent work item (identifier or UUID, same project), or empty string to detach",
+                "maxLength": 100,
+                "description": "Item pai (identificador ou UUID, mesmo projeto); '' desvincula",
             },
         },
         "required": ["workspace_slug", "work_item"],
@@ -978,9 +1273,30 @@ def update_work_item(
     assignee_ids=None,
     label_ids=None,
     parent=None,
+    estimate_point=None,
 ):
     issue = _get_issue(workspace_slug, work_item)
+    project_instance = issue.project
     _validate_priority(priority)
+    # Validate everything before touching the item, so a bad value never leaves a half-applied change.
+    assignee_ids = _validate_assignees(project_instance, assignee_ids)
+    label_ids = _validate_labels(project_instance, label_ids)
+    if name is not None:
+        name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
+    if description_html is not None:
+        description_html = _clean_html(description_html)
+    state = _validate_state(project_instance, state_id) if state_id is not None else None
+    if state_id == "":
+        raise MCPToolError("'state_id' não pode ser vazio")
+    parent_issue = (
+        _validate_parent(workspace_slug, project_instance, parent, child=issue) if parent is not None else None
+    )
+    point = _resolve_estimate_point(project_instance, estimate_point) if estimate_point is not None else None
+    start = _parse_date(start_date, "start_date") if start_date is not None else issue.start_date
+    target = _parse_date(target_date, "target_date") if target_date is not None else issue.target_date
+    if start and target and start > target:
+        raise MCPToolError("'start_date' não pode ser depois de 'target_date'")
+
     before = _issue_snapshot(issue)
 
     update_fields = []
@@ -993,25 +1309,28 @@ def update_work_item(
     if priority is not None:
         issue.priority = priority
         update_fields.append("priority")
-    if state_id is not None:
-        issue.state = _validate_state(issue.project, state_id)
+    if state is not None:
+        issue.state = state
         update_fields.append("state")
     if start_date is not None:
-        issue.start_date = _parse_date(start_date, "start_date")
+        issue.start_date = start
         update_fields.append("start_date")
     if target_date is not None:
-        issue.target_date = _parse_date(target_date, "target_date")
+        issue.target_date = target
         update_fields.append("target_date")
     if parent is not None:
-        issue.parent = _validate_parent(workspace_slug, issue.project, parent, child=issue)
+        issue.parent = parent_issue
         update_fields.append("parent")
+    if estimate_point is not None:
+        issue.estimate_point = point
+        update_fields.append("estimate_point")
 
     if update_fields:
         update_fields.append("updated_at")
         issue.save(update_fields=update_fields)
 
-    _set_issue_assignees(issue, issue.project, assignee_ids)
-    _set_issue_labels(issue, issue.project, label_ids)
+    _set_issue_assignees(issue, project_instance, assignee_ids)
+    _set_issue_labels(issue, project_instance, label_ids)
 
     after = _issue_snapshot(issue)
     changed = {field: value for field, value in after.items() if value != before[field]}
@@ -1029,33 +1348,60 @@ def update_work_item(
 
 @register_tool(
     name="add_work_item_comment",
-    description="Add an HTML comment to a work item.",
+    description=(
+        "Comenta num item (registra no histórico e notifica a equipe). Por padrão é NOTA INTERNA, só a equipe "
+        "vê. public=true publica uma RESPOSTA AO CLIENTE: fica visível no portal para quem abriu o chamado "
+        "(e ele recebe e-mail) ou no board publicado; só é aceito em itens que vieram do portal ou de projetos "
+        "com board publicado com comentários."
+    ),
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_WORK_ITEM_PROPERTY,
-            "comment_html": {"type": "string", "description": "HTML body of the comment"},
+            "comment_html": _html_property("Corpo do comentário em HTML", MAX_COMMENT_HTML_LENGTH),
+            "public": {
+                "type": "boolean",
+                "default": False,
+                "description": "true = visível ao cliente (resposta pública); false/omitido = nota interna",
+            },
         },
         "required": ["workspace_slug", "work_item", "comment_html"],
         "additionalProperties": False,
     },
     category="work_items",
 )
-def add_work_item_comment(workspace_slug, work_item, comment_html):
-    if not comment_html:
-        raise MCPToolError("'comment_html' is required")
-    issue = _get_issue(workspace_slug, work_item)
-    actor = _mcp_actor()
-    comment = IssueComment(issue=issue, project=issue.project, comment_html=comment_html, actor=actor)
-    comment.save(created_by_id=actor.id)
+def add_work_item_comment(workspace_slug, work_item, comment_html, public=False):
     from plane.app.serializers import IssueCommentSerializer
+
+    issue = _get_issue(workspace_slug, work_item)
+    clean = _clean_html(comment_html, "comment_html", MAX_COMMENT_HTML_LENGTH)
+    if clean.replace("<p></p>", "").strip() == "":
+        raise MCPToolError("'comment_html' é obrigatório")
+    audience = _client_audience(issue) if public else None
+    if public and audience is None:
+        raise MCPToolError(
+            f"{_issue_identifier(issue)} não tem cliente que leia comentários públicos (não veio do portal e o "
+            "board do projeto não está publicado com comentários). Envie como nota interna."
+        )
+    actor = _mcp_actor()
+    comment = IssueComment(
+        issue=issue,
+        project=issue.project,
+        comment_html=clean,
+        actor=actor,
+        access="EXTERNAL" if public else "INTERNAL",
+    )
+    comment.save(created_by_id=actor.id)
 
     _record_activity("comment.activity.created", issue, actor, IssueCommentSerializer(comment).data)
     return {
         "id": str(comment.id),
         "work_item": _issue_identifier(issue),
         "comment_html": comment.comment_html,
+        "access": comment.access,
+        "visible_to_client": bool(public),
+        "visible_to": audience or "somente a equipe",
         "created_at": comment.created_at.isoformat() if comment.created_at else None,
     }
 
@@ -1067,7 +1413,7 @@ def add_work_item_comment(workspace_slug, work_item, comment_html):
 
 @register_tool(
     name="list_cycles",
-    description="List all cycles of a project.",
+    description="Lista os ciclos (sprints) não arquivados de um projeto.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -1084,16 +1430,16 @@ def list_cycles(workspace_slug, project):
 
 @register_tool(
     name="create_cycle",
-    description="Create a cycle in a project with start and end dates.",
+    description="Cria um ciclo (sprint) num projeto, com data de início e fim.",
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_PROJECT_PROPERTY,
-            "name": {"type": "string"},
-            "description": {"type": "string"},
-            "start_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
-            "end_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
+            "name": _name_property("Nome do ciclo"),
+            "description": _text_property("Descrição em texto simples"),
+            "start_date": _date_property("Início ISO (AAAA-MM-DD)"),
+            "end_date": _date_property("Fim ISO (AAAA-MM-DD)"),
         },
         "required": ["workspace_slug", "project", "name", "start_date", "end_date"],
         "additionalProperties": False,
@@ -1101,20 +1447,20 @@ def list_cycles(workspace_slug, project):
     category="cycles",
 )
 def create_cycle(workspace_slug, project, name, start_date, end_date, description=""):
-    if not name:
-        raise MCPToolError("'name' is required")
+    name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
+    description = _clean_text(description, "description")
     project_instance = _get_project(workspace_slug, project)
     start = _parse_date(start_date, "start_date")
     end = _parse_date(end_date, "end_date")
     if start is None or end is None:
-        raise MCPToolError("'start_date' and 'end_date' are required")
+        raise MCPToolError("'start_date' e 'end_date' são obrigatórios")
     if end < start:
-        raise MCPToolError("'end_date' must be after 'start_date'")
+        raise MCPToolError("'end_date' deve ser depois de 'start_date'")
 
     actor = _mcp_actor()
     cycle = Cycle(
         name=name,
-        description=description or "",
+        description=description,
         project=project_instance,
         start_date=start,
         end_date=end,
@@ -1132,7 +1478,7 @@ def create_cycle(workspace_slug, project, name, start_date, end_date, descriptio
 
 @register_tool(
     name="list_modules",
-    description="List all modules of a project.",
+    description="Lista os módulos não arquivados de um projeto.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -1149,21 +1495,21 @@ def list_modules(workspace_slug, project):
 
 @register_tool(
     name="create_module",
-    description="Create a module in a project.",
+    description="Cria um módulo num projeto.",
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_PROJECT_PROPERTY,
-            "name": {"type": "string"},
-            "description": {"type": "string"},
+            "name": _name_property("Nome do módulo"),
+            "description": _text_property("Descrição em texto simples"),
             "status": {
                 "type": "string",
                 "enum": list(MODULE_STATUS_CHOICES),
-                "description": "Module status (defaults to the model default when omitted)",
+                "description": "Situação do módulo (padrão: planned)",
             },
-            "start_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
-            "target_date": {"type": "string", "description": "ISO date (YYYY-MM-DD)"},
+            "start_date": _date_property("Início ISO (AAAA-MM-DD)"),
+            "target_date": _date_property("Prazo ISO (AAAA-MM-DD)"),
         },
         "required": ["workspace_slug", "project", "name"],
         "additionalProperties": False,
@@ -1171,23 +1517,32 @@ def list_modules(workspace_slug, project):
     category="modules",
 )
 def create_module(workspace_slug, project, name, description="", status=None, start_date=None, target_date=None):
-    if not name:
-        raise MCPToolError("'name' is required")
+    name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
+    description = _clean_text(description, "description")
     if status is not None and status not in MODULE_STATUS_CHOICES:
-        raise MCPToolError(f"status must be one of {', '.join(MODULE_STATUS_CHOICES)}")
+        raise MCPToolError(f"'status' deve ser um destes: {', '.join(MODULE_STATUS_CHOICES)}")
     project_instance = _get_project(workspace_slug, project)
+    start = _parse_date(start_date, "start_date")
+    target = _parse_date(target_date, "target_date")
+    if start and target and target < start:
+        raise MCPToolError("'target_date' deve ser depois de 'start_date'")
+    if Module.objects.filter(project=project_instance, name=name).exists():
+        raise MCPToolError(f"Já existe um módulo chamado '{name}' neste projeto")
 
     module_kwargs = {
         "name": name,
-        "description": description or "",
+        "description": description,
         "project": project_instance,
-        "start_date": _parse_date(start_date, "start_date"),
-        "target_date": _parse_date(target_date, "target_date"),
+        "start_date": start,
+        "target_date": target,
     }
     if status is not None:
         module_kwargs["status"] = status
 
-    module = Module.objects.create(**module_kwargs)
+    try:
+        module = Module.objects.create(**module_kwargs)
+    except IntegrityError:
+        raise MCPToolError(f"Já existe um módulo chamado '{name}' neste projeto")
     return _serialize_module(module)
 
 
@@ -1198,7 +1553,7 @@ def create_module(workspace_slug, project, name, description="", status=None, st
 
 @register_tool(
     name="list_states",
-    description="List all workflow states of a project.",
+    description="Lista os estados (colunas do board) de um projeto, na ordem do board.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -1220,7 +1575,7 @@ def list_states(workspace_slug, project):
 
 @register_tool(
     name="list_labels",
-    description="List all labels of a project.",
+    description="Lista as etiquetas de um projeto.",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -1237,18 +1592,19 @@ def list_labels(workspace_slug, project):
 
 @register_tool(
     name="create_label",
-    description="Create a label in a project.",
+    description="Cria uma etiqueta num projeto.",
     input_schema={
         "type": "object",
         "properties": {
             **_WORKSPACE_SLUG_PROPERTY,
             **_PROJECT_PROPERTY,
-            "name": {"type": "string"},
+            "name": _name_property("Nome da etiqueta"),
             "color": {
                 "type": "string",
-                "description": "Hex color of the label, e.g. '#F59E0B' (default '#FF6900')",
+                "maxLength": 7,
+                "description": "Cor hexadecimal, ex.: '#F59E0B' (padrão '#FF6900')",
             },
-            "description": {"type": "string"},
+            "description": _text_property("Descrição em texto simples"),
         },
         "required": ["workspace_slug", "project", "name"],
         "additionalProperties": False,
@@ -1256,15 +1612,16 @@ def list_labels(workspace_slug, project):
     category="labels",
 )
 def create_label(workspace_slug, project, name, color=None, description=""):
-    if not name:
-        raise MCPToolError("'name' is required")
+    name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
+    color = _clean_color(color) if color else "#FF6900"
+    description = _clean_text(description, "description")
     project_instance = _get_project(workspace_slug, project)
-    if Label.objects.filter(project=project_instance, name=name).exists():
-        raise MCPToolError(f"A label named '{name}' already exists in this project")
+    if Label.objects.filter(project=project_instance, name__iexact=name).exists():
+        raise MCPToolError(f"Já existe uma etiqueta chamada '{name}' neste projeto")
     label = Label.objects.create(
         name=name,
-        color=color or "#FF6900",
-        description=description or "",
+        color=color,
+        description=description,
         project=project_instance,
     )
     return _serialize_label(label)
@@ -1275,9 +1632,14 @@ def create_label(workspace_slug, project, name, color=None, description=""):
 # ---------------------------------------------------------------------------
 
 
+def _visible_pages(project_instance):
+    """Public pages of the project and the bot's own: people's private pages stay private, as in the app."""
+    return Page.objects.filter(projects__id=project_instance.id).filter(Q(access=0) | Q(owned_by=_mcp_actor()))
+
+
 @register_tool(
     name="list_pages",
-    description="List all pages linked to a project.",
+    description="Lista as páginas públicas de um projeto (páginas privadas de outras pessoas não aparecem).",
     input_schema={
         "type": "object",
         "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
@@ -1288,9 +1650,5 @@ def create_label(workspace_slug, project, name, color=None, description=""):
 )
 def list_pages(workspace_slug, project):
     project_instance = _get_project(workspace_slug, project)
-    pages = (
-        Page.objects.filter(projects__id=project_instance.id, archived_at__isnull=True)
-        .order_by("-created_at")
-        .distinct()
-    )
+    pages = _visible_pages(project_instance).filter(archived_at__isnull=True).order_by("-created_at").distinct()
     return {"pages": [_serialize_page(page) for page in pages]}

@@ -8,6 +8,7 @@ from .registry import MCPTool, TOOL_REGISTRY, register_tool
 from . import handlers  # noqa: F401
 from . import board  # noqa: F401, E402
 from . import clients  # noqa: F401, E402
+from . import operations  # noqa: F401, E402
 
 __all__ = [
     "MCPTool",

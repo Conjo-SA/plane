@@ -7,7 +7,6 @@ import re
 
 # Django imports
 from django.db.models import Q
-from django.utils import timezone
 
 # Third party imports
 from rest_framework import status
@@ -17,14 +16,11 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import IntakePortalSerializer
 from plane.app.views.base import BaseAPIView
-from plane.bgtasks.intake_portal_task import send_portal_budget_request
 from plane.db.models import Intake, IntakeIssue, IntakePortal, IntakePortalBudget
-from plane.db.models.intake import IntakePortalBudgetStatus, SourceType, get_intake_portal_anchor
-from plane.utils.intake_portal import parse_estimated_hours, serialize_portal_budget
+from plane.db.models.intake import SourceType, get_intake_portal_anchor
+from plane.utils.intake_portal import request_portal_budget, serialize_portal_budget
 
 EDITABLE_FIELDS = ["is_enabled", "title", "description", "success_message", "is_attachment_enabled"]
-
-MAX_BUDGET_NOTE_LENGTH = 2000
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{1,58}[a-z0-9]$")
 
@@ -46,9 +42,7 @@ def validate_portal_slug(raw_slug, portal):
             "starting and ending with a letter or number."
         )
 
-    conflict = (
-        IntakePortal.objects.filter(Q(slug__iexact=slug) | Q(anchor__iexact=slug)).exclude(pk=portal.pk).exists()
-    )
+    conflict = IntakePortal.objects.filter(Q(slug__iexact=slug) | Q(anchor__iexact=slug)).exclude(pk=portal.pk).exists()
     if conflict:
         return None, "This link is already taken. Choose another one."
 
@@ -168,33 +162,10 @@ class IntakePortalBudgetEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        hours, hours_error = parse_estimated_hours(request.data.get("estimated_hours"))
-        if hours_error:
-            return Response({"error": hours_error}, status=status.HTTP_400_BAD_REQUEST)
-
-        note = (request.data.get("note") or "").strip()[:MAX_BUDGET_NOTE_LENGTH]
-
-        budget = IntakePortalBudget.objects.filter(issue_id=issue_id).first()
-        # An approved estimate is a settled agreement, so it is never repriced.
-        if budget is not None and budget.status == IntakePortalBudgetStatus.APPROVED:
-            return Response(
-                {"error": "Este orçamento já foi aprovado pelo cliente e não pode ser alterado."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if budget is None:
-            budget = IntakePortalBudget(
-                issue_id=issue_id,
-                project_id=project_id,
-                workspace_id=intake_issue.workspace_id,
-            )
-
-        budget.estimated_hours = hours
-        budget.note = note
-        budget.status = IntakePortalBudgetStatus.PENDING
-        budget.requested_at = timezone.now()
-        budget.save()
-
-        send_portal_budget_request.delay(str(issue_id))
+        budget, error = request_portal_budget(
+            intake_issue, request.data.get("estimated_hours"), request.data.get("note")
+        )
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serialize_portal_budget(budget), status=status.HTTP_200_OK)

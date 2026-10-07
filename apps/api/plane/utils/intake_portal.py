@@ -10,9 +10,12 @@ so the contract lives here to keep the two surfaces from drifting apart.
 
 from decimal import Decimal, InvalidOperation
 
+from django.utils import timezone
+
 from plane.db.models.intake import IntakePortalBudgetStatus
 
 MAX_ESTIMATED_HOURS = Decimal("99999.99")
+MAX_BUDGET_NOTE_LENGTH = 2000
 
 
 def serialize_portal_budget(budget):
@@ -52,3 +55,43 @@ def parse_estimated_hours(raw_value):
         return None, f"As horas estimadas devem ser no máximo {MAX_ESTIMATED_HOURS}."
 
     return hours, None
+
+
+def request_portal_budget(intake_issue, raw_hours, raw_note, created_by_id=None):
+    """Send (or reprice) the hourly estimate of a portal ticket and e-mail the requester.
+
+    Shared by the team screen and the MCP so both follow the same rules: the hours are validated, an
+    approved estimate is never repriced, and a new request goes back to pending. Returns (budget, error).
+    """
+    from plane.bgtasks.intake_portal_task import send_portal_budget_request
+    from plane.db.models import IntakePortalBudget
+
+    hours, hours_error = parse_estimated_hours(raw_hours)
+    if hours_error:
+        return None, hours_error
+
+    note = (raw_note or "").strip()[:MAX_BUDGET_NOTE_LENGTH]
+
+    budget = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id).first()
+    # An approved estimate is a settled agreement, so it is never repriced.
+    if budget is not None and budget.status == IntakePortalBudgetStatus.APPROVED:
+        return None, "Este orçamento já foi aprovado pelo cliente e não pode ser alterado."
+
+    if budget is None:
+        budget = IntakePortalBudget(
+            issue_id=intake_issue.issue_id,
+            project_id=intake_issue.project_id,
+            workspace_id=intake_issue.workspace_id,
+        )
+
+    budget.estimated_hours = hours
+    budget.note = note
+    budget.status = IntakePortalBudgetStatus.PENDING
+    budget.requested_at = timezone.now()
+    if created_by_id is not None and budget._state.adding:
+        budget.save(created_by_id=created_by_id)
+    else:
+        budget.save()
+
+    send_portal_budget_request.delay(str(intake_issue.issue_id))
+    return budget, None

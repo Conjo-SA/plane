@@ -17,10 +17,20 @@ from plane.mcp.models import MCPServer
 from plane.mcp.server import PROTOCOL_VERSION, SERVER_INFO, handle_mcp_payload
 
 
+def _token_matches(authorization, server):
+    """Constant-time check of `Authorization: Bearer <token>`.
+
+    Compared as bytes: `hmac.compare_digest` raises TypeError on non-ASCII str, which turned a crafted
+    header into a 500 instead of a 401.
+    """
+    scheme, _, token = (authorization or "").partition(" ")
+    if not server or scheme.lower() != "bearer" or not token or not server.token:
+        return False
+    return hmac.compare_digest(token.strip().encode("utf-8"), server.token.encode("utf-8"))
+
+
 def _bearer_is_valid(request):
-    server = MCPServer.get_instance()
-    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
-    return bool(server and scheme.lower() == "bearer" and token and hmac.compare_digest(token, server.token))
+    return _token_matches(request.headers.get("Authorization", ""), MCPServer.get_instance())
 
 
 class MCPThrottle(SimpleRateThrottle):
@@ -68,9 +78,7 @@ class MCPServerEndpoint(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        authorization = request.headers.get("Authorization", "")
-        scheme, _, token = authorization.partition(" ")
-        if scheme.lower() != "bearer" or not token or not hmac.compare_digest(token, server.token):
+        if not _token_matches(request.headers.get("Authorization", ""), server):
             return None, Response(
                 {"error": "Invalid or missing MCP bearer token"},
                 status=status.HTTP_401_UNAUTHORIZED,
