@@ -10,6 +10,7 @@ import type {
   TIntakePortal,
   TIntakePortalAssetUpload,
   TIntakePortalBudget,
+  TIntakePortalBudgetCancellation,
   TIntakePortalBudgetContext,
   TIntakePortalBudgetSubmission,
   TIntakePortalCommentSubmission,
@@ -302,6 +303,32 @@ export class IntakePortalService extends APIService {
     data: TIntakePortalBudgetSubmission
   ): Promise<TIntakePortalBudget> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
+  /**
+   * Cancels a pending or rejected estimate (an approved one is final and the API refuses it).
+   * The requester is notified by e-mail and can no longer answer it; a new estimate can be sent.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @param {string} issueId - The work item identifier
+   * @param {TIntakePortalBudgetCancellation} data - Which estimate (defaults to the pending one) and an optional reason
+   * @returns {Promise<TIntakePortalBudget>} The cancelled estimate
+   * @throws {Error} If the API request fails
+   */
+  async cancelBudget(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    data: TIntakePortalBudgetCancellation
+  ): Promise<TIntakePortalBudget> {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/cancel/`,
+      data
+    )
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response;

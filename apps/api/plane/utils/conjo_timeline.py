@@ -5,7 +5,7 @@
 """Client timeline: one chronological feed built from what already exists in Tasks.
 
 Sources: notes (meetings, calls, e-mails), the hour statement, requests from the public form,
-estimates (sent, approved, rejected), finished work items and merged pull requests of the client's
+estimates (sent, approved, rejected, cancelled), finished work items and merged pull requests of the client's
 projects. Nothing is copied: each request reads the sources and merges them.
 """
 
@@ -130,7 +130,9 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
                     "requester": (request.extra or {}).get("requester_name") or request.source_email or "",
                 },
             )
-        for budget in IntakePortalBudget.objects.filter(issue__in=issues).select_related("issue__project"):
+        for budget in IntakePortalBudget.objects.filter(issue__in=issues).select_related(
+            "issue__project", "cancelled_by"
+        ):
             base = {"issue": _issue_ref(budget.issue), "hours": str(budget.estimated_hours)}
             if budget.requested_at:
                 add(budget.requested_at, "estimate_sent", base)
@@ -141,6 +143,18 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
                     budget.rejected_at,
                     "estimate_rejected",
                     {**base, "by": budget.rejected_by_email or "", "reason": budget.rejection_reason},
+                )
+            if budget.cancelled_at:
+                add(
+                    budget.cancelled_at,
+                    "estimate_cancelled",
+                    {
+                        **base,
+                        "by": (budget.cancelled_by.display_name or budget.cancelled_by.first_name)
+                        if budget.cancelled_by_id
+                        else "",
+                        "reason": budget.cancellation_reason,
+                    },
                 )
 
     if project_ids and TYPE_DELIVERIES in wanted:

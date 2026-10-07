@@ -110,7 +110,10 @@ def _work_log(entry):
 
 def _issue_time_payload(issue):
     entries = IssueWorkLog.objects.filter(issue=issue).select_related("member")
-    budgets = list(IntakePortalBudget.objects.filter(issue_id=issue.id).order_by("created_at"))
+    # A cancelled estimate (MAN-156) no longer counts: neither as budgeted hours nor for the progress bar.
+    budgets = list(
+        IntakePortalBudget.objects.filter(issue_id=issue.id).exclude(status="CANCELLED").order_by("created_at")
+    )
     approved = [b for b in budgets if b.status == "APPROVED"]
     client, via = billing.client_resolution(issue)
     debits = list(billing.open_debits(issue))

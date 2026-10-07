@@ -165,6 +165,8 @@ class IntakePortalBudgetStatus(models.TextChoices):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    # Conjo: withdrawn by the team (pending or rejected only; an approved estimate is final).
+    CANCELLED = "CANCELLED"
 
 
 class IntakePortalBudget(ProjectBaseModel):
@@ -174,7 +176,8 @@ class IntakePortalBudget(ProjectBaseModel):
     becomes an immutable record, so neither side can silently revoke or reprice
     work that was already agreed on. A ticket can have several estimates (Conjo):
     a new one after a rejection, or an additional one when the scope grows after
-    an approval. At most one is pending at a time; approved ones add up.
+    an approval. At most one is pending at a time; approved ones add up. The team
+    can cancel a pending or rejected estimate (never an approved one).
     """
 
     issue = models.ForeignKey("db.Issue", related_name="portal_budgets", on_delete=models.CASCADE)
@@ -191,6 +194,10 @@ class IntakePortalBudget(ProjectBaseModel):
     rejected_at = models.DateTimeField(null=True, blank=True)
     rejected_by_email = models.EmailField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    # Conjo: the team withdrew the estimate; the client can no longer answer it and a new one can be sent.
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey("db.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    cancellation_reason = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "IntakePortalBudget"
@@ -210,7 +217,7 @@ class IntakePortalBudget(ProjectBaseModel):
 
 
 class IntakePortalBudgetEvent(ProjectBaseModel):
-    """Timeline of an estimate (Conjo): sent, edited by the team, approved or rejected by the client.
+    """Timeline of an estimate (Conjo): sent, edited or cancelled by the team, approved or rejected by the client.
 
     Editing a pending estimate changes it in place; the event keeps what it was before, so the history
     of values and notes is never lost.
@@ -220,7 +227,14 @@ class IntakePortalBudgetEvent(ProjectBaseModel):
     REVISED = "revised"
     APPROVED = "approved"
     REJECTED = "rejected"
-    KIND_CHOICES = ((SENT, "Enviado"), (REVISED, "Alterado"), (APPROVED, "Aprovado"), (REJECTED, "Recusado"))
+    CANCELLED = "cancelled"
+    KIND_CHOICES = (
+        (SENT, "Enviado"),
+        (REVISED, "Alterado"),
+        (APPROVED, "Aprovado"),
+        (REJECTED, "Recusado"),
+        (CANCELLED, "Cancelado"),
+    )
 
     budget = models.ForeignKey("db.IntakePortalBudget", related_name="events", on_delete=models.CASCADE)
     kind = models.CharField(max_length=20, choices=KIND_CHOICES)
@@ -228,7 +242,7 @@ class IntakePortalBudgetEvent(ProjectBaseModel):
     note = models.TextField(blank=True)
     previous_hours = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     previous_note = models.TextField(blank=True)
-    # The team member (sent/revised) or the client's e-mail (approved/rejected).
+    # The team member (sent/revised/cancelled) or the client's e-mail (approved/rejected).
     actor = models.ForeignKey("db.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     actor_email = models.EmailField(blank=True)
     reason = models.TextField(blank=True)

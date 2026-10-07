@@ -103,7 +103,7 @@ export type TIntakePortalTicket = {
   /** Conjo: how the work counts against the client's hour package (list endpoint only). */
   work_kind?: TWorkKind | null;
   /** Conjo: estimate decision, so the list shows what waits for the requester (list endpoint only). */
-  budget_status?: "PENDING" | "APPROVED" | "REJECTED" | null;
+  budget_status?: TIntakePortalBudgetStatus | null;
   budget_hours?: string | null;
   updated_at?: string | null;
 };
@@ -163,13 +163,15 @@ export type TIntakePortalTicketLabel = {
   color: string;
 };
 
-export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED";
+/** CANCELLED: withdrawn by the team (only pending or rejected estimates can be). */
+export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
 /**
  * Hourly effort estimate a requester has to approve before the work starts.
  * Approval is one way: it cannot be repeated or revoked. A ticket can have
  * several estimates (a new one after a rejection, an additional one when the
- * scope grows); at most one is pending and the approved ones add up.
+ * scope grows); at most one is pending and the approved ones add up. The team
+ * can cancel a pending or rejected estimate; a cancelled one is never debited.
  */
 export type TIntakePortalBudget = {
   id: string;
@@ -184,16 +186,24 @@ export type TIntakePortalBudget = {
   rejected_at: string | null;
   rejected_by_email: string | null;
   rejection_reason: string;
-  /** Conjo: sent, edited by the team (with the previous values), approved or rejected. */
+  /** Conjo (MAN-156): withdrawn by the team. */
+  is_cancelled?: boolean;
+  cancelled_at?: string | null;
+  /** Team member name (team view) or "Equipe" (client view). */
+  cancelled_by?: string | null;
+  cancellation_reason?: string;
+  /** Conjo: sent, edited or cancelled by the team (with the previous values), approved or rejected. */
   events?: TIntakePortalBudgetEvent[];
   revision_count?: number;
   /** Only a pending estimate can be edited; an approved one is final. */
   can_edit?: boolean;
+  /** Pending or rejected estimates can be cancelled by the team; approved ones cannot. */
+  can_cancel?: boolean;
 };
 
 export type TIntakePortalBudgetEvent = {
   id: string;
-  kind: "sent" | "revised" | "approved" | "rejected";
+  kind: "sent" | "revised" | "approved" | "rejected" | "cancelled";
   hours: number;
   note: string;
   previous_hours: number | null;
@@ -211,6 +221,14 @@ export type TIntakePortalBudgetEvent = {
 export type TIntakePortalBudgetSubmission = {
   estimated_hours: number;
   note?: string;
+};
+
+/**
+ * Team cancelling an estimate (MAN-156). Without ``budget_id`` the pending one is cancelled.
+ */
+export type TIntakePortalBudgetCancellation = {
+  budget_id?: string;
+  reason?: string;
 };
 
 /**
