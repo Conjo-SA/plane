@@ -110,7 +110,7 @@ class TestMCPEndpoint:
     def test_disabled_tools_are_refused(self, mcp, workspace, project):
         mcp.server.disabled_tools = ["adjust_client_hours"]
         mcp.server.save()
-        assert "disabled" in mcp.fails("adjust_client_hours", **ws(workspace), client="x", hours="1", note="x")
+        assert "desativada" in mcp.fails("adjust_client_hours", **ws(workspace), client="x", hours="1", note="x")
 
 
 @pytest.mark.contract
@@ -163,14 +163,14 @@ class TestBoard:
         assert detail["sub_work_items"] == ["FRT-2"] and detail["state"]["group"] == "unstarted"
 
         # Archiving follows the app's rule: only finished items.
-        assert "completed or cancelled" in mcp.fails("archive_work_item", **ws(workspace), work_item="FRT-2")
+        assert "concluído ou cancelado" in mcp.fails("archive_work_item", **ws(workspace), work_item="FRT-2")
         done = State.objects.get(project=project, group="completed")
         mcp("update_work_item", **ws(workspace), work_item="FRT-2", state_id=str(done.id))
         mcp("archive_work_item", **ws(workspace), work_item="FRT-2")
         assert mcp("list_work_items", **ws(workspace), project="FRT")["total"] == 1
         assert mcp("list_work_items", **ws(workspace), project="FRT", archived=True)["total"] == 1
         mcp("unarchive_work_item", **ws(workspace), work_item="FRT-2")
-        mcp("delete_work_item", **ws(workspace), work_item="FRT-2")
+        mcp("delete_work_item", **ws(workspace), work_item="FRT-2", confirm=True)
         assert not Issue.objects.filter(pk=child["id"]).exists()
         types = {c.kwargs["type"] for c in quiet_tasks.call_args_list}
         assert {"issue_relation.activity.created", "link.activity.created", "issue.activity.deleted"} <= types
@@ -183,7 +183,7 @@ class TestBoard:
             issue=issue, project=project, comment_html="<p>meu</p>", actor=create_user
         )
         message = mcp.fails("delete_work_item_comment", **ws(workspace), work_item="FRT-1", comment_id=str(comment.id))
-        assert "through the MCP" in message
+        assert "pelo MCP" in message
 
     def test_cycles_modules_and_bulk_update(self, mcp, workspace, project):
         for name in ("A", "B", "C"):
@@ -249,9 +249,9 @@ class TestBoard:
         listed = mcp("list_work_items", **ws(workspace), project="FRT", module_id=module["id"], state_group="started")
         assert listed["total"] == 2
 
-        assert "still use" in mcp.fails("delete_state", **ws(workspace), project="FRT", state_id=state["id"])
-        mcp("delete_cycle", **ws(workspace), project="FRT", cycle_id=other["id"])
-        mcp("delete_module", **ws(workspace), project="FRT", module_id=module["id"])
+        assert "ainda estão" in mcp.fails("delete_state", **ws(workspace), project="FRT", state_id=state["id"])
+        mcp("delete_cycle", **ws(workspace), project="FRT", cycle_id=other["id"], confirm=True)
+        mcp("delete_module", **ws(workspace), project="FRT", module_id=module["id"], confirm=True)
         assert not Cycle.objects.filter(pk=other["id"]).exists() and not Module.objects.filter(pk=module["id"]).exists()
         assert Issue.objects.filter(project=project).count() == 3
 
@@ -260,11 +260,11 @@ class TestBoard:
         mcp("update_state", **ws(workspace), project="FRT", state_id=state["id"], default=True)
         project.refresh_from_db()
         assert str(project.default_state_id) == state["id"]
-        assert "default" in mcp.fails("delete_state", **ws(workspace), project="FRT", state_id=state["id"])
+        assert "padrão" in mcp.fails("delete_state", **ws(workspace), project="FRT", state_id=state["id"])
 
         label = mcp("create_label", **ws(workspace), project="FRT", name="bug")
         mcp("update_label", **ws(workspace), project="FRT", label_id=label["id"], color="#FF0000")
-        mcp("delete_label", **ws(workspace), project="FRT", label_id=label["id"])
+        mcp("delete_label", **ws(workspace), project="FRT", label_id=label["id"], confirm=True)
 
         page = mcp("create_page", **ws(workspace), project="FRT", name="Arquitetura", description_html="<p>v1</p>")
         mcp("update_page", **ws(workspace), project="FRT", page_id=page["id"], description_html="<p>v2</p>")
@@ -274,11 +274,11 @@ class TestBoard:
 
         user = User.objects.create(email="dev@conjo.local", username="dev")
         WorkspaceMember.objects.create(workspace=workspace, member=user, role=15)
-        assert "higher" in mcp.fails(
+        assert "maior" in mcp.fails(
             "add_project_member", **ws(workspace), project="FRT", member="dev@conjo.local", role="admin"
         )
         mcp("add_project_member", **ws(workspace), project="FRT", member="dev@conjo.local", role="member")
-        mcp("remove_project_member", **ws(workspace), project="FRT", member="dev@conjo.local")
+        mcp("remove_project_member", **ws(workspace), project="FRT", member="dev@conjo.local", confirm=True)
         assert not ProjectMember.objects.get(project=project, member=user).is_active
 
         assert (
@@ -376,7 +376,7 @@ class TestTimeAndClients:
         )
 
         assert "note" in mcp.fails("adjust_client_hours", **ws(workspace), client="Transportadora", hours="2", note="")
-        assert "Insufficient" in mcp.fails(
+        assert "insuficiente" in mcp.fails(
             "adjust_client_hours", **ws(workspace), client="Transportadora", hours="-100", note="x"
         )
         summary = mcp(
@@ -398,7 +398,7 @@ class TestTimeAndClients:
         report = mcp("time_report", **ws(workspace), client="Transportadora", group_by="kind")
         assert report["total_minutes"] == 90 and report["groups"][0]["key"] == "maintenance"
 
-        ended = mcp("update_client_contract", **ws(workspace), client="Transportadora", is_active=False)
+        ended = mcp("update_client_contract", **ws(workspace), client="Transportadora", is_active=False, confirm=True)
         assert ended["contract"]["is_active"] is False
         assert Client.objects.count() == 1 and ClientContact.objects.count() == 1 and ClientProject.objects.count() == 1
 
@@ -407,4 +407,4 @@ class TestTimeAndClients:
 
         other = Workspace.objects.create(name="Outra", slug="outra", owner=create_user)
         Client.objects.create(workspace=other, name="Alheio")
-        assert "does not exist" in mcp.fails("retrieve_client", **ws(workspace), client="Alheio")
+        assert "não existe" in mcp.fails("retrieve_client", **ws(workspace), client="Alheio")
