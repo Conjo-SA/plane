@@ -117,17 +117,17 @@ export function AuthForm({
 
   const getSubmitButtonText = () => {
     if (submitButtonText) return submitButtonText;
-    return mode === "sign-in" ? "Sign In" : "Create Account";
+    return mode === "sign-in" ? "Entrar" : "Criar conta";
   };
 
   const getAlternateModeText = () => {
     if (alternateModeText) return alternateModeText;
-    return mode === "sign-in" ? "Don't have an account?" : "Already have an account?";
+    return mode === "sign-in" ? "Não tem uma conta?" : "Já tem uma conta?";
   };
 
   const getAlternateModeButtonText = () => {
     if (alternateModeButtonText) return alternateModeButtonText;
-    return mode === "sign-in" ? "Sign Up" : "Sign In";
+    return mode === "sign-in" ? "Cadastrar" : "Entrar";
   };
 
   return (
@@ -137,10 +137,10 @@ export function AuthForm({
         id="email"
         name="email"
         type="email"
-        label="Email"
+        label="E-mail"
         value={formData.email}
         onChange={handleInputChange("email")}
-        placeholder="name@company.com"
+        placeholder="nome@empresa.com"
         error={emailError}
         disabled={disabled}
         // autoComplete="email"
@@ -151,12 +151,12 @@ export function AuthForm({
       <AuthPasswordInput
         id="password"
         name="password"
-        label={mode === "sign-in" ? "Password" : "Set a password"}
+        label={mode === "sign-in" ? "Senha" : "Defina uma senha"}
         value={formData.password}
         onChange={handleInputChange("password")}
         onPasswordChange={handlePasswordChange}
         onPasswordStrengthChange={handlePasswordStrengthChange}
-        placeholder="Enter password"
+        placeholder="Digite a senha"
         error={passwordError}
         showPasswordStrength={showPasswordStrength && mode === "sign-up"}
         disabled={disabled}

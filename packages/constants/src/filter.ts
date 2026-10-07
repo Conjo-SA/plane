@@ -10,34 +10,34 @@ export enum E_SORT_ORDER {
 }
 export const DATE_AFTER_FILTER_OPTIONS = [
   {
-    name: "1 week from now",
+    name: "Daqui a 1 semana",
     value: "1_weeks;after;fromnow",
   },
   {
-    name: "2 weeks from now",
+    name: "Daqui a 2 semanas",
     value: "2_weeks;after;fromnow",
   },
   {
-    name: "1 month from now",
+    name: "Daqui a 1 mês",
     value: "1_months;after;fromnow",
   },
   {
-    name: "2 months from now",
+    name: "Daqui a 2 meses",
     value: "2_months;after;fromnow",
   },
 ];
 
 export const DATE_BEFORE_FILTER_OPTIONS = [
   {
-    name: "1 week ago",
+    name: "Há 1 semana",
     value: "1_weeks;before;fromnow",
   },
   {
-    name: "2 weeks ago",
+    name: "Há 2 semanas",
     value: "2_weeks;before;fromnow",
   },
   {
-    name: "1 month ago",
+    name: "Há 1 mês",
     i18n_name: "date_filters.1_month_ago",
     value: "1_months;before;fromnow",
   },
@@ -45,19 +45,19 @@ export const DATE_BEFORE_FILTER_OPTIONS = [
 
 export const PROJECT_CREATED_AT_FILTER_OPTIONS = [
   {
-    name: "Today",
+    name: "Hoje",
     value: "today;custom;custom",
   },
   {
-    name: "Yesterday",
+    name: "Ontem",
     value: "yesterday;custom;custom",
   },
   {
-    name: "Last 7 days",
+    name: "Últimos 7 dias",
     value: "last_7_days;custom;custom",
   },
   {
-    name: "Last 30 days",
+    name: "Últimos 30 dias",
     value: "last_30_days;custom;custom",
   },
 ];

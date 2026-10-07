@@ -83,7 +83,7 @@ export function DropdownOptions(props: IMultiSelectDropdownOptions | ISingleSele
                 </Combobox.Option>
               ))
             ) : (
-              <p className="px-1.5 py-1 text-placeholder italic">No matching results</p>
+              <p className="px-1.5 py-1 text-placeholder italic">Nenhum resultado encontrado</p>
             )
           ) : loader ? (
             <> {loader} </>

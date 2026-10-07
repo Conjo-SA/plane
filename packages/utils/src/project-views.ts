@@ -80,7 +80,7 @@ export const shouldFilterView = (view: IProjectView, filters: TViewFilterProps |
  */
 export const getViewName = (name: string | undefined) => {
   if (name === undefined) return "";
-  if (!name || name.trim() === "") return "Untitled";
+  if (!name || name.trim() === "") return "Sem título";
   return name;
 };
 

@@ -21,19 +21,19 @@ export const isFileValid = (args: TArgs): boolean => {
   const { acceptedMimeTypes, file, maxFileSize, onError } = args;
 
   if (!file) {
-    onError(EFileError.NO_FILE_SELECTED, "No file selected. Please select a file to upload.");
+    onError(EFileError.NO_FILE_SELECTED, "Nenhum arquivo selecionado. Selecione um arquivo para enviar.");
     return false;
   }
 
   if (!acceptedMimeTypes.includes(file.type)) {
-    onError(EFileError.INVALID_FILE_TYPE, "Invalid file type.");
+    onError(EFileError.INVALID_FILE_TYPE, "Tipo de arquivo inválido.");
     return false;
   }
 
   if (file.size > maxFileSize) {
     onError(
       EFileError.FILE_SIZE_TOO_LARGE,
-      `File size too large. Please select a file smaller than ${maxFileSize / 1024 / 1024}MB.`
+      `Arquivo muito grande. Selecione um arquivo menor que ${maxFileSize / 1024 / 1024} MB.`
     );
     return false;
   }

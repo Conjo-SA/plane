@@ -49,12 +49,12 @@ export function CodeBlockComponent({ node }: Props) {
       {attrs[ECodeBlockAttributeNames.LANGUAGE] && (
         <span
           contentEditable={false}
-          className="absolute top-2 left-3 z-10 rounded-sm px-1.5 py-0.5 font-mono text-caption-sm-regular text-tertiary uppercase select-none"
+          className="font-mono absolute top-2 left-3 z-10 rounded-sm px-1.5 py-0.5 text-caption-sm-regular text-tertiary uppercase select-none"
         >
           {attrs[ECodeBlockAttributeNames.LANGUAGE]}
         </span>
       )}
-      <Tooltip tooltipContent="Copy code">
+      <Tooltip tooltipContent="Copiar código">
         <button
           type="button"
           className={cn(

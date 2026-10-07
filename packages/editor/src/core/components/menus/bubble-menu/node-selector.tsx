@@ -56,7 +56,7 @@ export function BubbleMenuNodeSelector(props: Props) {
   ] as EditorMenuItem<TEditorCommands>[];
 
   const activeItem = items.filter((item) => item.isActive()).pop() ?? {
-    name: "Multiple",
+    name: "Vários",
   };
 
   return (

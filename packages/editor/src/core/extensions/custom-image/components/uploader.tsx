@@ -184,18 +184,18 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
   const getDisplayMessage = useCallback(() => {
     const isUploading = isImageBeingUploaded;
     if (isErrorState) {
-      return "Error loading image";
+      return "Erro ao carregar a imagem";
     }
 
     if (isUploading) {
-      return "Uploading...";
+      return "Enviando...";
     }
 
     if (draggedInside && editor.isEditable) {
-      return "Drop image here";
+      return "Solte a imagem aqui";
     }
 
-    return "Add an image";
+    return "Adicionar uma imagem";
   }, [draggedInside, editor.isEditable, isErrorState, isImageBeingUploaded]);
 
   const handleRetryClick = useCallback(
@@ -247,10 +247,10 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
               "hover:bg-danger-subtle-hover": selected,
             }
           )}
-          title="Retry duplication"
+          title="Tentar duplicar novamente"
         >
           <RotateCcw className="size-3" />
-          <span className="text-11">Retry</span>
+          <span className="text-11">Tentar novamente</span>
         </button>
       )}
       <input

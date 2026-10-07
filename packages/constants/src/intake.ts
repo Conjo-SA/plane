@@ -83,19 +83,19 @@ export const PAST_DURATION_FILTER_OPTIONS: {
   value: string;
 }[] = [
   {
-    name: "Today",
+    name: "Hoje",
     value: EPastDurationFilters.TODAY,
   },
   {
-    name: "Yesterday",
+    name: "Ontem",
     value: EPastDurationFilters.YESTERDAY,
   },
   {
-    name: "Last 7 days",
+    name: "Últimos 7 dias",
     value: EPastDurationFilters.LAST_7_DAYS,
   },
   {
-    name: "Last 30 days",
+    name: "Últimos 30 dias",
     value: EPastDurationFilters.LAST_30_DAYS,
   },
 ];

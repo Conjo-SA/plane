@@ -44,17 +44,17 @@ export const IMAGE_ALIGNMENT_OPTIONS: {
   icon: LucideIcon;
 }[] = [
   {
-    label: "Left",
+    label: "Esquerda",
     value: "left",
     icon: AlignLeft,
   },
   {
-    label: "Center",
+    label: "Centro",
     value: "center",
     icon: AlignCenter,
   },
   {
-    label: "Right",
+    label: "Direita",
     value: "right",
     icon: AlignRight,
   },

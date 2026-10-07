@@ -15,7 +15,7 @@ type EmojiRootProps = {
 };
 
 export function EmojiRoot(props: EmojiRootProps) {
-  const { onChange, searchPlaceholder = "Search", searchDisabled = false } = props;
+  const { onChange, searchPlaceholder = "Buscar", searchDisabled = false } = props;
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const focusInput = () => {
@@ -34,6 +34,7 @@ export function EmojiRoot(props: EmojiRootProps) {
   return (
     <EmojiPicker.Root
       data-slot="emoji-picker"
+      locale="pt"
       className="isolate flex h-full w-full flex-col rounded-md border-none p-2"
       onEmojiSelect={(val) => onChange(val.emoji)}
     >
