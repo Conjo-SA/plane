@@ -44,9 +44,16 @@ import {
   getSortOrderToFilterEmptyValues,
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
+import { runBeforeBackgroundApply } from "./background-refresh";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
+
+/**
+ * Load types of a fetch of the first page. "background" refetches while keeping the list on
+ * screen (used by realtime updates), instead of clearing it first like "mutation".
+ */
+export type TIssueFetchLoader = TLoader | "background";
 
 export enum EIssueGroupedAction {
   ADD = "ADD",
@@ -88,6 +95,15 @@ export interface IBaseIssuesStore {
 
   addIssueToList: (issueId: string) => void;
   removeIssueFromList: (issueId: string) => void;
+  updateIssueList: (
+    issue?: TIssue,
+    issueBeforeUpdate?: TIssue,
+    action?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
+  ) => void;
+  /** Whether the work item is in any of this store's lists. */
+  hasIssueInList: (issueId: string) => boolean;
+  /** Whether more than the first page of some group was loaded (a refetch would drop those pages). */
+  hasLoadedBeyondFirstPage: () => boolean;
   addIssuesToModule: (
     workspaceSlug: string,
     projectId: string,
@@ -194,6 +210,8 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   issueFilterStore;
   // API Abort controller
   controller: AbortController;
+  // a "background" fetch is in flight: the list stays on screen until its response arrives
+  isBackgroundRefresh = false;
 
   constructor(
     _rootStore: IIssueRootStore,
@@ -467,6 +485,12 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   ) {
     // Process the Issue Response to get the following data from it
     const { issueList, groupedIssues, groupedIssueCount } = this.processIssueResponse(issuesResponse);
+
+    // realtime refresh: let the board measure where cards are before they move
+    if (this.isBackgroundRefresh) {
+      this.isBackgroundRefresh = false;
+      runBeforeBackgroundApply();
+    }
 
     // The Issue list is added to the main Issue Map
     this.rootIssueStore.issues.addIssue(issueList);
@@ -1139,6 +1163,52 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       throw error;
     }
   }
+
+  /**
+   * Prepares a fetch of the first page. "background" (realtime refresh) keeps the current list and
+   * loader untouched until the response arrives; every other load type clears the list first.
+   */
+  prepareFetch(loadType: TIssueFetchLoader, isExistingPaginationOptions: boolean) {
+    if (loadType === "background") {
+      this.isBackgroundRefresh = true;
+      return;
+    }
+    runInAction(() => {
+      this.setLoader(loadType);
+      this.clear(!isExistingPaginationOptions); // clear while fetching from server.
+    });
+  }
+
+  /** Error path of a fetch of the first page, see prepareFetch. */
+  onFetchError(loadType: TIssueFetchLoader) {
+    if (loadType === "background") {
+      this.isBackgroundRefresh = false;
+      return;
+    }
+    this.setLoader(undefined);
+  }
+
+  hasIssueInList = (issueId: string) => {
+    const containsIssue = (value: unknown): boolean => {
+      if (!value) return false;
+      if (Array.isArray(value)) return value.includes(issueId);
+      if (typeof value === "object") return Object.values(value as Record<string, unknown>).some(containsIssue);
+      return false;
+    };
+    return containsIssue(this.groupedIssueIds);
+  };
+
+  hasLoadedBeyondFirstPage = () => {
+    const perPageCount = this.paginationOptions?.perPageCount;
+    if (!perPageCount) return false;
+    const exceeds = (value: unknown): boolean => {
+      if (!value) return false;
+      if (Array.isArray(value)) return value.length > perPageCount;
+      if (typeof value === "object") return Object.values(value as Record<string, unknown>).some(exceeds);
+      return false;
+    };
+    return exceeds(this.groupedIssueIds);
+  };
 
   /**
    * Add issue to the store
