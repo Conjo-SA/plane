@@ -1,11 +1,11 @@
 {
-  "name": "Tasks Admin",
+  "name": "Tasks Admin · Conjo SA",
   "short_name": "Tasks Admin",
   "description": "Tasks — gestão de projetos e tarefas da Conjo SA.",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#3f76ff",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     { "src": "/favicon/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/favicon/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }

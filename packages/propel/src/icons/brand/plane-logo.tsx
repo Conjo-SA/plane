@@ -7,34 +7,23 @@
 import * as React from "react";
 
 import type { ISvgIcons } from "../type";
+import { CONJO_WORDMARK_PATH, CONJO_WORDMARK_TRANSFORM } from "./conjo-paths";
 
-// Marca Conjo: wordmark em texto "Tasks" (substitui o símbolo do Plane).
-export function PlaneLogo({ width = "100", height = "32", className, color = "currentColor" }: ISvgIcons) {
+// Marca Conjo SA: wordmark "Conjo" vetorizado (substitui o símbolo do Plane).
+// Usa currentColor, então segue o tema (preto no claro, branco no escuro).
+export function PlaneLogo({ width = "88", height = "32", className, color = "currentColor" }: ISvgIcons) {
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 100 32"
+      viewBox="0 0 2250 825"
       preserveAspectRatio="xMinYMid meet"
-      fill={color}
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       role="img"
-      aria-label="Tasks"
+      aria-label="Conjo"
     >
-      <text
-        x="0"
-        y="25"
-        fill={color}
-        fontFamily="inherit"
-        fontSize="30"
-        fontWeight="700"
-        letterSpacing="-0.5"
-        textLength="98"
-        lengthAdjust="spacingAndGlyphs"
-      >
-        Tasks
-      </text>
+      <path transform={CONJO_WORDMARK_TRANSFORM} d={CONJO_WORDMARK_PATH} fill={color} />
     </svg>
   );
 }

@@ -120,6 +120,8 @@ COPY --from=backend-img /code /app/backend
 COPY --from=backend-img /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 COPY --from=backend-img /usr/local/bin/ /usr/local/bin/
 COPY apps/api/plane /app/backend/plane
+# E-mail templates are patched too (Conjo SA branding).
+COPY apps/api/templates /app/backend/templates
 
 # Entrypoint scripts are patched too (worker flags for RabbitMQ 4.x compatibility).
 COPY apps/api/bin /app/backend/bin
