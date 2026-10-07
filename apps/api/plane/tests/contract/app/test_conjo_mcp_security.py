@@ -319,11 +319,16 @@ class TestClientFacing:
         ident = f"FRT-{ticket.sequence_id}"
         sent = mcp("send_hours_estimate", **ws(workspace), work_item=ident, hours="6,5", note="Duas telas")
         assert sent["estimate"]["status"] == "PENDING" and sent["estimate"]["estimated_hours"] == 6.5
-        quiet_tasks["budget_mail"].assert_called_once_with(str(ticket.id))
+        quiet_tasks["budget_mail"].assert_called_once_with(str(ticket.id), budget_id=sent["estimate"]["id"])
         assert mcp("get_hours_estimate", **ws(workspace), work_item=ident)["estimate"]["note"] == "Duas telas"
 
+        # after an approval, sending again creates an additional estimate; the approved one never changes
         IntakePortalBudget.objects.filter(issue=ticket).update(status="APPROVED")
-        assert "aprovado" in mcp.fails("send_hours_estimate", **ws(workspace), work_item=ident, hours=10)
+        extra = mcp("send_hours_estimate", **ws(workspace), work_item=ident, hours=10)
+        assert extra["estimate"]["id"] != sent["estimate"]["id"] and extra["estimate"]["status"] == "PENDING"
+        estimate = mcp("get_hours_estimate", **ws(workspace), work_item=ident)
+        assert [e["status"] for e in estimate["estimates"]] == ["APPROVED", "PENDING"]
+        assert estimate["approved_hours"] == 6.5
 
     def test_intake_item_on_behalf_of_a_client(self, mcp, workspace, project, quiet_tasks):
         assert "Entrada" in mcp.fails("create_intake_item", **ws(workspace), project="FRT", name="Pedido")

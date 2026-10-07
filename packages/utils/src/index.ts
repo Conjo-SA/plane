@@ -6,6 +6,7 @@
 
 export * from "./array";
 export * from "./attachment";
+export * from "./budget-note";
 export * from "./auth";
 export * from "./calendar";
 export * from "./color";

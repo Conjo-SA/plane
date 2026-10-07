@@ -167,8 +167,9 @@ export type TIntakePortalBudgetStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 /**
  * Hourly effort estimate a requester has to approve before the work starts.
- * Approval is one way: it cannot be repeated or revoked. A rejection is not
- * terminal, so the team can send a revised estimate.
+ * Approval is one way: it cannot be repeated or revoked. A ticket can have
+ * several estimates (a new one after a rejection, an additional one when the
+ * scope grows); at most one is pending and the approved ones add up.
  */
 export type TIntakePortalBudget = {
   id: string;
@@ -199,7 +200,12 @@ export type TIntakePortalBudgetSubmission = {
  */
 export type TIntakePortalBudgetContext = {
   is_portal_ticket: boolean;
+  /** The pending estimate, else the latest. */
   budget: TIntakePortalBudget | null;
+  /** Every estimate sent, oldest first. */
+  budgets?: TIntakePortalBudget[];
+  /** Sum of the approved estimates. */
+  approved_hours?: number;
   /** Conjo: who opened the ticket on the portal (reads the public replies). */
   requester?: { name: string; email: string } | null;
 };
@@ -213,7 +219,12 @@ export type TIntakePortalTicketDetail = TIntakePortalTicket & {
   is_attachment_enabled: boolean;
   labels: TIntakePortalTicketLabel[];
   assignees: string[];
+  /** The pending estimate, else the latest. */
   budget: TIntakePortalBudget | null;
+  /** Every estimate sent, oldest first. */
+  budgets?: TIntakePortalBudget[];
+  /** Sum of the approved estimates. */
+  approved_hours?: number;
   /** False when the project's client only lets some contacts approve estimates (they debit the package). */
   can_approve_budget?: boolean;
   comments: TIntakePortalTicketComment[];

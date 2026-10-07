@@ -28,7 +28,7 @@ from plane.settings.storage import S3Storage
 from plane.utils.conjo_billing import can_approve_estimate
 from plane.utils.content_validator import validate_html_content
 from plane.utils.exception_logger import log_exception
-from plane.utils.intake_portal import serialize_portal_budget
+from plane.utils.intake_portal import current_budget, serialize_budget_context, serialize_portal_budget
 from plane.utils.mailjet import is_email_provider_configured
 from plane.utils.uuid import is_valid_uuid
 
@@ -76,9 +76,7 @@ def get_owned_intake_issue(portal, issue_id, email):
 def serialize_ticket_comments(issue_id):
     """Public conversation of a ticket. Internal notes are never exposed."""
     comments = (
-        IssueComment.objects.filter(issue_id=issue_id, access="EXTERNAL")
-        .select_related("actor")
-        .order_by("created_at")
+        IssueComment.objects.filter(issue_id=issue_id, access="EXTERNAL").select_related("actor").order_by("created_at")
     )
 
     return [
@@ -141,16 +139,8 @@ def link_portal_assets(portal, issue_id, attachment_ids):
 
 def serialize_ticket_labels(issue_id):
     """Labels applied to the ticket, so the requester sees how it was classified."""
-    labels = (
-        IssueLabel.objects.filter(issue_id=issue_id)
-        .select_related("label")
-        .values("label__name", "label__color")
-    )
-    return [
-        {"name": label["label__name"], "color": label["label__color"]}
-        for label in labels
-        if label["label__name"]
-    ]
+    labels = IssueLabel.objects.filter(issue_id=issue_id).select_related("label").values("label__name", "label__color")
+    return [{"name": label["label__name"], "color": label["label__color"]} for label in labels if label["label__name"]]
 
 
 def serialize_ticket_assignees(issue_id):
@@ -276,10 +266,10 @@ class IntakePortalTicketsEndpoint(BaseAPIView):
         kinds = dict(
             IssueWorkKind.objects.filter(issue_id__in=[t["id"] for t in tickets]).values_list("issue_id", "kind")
         )
-        budgets = {
-            budget.issue_id: budget
-            for budget in IntakePortalBudget.objects.filter(issue_id__in=[t["id"] for t in tickets])
-        }
+        budgets_by_issue = {}
+        for budget in IntakePortalBudget.objects.filter(issue_id__in=[t["id"] for t in tickets]).order_by("created_at"):
+            budgets_by_issue.setdefault(budget.issue_id, []).append(budget)
+        budgets = {issue_id: current_budget(items) for issue_id, items in budgets_by_issue.items()}
         updated = dict(
             IntakeIssue.objects.filter(issue_id__in=[t["id"] for t in tickets]).values_list(
                 "issue_id", "issue__updated_at"
@@ -346,7 +336,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
                 "is_attachment_enabled": portal.is_attachment_enabled,
                 "labels": serialize_ticket_labels(issue.id),
                 "assignees": serialize_ticket_assignees(issue.id),
-                "budget": serialize_portal_budget(IntakePortalBudget.objects.filter(issue_id=issue.id).first()),
+                **serialize_budget_context(issue.id),
                 "can_approve_budget": can_approve_estimate(intake_issue.issue, session.email),
                 "comments": serialize_ticket_comments(issue.id),
                 "attachments": serialize_ticket_attachments(anchor, issue.id),
@@ -565,7 +555,13 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
         if intake_issue is None:
             return Response({"error": "Chamado não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
-        budget = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id).first()
+        # The client answers the pending estimate (several can exist over time; one is pending at a time).
+        budgets = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id)
+        budget_id = request.data.get("budget_id")
+        if budget_id:
+            budget = budgets.filter(pk=budget_id).first() if is_valid_uuid(str(budget_id)) else None
+        else:
+            budget = budgets.filter(status=IntakePortalBudgetStatus.PENDING).first() or budgets.first()
         if budget is None:
             return Response(
                 {"error": "Não há orçamento para responder neste chamado."},
@@ -613,7 +609,7 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
                 ).update(**decision_fields)
                 debit = None
                 if decided_count and is_approval:
-                    debit = debit_for_estimate(intake_issue.issue, budget.estimated_hours, session.email)
+                    debit = debit_for_estimate(intake_issue.issue, budget.estimated_hours, session.email, budget=budget)
         except Exception as e:
             log_exception(e)
             return Response(
@@ -642,8 +638,7 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             project_id=portal.project_id,
             workspace_id=portal.workspace_id,
             comment_html=(
-                f"<p>Orçamento de {escape(hours)} horas {decision_label} por {escape(session.email)}.</p>"
-                f"{reason_html}"
+                f"<p>Orçamento de {escape(hours)} horas {decision_label} por {escape(session.email)}.</p>{reason_html}"
             ),
             access="EXTERNAL",
             external_source=PORTAL_COMMENT_SOURCE,

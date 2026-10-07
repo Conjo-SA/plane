@@ -155,7 +155,13 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
             .values_list("issue_id", "total")
         )
         kinds = dict(IssueWorkKind.objects.filter(issue__in=done).values_list("issue_id", "kind"))
-        budgets = dict(IntakePortalBudget.objects.filter(issue__in=done).values_list("issue_id", "estimated_hours"))
+        # approved estimates add up (a ticket can have several)
+        budgets = dict(
+            IntakePortalBudget.objects.filter(issue__in=done, status="APPROVED")
+            .values_list("issue_id")
+            .annotate(total=Sum("estimated_hours"))
+            .values_list("issue_id", "total")
+        )
         for issue in done:
             add(
                 issue.completed_at,

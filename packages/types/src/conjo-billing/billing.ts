@@ -25,12 +25,17 @@ export type TIssueTime = {
   total_minutes: number;
   kind: TWorkKind | null;
   budget: {
+    /** Sum of the approved estimates; without one, the pending (or latest) estimate. */
     hours: string;
     status: "PENDING" | "APPROVED" | "REJECTED";
     approved_by_email: string | null;
     approved_at: string | null;
+    /** How many estimates were approved (a ticket can have several). */
+    approved_count?: number;
+    /** An additional estimate waiting for the client, on top of the approved ones. */
+    pending_hours?: string | null;
   } | null;
-  /** Hours debited from the client's package for this work item (open debit), if any. */
+  /** Hours debited from the client's package for this work item (open debits), if any. */
   debited_hours: string | null;
   /** Client the work item counts for: chosen on the card, otherwise inherited from its project. */
   client: TIssueClientRef | null;

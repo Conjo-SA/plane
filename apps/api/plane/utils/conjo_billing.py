@@ -338,20 +338,32 @@ def expire_lots(contract, on=None):
     return expired
 
 
-def open_debit(issue):
+def open_debits(issue):
+    """Debits of the work item not reversed yet (one per approved estimate)."""
     from plane.db.models import HourLedgerEntry
 
-    return (
-        HourLedgerEntry.objects.filter(issue_id=issue.id, kind=HourLedgerEntry.DEBIT, reversals__isnull=True)
-        .order_by("-created_at")
-        .first()
-    )
+    return HourLedgerEntry.objects.filter(
+        issue_id=issue.id, kind=HourLedgerEntry.DEBIT, reversals__isnull=True
+    ).order_by("created_at")
+
+
+def open_debit(issue):
+    """The latest open debit of the work item (``None`` when nothing is debited)."""
+    return open_debits(issue).last()
+
+
+def approved_budgets(issue):
+    from plane.db.models import IntakePortalBudget
+
+    return IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").order_by("approved_at", "created_at")
 
 
 @transaction.atomic
-def debit_for_estimate(issue, hours, approved_by_email="", on=None):
-    """Debit an approved estimate (evolution only). Idempotent per work item.
+def debit_for_estimate(issue, hours, approved_by_email="", on=None, budget=None):
+    """Debit an approved estimate (evolution only). Idempotent per estimate.
 
+    A work item can have several approved estimates; each one is debited once (``budget``). Without
+    ``budget`` (legacy callers) it is idempotent per work item.
     Returns the debit entry, or ``None`` when nothing is debited (no contract, maintenance/internal work,
     already debited).
     """
@@ -371,7 +383,8 @@ def debit_for_estimate(issue, hours, approved_by_email="", on=None):
         IssueWorkKind.objects.get_or_create(
             issue=issue, defaults={"project_id": issue.project_id, "kind": IssueWorkKind.EVOLUTION}
         )
-    if open_debit(issue) is not None:
+    debits = open_debits(issue)
+    if (debits.filter(budget_id=budget.id) if budget is not None else debits).exists():
         return None
 
     hours = Decimal(hours).quantize(CENT, ROUND_HALF_UP)
@@ -386,6 +399,7 @@ def debit_for_estimate(issue, hours, approved_by_email="", on=None):
         hours=-consumed,
         occurred_on=on,
         issue=issue,
+        budget=budget,
         allocations=allocations,
         approved_by_email=approved_by_email or "",
         note=f"Orçamento de {format_minutes(int(hours * 60))} aprovado{who}",
@@ -399,6 +413,7 @@ def debit_for_estimate(issue, hours, approved_by_email="", on=None):
             hours=excess,
             occurred_on=on,
             issue=issue,
+            budget=budget,
             approved_by_email=approved_by_email or "",
             note=f"{format_minutes(int(excess * 60))} além do saldo do pacote",
         )
@@ -425,14 +440,14 @@ def reverse_debit(debit, note="", on=None):
         restored += hours
     # The excess of that estimate no longer applies either. What finance already received gets a
     # counter-entry instead of disappearing, so the next export cancels it.
-    excess = HourLedgerEntry.objects.filter(
-        contract=debit.contract, kind=HourLedgerEntry.EXCESS, issue_id=debit.issue_id, hours__gt=0
-    )
+    # With several estimates on the work item, only this debit's estimate is touched.
+    scope = {"budget_id": debit.budget_id} if debit.budget_id else {"issue_id": debit.issue_id}
+    excess = HourLedgerEntry.objects.filter(contract=debit.contract, kind=HourLedgerEntry.EXCESS, hours__gt=0, **scope)
     excess.filter(exported_at__isnull=True).delete()
     exported = excess.filter(exported_at__isnull=False).aggregate(total=Sum("hours"))["total"] or ZERO
     cancelled = (
         HourLedgerEntry.objects.filter(
-            contract=debit.contract, kind=HourLedgerEntry.EXCESS, issue_id=debit.issue_id, hours__lt=0
+            contract=debit.contract, kind=HourLedgerEntry.EXCESS, hours__lt=0, **scope
         ).aggregate(total=Sum("hours"))["total"]
         or ZERO
     )
@@ -444,6 +459,7 @@ def reverse_debit(debit, note="", on=None):
             hours=-(exported + cancelled),
             occurred_on=on,
             issue_id=debit.issue_id,
+            budget_id=debit.budget_id,
             note="Excedente cancelado pelo estorno",
         )
     return HourLedgerEntry.objects.create(
@@ -553,14 +569,9 @@ def close_contract(contract, replaced_by=None, on=None):
 
 def kind_change_touches_statement(issue):
     """Whether changing the work kind would debit or give back client hours (an admin decision)."""
-    from plane.db.models import IntakePortalBudget
-
     if open_debit(issue) is not None:
         return True
-    return (
-        contract_for_issue(issue) is not None
-        and IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").exists()
-    )
+    return contract_for_issue(issue) is not None and approved_budgets(issue).exists()
 
 
 @transaction.atomic
@@ -569,17 +580,17 @@ def change_work_kind(issue, kind, reason=""):
 
     Leaving evolution reverses the open debit; coming back to it debits the approved estimate again.
     """
-    from plane.db.models import IntakePortalBudget, IssueWorkKind
+    from plane.db.models import IssueWorkKind
 
     IssueWorkKind.objects.update_or_create(issue=issue, defaults={"kind": kind, "project_id": issue.project_id})
-    debit = open_debit(issue)
-    if kind != IssueWorkKind.EVOLUTION and debit is not None:
+    if kind != IssueWorkKind.EVOLUTION:
         label = dict(IssueWorkKind.KIND_CHOICES)[kind]
-        reverse_debit(debit, note=f"Tipo alterado para {label}: não desconta do pacote{reason}")
-    elif kind == IssueWorkKind.EVOLUTION and debit is None:
-        budget = IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").first()
-        if budget is not None:
-            debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "")
+        for debit in list(open_debits(issue)):
+            reverse_debit(debit, note=f"Tipo alterado para {label}: não desconta do pacote{reason}")
+    else:
+        # each approved estimate not debited yet (debit_for_estimate skips the ones already debited)
+        for budget in approved_budgets(issue):
+            debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "", budget=budget)
 
 
 # --------------------------------------------------------------------------- #
@@ -789,20 +800,18 @@ def resync_issue_client(issue, on=None):
 
     The open debit goes back to the old package and the approved estimate is debited from the new one.
     """
-    from plane.db.models import IntakePortalBudget, IssueWorkKind
+    from plane.db.models import IssueWorkKind
 
     if work_kind(issue) in (IssueWorkKind.MAINTENANCE, IssueWorkKind.INTERNAL):
         return None
-    budget = IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").first()
-    debit = open_debit(issue)
     target = contract_for_issue(issue, on)
-    if debit is not None and target is not None and debit.contract_id == target.id:
-        return debit
-    if debit is not None:
-        reverse_debit(debit, note="O cliente da tarefa mudou: horas devolvidas a este pacote", on=on)
-    if target is not None and budget is not None:
-        return debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "", on=on)
-    return None
+    for debit in list(open_debits(issue)):
+        if target is None or debit.contract_id != target.id:
+            reverse_debit(debit, note="O cliente da tarefa mudou: horas devolvidas a este pacote", on=on)
+    if target is not None:
+        for budget in approved_budgets(issue):
+            debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "", on=on, budget=budget)
+    return open_debit(issue)
 
 
 def portal_package(project_id, email):

@@ -7,6 +7,7 @@
 # Python imports
 import csv
 import datetime
+from decimal import Decimal
 
 # Django imports
 from django.db import transaction
@@ -109,24 +110,32 @@ def _work_log(entry):
 
 def _issue_time_payload(issue):
     entries = IssueWorkLog.objects.filter(issue=issue).select_related("member")
-    budget = IntakePortalBudget.objects.filter(issue_id=issue.id).first()
+    budgets = list(IntakePortalBudget.objects.filter(issue_id=issue.id).order_by("created_at"))
+    approved = [b for b in budgets if b.status == "APPROVED"]
     client, via = billing.client_resolution(issue)
-    debit = billing.open_debit(issue)
+    debits = list(billing.open_debits(issue))
+    # Approved estimates add up; without one, the pending (or latest) estimate is shown.
+    shown = approved[-1] if approved else (budgets[-1] if budgets else None)
+    pending = next((b for b in budgets if b.status == "PENDING"), None)
     return {
         "entries": [_work_log(entry) for entry in entries],
         "total_minutes": sum(entry.minutes for entry in entries),
         "kind": billing.work_kind(issue),
         "budget": (
             {
-                "hours": str(budget.estimated_hours),
-                "status": budget.status,
-                "approved_by_email": budget.approved_by_email,
-                "approved_at": budget.approved_at.isoformat() if budget.approved_at else None,
+                "hours": str(
+                    sum((b.estimated_hours for b in approved), Decimal("0")) if approved else shown.estimated_hours
+                ),
+                "status": shown.status,
+                "approved_by_email": shown.approved_by_email,
+                "approved_at": shown.approved_at.isoformat() if shown.approved_at else None,
+                "approved_count": len(approved),
+                "pending_hours": str(pending.estimated_hours) if pending and approved else None,
             }
-            if budget
+            if shown
             else None
         ),
-        "debited_hours": str(-debit.hours) if debit else None,
+        "debited_hours": str(sum((-d.hours for d in debits), Decimal("0"))) if debits else None,
         "client": {"id": str(client.id), "name": client.name, "via": via} if client else None,
     }
 

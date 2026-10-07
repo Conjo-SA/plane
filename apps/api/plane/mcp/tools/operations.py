@@ -38,7 +38,12 @@ from plane.mcp.tools.handlers import (
     _text_property,
 )
 from plane.mcp.tools.registry import register_tool
-from plane.utils.intake_portal import MAX_BUDGET_NOTE_LENGTH, request_portal_budget, serialize_portal_budget
+from plane.utils.intake_portal import (
+    MAX_BUDGET_NOTE_LENGTH,
+    request_portal_budget,
+    serialize_budget_context,
+    serialize_portal_budget,
+)
 
 # Signed download links handed to the operator are short lived.
 ATTACHMENT_URL_EXPIRATION = 600
@@ -190,18 +195,19 @@ def create_intake_item(
     category="intake",
 )
 def get_hours_estimate(workspace_slug, work_item):
-    from plane.db.models import IntakePortalBudget
-
     issue = _get_issue(workspace_slug, work_item)
     ticket = _portal_ticket(issue)
     if ticket is None:
         return {"work_item": _issue_identifier(issue), "is_portal_ticket": False, "estimate": None}
-    budget = IntakePortalBudget.objects.filter(issue=issue).first()
+    context = serialize_budget_context(issue.id)
     return {
         "work_item": _issue_identifier(issue),
         "is_portal_ticket": True,
         "requester": {"name": (ticket.extra or {}).get("requester_name") or "", "email": ticket.source_email},
-        "estimate": serialize_portal_budget(budget),
+        # the pending estimate (or the latest), every estimate sent and the approved total
+        "estimate": context["budget"],
+        "estimates": context["budgets"],
+        "approved_hours": context["approved_hours"],
     }
 
 
@@ -209,8 +215,10 @@ def get_hours_estimate(workspace_slug, work_item):
     name="send_hours_estimate",
     description=(
         "Envia ao cliente o orçamento de horas de um chamado do portal (VISÍVEL AO CLIENTE): ele recebe e-mail "
-        "e aprova ou recusa no portal. Reenviar substitui um orçamento pendente ou recusado; orçamento aprovado "
-        "não muda. Quando aprovado, itens 'evolution' debitam essas horas do pacote do cliente."
+        "e aprova ou recusa no portal. Se há um orçamento pendente, ele é revisado; senão, cria um novo (depois de "
+        "uma recusa, ou como orçamento adicional depois de uma aprovação — os aprovados se somam e nunca mudam). "
+        "Quando aprovado, itens 'evolution' debitam essas horas do pacote do cliente. A nota aceita parágrafos, "
+        "listas com '-' ou '1.' e **negrito**."
     ),
     input_schema=_schema(
         {

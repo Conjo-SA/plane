@@ -39,6 +39,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.utils.conjo_state_timeline import build_state_timeline
+from plane.utils.intake_portal import current_budget
 from plane.mcp.tools.handlers import (
     _CONFIRM_PROPERTY,
     _PROJECT_PROPERTY,
@@ -1469,10 +1470,12 @@ def list_intake_items(workspace_slug, project, status="pending", limit=50):
             raise MCPToolError("'status' deve ser pending, snoozed, accepted, declined, duplicate ou all")
         queryset = queryset.filter(status=codes[status])
     items = list(queryset.order_by("-created_at")[:limit])
-    budgets = {
-        budget.issue_id: budget
-        for budget in IntakePortalBudget.objects.filter(issue_id__in=[item.issue_id for item in items])
-    }
+    budgets_by_issue = {}
+    for budget in IntakePortalBudget.objects.filter(issue_id__in=[item.issue_id for item in items]).order_by(
+        "created_at"
+    ):
+        budgets_by_issue.setdefault(budget.issue_id, []).append(budget)
+    budgets = {issue_id: current_budget(group) for issue_id, group in budgets_by_issue.items()}
     return {
         "intake_items": [
             {

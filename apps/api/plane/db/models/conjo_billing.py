@@ -226,6 +226,10 @@ class HourLedgerEntry(ClientBaseModel):
     hours = models.DecimalField(max_digits=8, decimal_places=2)
     occurred_on = models.DateField()
     issue = models.ForeignKey("db.Issue", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    # Debits and excess: the approved estimate they come from (a ticket can have several).
+    budget = models.ForeignKey(
+        "db.IntakePortalBudget", on_delete=models.SET_NULL, null=True, blank=True, related_name="ledger_entries"
+    )
     note = models.TextField(blank=True, default="")
     # Lots (credits, positive adjustments and reversals of expired lots open no lot).
     period = models.DateField(null=True, blank=True)

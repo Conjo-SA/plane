@@ -8,8 +8,10 @@ The team facing API and the public portal API both expose the hourly estimate,
 so the contract lives here to keep the two surfaces from drifting apart.
 """
 
+import re
 from decimal import Decimal, InvalidOperation
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from plane.db.models.intake import IntakePortalBudgetStatus
@@ -57,11 +59,42 @@ def parse_estimated_hours(raw_value):
     return hours, None
 
 
-def request_portal_budget(intake_issue, raw_hours, raw_note, created_by_id=None):
-    """Send (or reprice) the hourly estimate of a portal ticket and e-mail the requester.
+def issue_budgets(issue_id):
+    """Every estimate of a ticket, oldest first."""
+    from plane.db.models import IntakePortalBudget
 
-    Shared by the team screen and the MCP so both follow the same rules: the hours are validated, an
-    approved estimate is never repriced, and a new request goes back to pending. Returns (budget, error).
+    return list(IntakePortalBudget.objects.filter(issue_id=issue_id).order_by("created_at"))
+
+
+def current_budget(budgets):
+    """The estimate the screens highlight: the pending one, else the latest."""
+    pending = [b for b in budgets if b.status == IntakePortalBudgetStatus.PENDING]
+    if pending:
+        return pending[-1]
+    return budgets[-1] if budgets else None
+
+
+def approved_hours(budgets):
+    return sum((b.estimated_hours for b in budgets if b.status == IntakePortalBudgetStatus.APPROVED), Decimal("0"))
+
+
+def serialize_budget_context(issue_id):
+    """``budget`` (the highlighted one), ``budgets`` (history, oldest first) and the approved total."""
+    budgets = issue_budgets(issue_id)
+    return {
+        "budget": serialize_portal_budget(current_budget(budgets)),
+        "budgets": [serialize_portal_budget(b) for b in budgets],
+        "approved_hours": float(approved_hours(budgets)),
+    }
+
+
+def request_portal_budget(intake_issue, raw_hours, raw_note, created_by_id=None):
+    """Send an hourly estimate for a portal ticket and e-mail the requester.
+
+    Shared by the team screen and the MCP so both follow the same rules: the hours are validated, a
+    pending estimate is repriced in place, and otherwise a new estimate is created (after a rejection,
+    or as an additional estimate after an approval). Approved estimates are never touched.
+    Returns (budget, error).
     """
     from plane.bgtasks.intake_portal_task import send_portal_budget_request
     from plane.db.models import IntakePortalBudget
@@ -72,26 +105,74 @@ def request_portal_budget(intake_issue, raw_hours, raw_note, created_by_id=None)
 
     note = (raw_note or "").strip()[:MAX_BUDGET_NOTE_LENGTH]
 
-    budget = IntakePortalBudget.objects.filter(issue_id=intake_issue.issue_id).first()
-    # An approved estimate is a settled agreement, so it is never repriced.
-    if budget is not None and budget.status == IntakePortalBudgetStatus.APPROVED:
-        return None, "Este orçamento já foi aprovado pelo cliente e não pode ser alterado."
-
-    if budget is None:
-        budget = IntakePortalBudget(
-            issue_id=intake_issue.issue_id,
-            project_id=intake_issue.project_id,
-            workspace_id=intake_issue.workspace_id,
+    with transaction.atomic():
+        budget = (
+            IntakePortalBudget.objects.select_for_update()
+            .filter(issue_id=intake_issue.issue_id, status=IntakePortalBudgetStatus.PENDING)
+            .first()
         )
+        is_new = budget is None
+        if is_new:
+            budget = IntakePortalBudget(
+                issue_id=intake_issue.issue_id,
+                project_id=intake_issue.project_id,
+                workspace_id=intake_issue.workspace_id,
+            )
+        budget.estimated_hours = hours
+        budget.note = note
+        budget.status = IntakePortalBudgetStatus.PENDING
+        budget.requested_at = timezone.now()
+        try:
+            if created_by_id is not None and is_new:
+                budget.save(created_by_id=created_by_id)
+            else:
+                budget.save()
+        except IntegrityError:
+            # Someone sent another estimate at the same moment: theirs is the pending one.
+            return None, "Já existe um orçamento aguardando o cliente. Atualize a página e revise esse."
 
-    budget.estimated_hours = hours
-    budget.note = note
-    budget.status = IntakePortalBudgetStatus.PENDING
-    budget.requested_at = timezone.now()
-    if created_by_id is not None and budget._state.adding:
-        budget.save(created_by_id=created_by_id)
-    else:
-        budget.save()
-
-    send_portal_budget_request.delay(str(intake_issue.issue_id))
+    send_portal_budget_request.delay(str(intake_issue.issue_id), budget_id=str(budget.id))
     return budget, None
+
+
+_BOLD = re.compile(r"\*\*(.+?)\*\*")
+_BULLET = re.compile(r"^\s*[-*•]\s+(.*)$")
+_NUMBERED = re.compile(r"^\s*\d+[.)]\s+(.*)$")
+
+
+def note_blocks(text):
+    """Split an estimate note into paragraphs and lists (same rules as the screens).
+
+    Lines starting with "-", "*" or "•" make a bullet list, "1." or "1)" a numbered list; blank lines
+    separate paragraphs and single line breaks are kept. Returns [(kind, [lines])], kind in p/ul/ol.
+    """
+    blocks = []
+    for raw in (text or "").replace("\r\n", "\n").split("\n"):
+        line = raw.rstrip()
+        bullet, numbered = _BULLET.match(line), _NUMBERED.match(line)
+        kind, content = ("ul", bullet.group(1)) if bullet else ("ol", numbered.group(1)) if numbered else ("p", line)
+        if kind == "p" and not line.strip():
+            blocks.append(None)
+            continue
+        if blocks and blocks[-1] is not None and blocks[-1][0] == kind:
+            blocks[-1][1].append(content)
+        else:
+            blocks.append((kind, [content]))
+    return [block for block in blocks if block is not None]
+
+
+def note_to_html(text):
+    """Estimate note as safe HTML for e-mails: escaped, with paragraphs, lists and **bold**."""
+    from html import escape
+
+    def inline(value):
+        return _BOLD.sub(r"<strong>\1</strong>", escape(value))
+
+    parts = []
+    for kind, lines in note_blocks(text):
+        if kind == "p":
+            parts.append('<p style="margin:0 0 8px">' + "<br>".join(inline(line) for line in lines) + "</p>")
+        else:
+            items = "".join(f'<li style="margin:0 0 4px">{inline(line)}</li>' for line in lines)
+            parts.append(f'<{kind} style="margin:0 0 8px;padding-left:20px">{items}</{kind}>')
+    return "".join(parts)

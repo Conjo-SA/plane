@@ -172,11 +172,12 @@ class IntakePortalBudget(ProjectBaseModel):
 
     Approval is deliberately one way: once a requester approves an estimate it
     becomes an immutable record, so neither side can silently revoke or reprice
-    work that was already agreed on. A rejection is not terminal, so the team can
-    send a revised estimate for the same ticket.
+    work that was already agreed on. A ticket can have several estimates (Conjo):
+    a new one after a rejection, or an additional one when the scope grows after
+    an approval. At most one is pending at a time; approved ones add up.
     """
 
-    issue = models.OneToOneField("db.Issue", related_name="portal_budget", on_delete=models.CASCADE)
+    issue = models.ForeignKey("db.Issue", related_name="portal_budgets", on_delete=models.CASCADE)
     estimated_hours = models.DecimalField(max_digits=7, decimal_places=2)
     note = models.TextField(blank=True)
     status = models.CharField(
@@ -196,6 +197,13 @@ class IntakePortalBudget(ProjectBaseModel):
         verbose_name_plural = "IntakePortalBudgets"
         db_table = "intake_portal_budgets"
         ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["issue"],
+                condition=models.Q(status="PENDING", deleted_at__isnull=True),
+                name="intake_portal_budget_one_pending_per_issue",
+            )
+        ]
 
     def __str__(self):
         return f"{self.estimated_hours}h <{self.status}>"

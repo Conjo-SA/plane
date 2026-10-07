@@ -16,9 +16,9 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import IntakePortalSerializer
 from plane.app.views.base import BaseAPIView
-from plane.db.models import Intake, IntakeIssue, IntakePortal, IntakePortalBudget
+from plane.db.models import Intake, IntakeIssue, IntakePortal
 from plane.db.models.intake import SourceType, get_intake_portal_anchor
-from plane.utils.intake_portal import request_portal_budget, serialize_portal_budget
+from plane.utils.intake_portal import request_portal_budget, serialize_budget_context, serialize_portal_budget
 
 EDITABLE_FIELDS = ["is_enabled", "title", "description", "success_message", "is_attachment_enabled"]
 
@@ -137,13 +137,15 @@ class IntakePortalBudgetEndpoint(BaseAPIView):
     def get(self, request, slug, project_id, issue_id):
         intake_issue = self.get_portal_ticket(slug, project_id, issue_id)
         if intake_issue is None:
-            return Response({"is_portal_ticket": False, "budget": None}, status=status.HTTP_200_OK)
+            return Response(
+                {"is_portal_ticket": False, "budget": None, "budgets": [], "approved_hours": 0},
+                status=status.HTTP_200_OK,
+            )
 
-        budget = IntakePortalBudget.objects.filter(issue_id=issue_id).first()
         return Response(
             {
                 "is_portal_ticket": True,
-                "budget": serialize_portal_budget(budget),
+                **serialize_budget_context(issue_id),
                 # Conjo: who reads the public replies, shown next to the comment box.
                 "requester": {
                     "name": (intake_issue.extra or {}).get("requester_name") or "",

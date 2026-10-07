@@ -30,6 +30,7 @@ import { getAttachmentPreviewKind } from "@plane/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
+import { BudgetNote } from "@/components/portal/budget-note";
 import { PortalChip } from "@/components/portal/chip";
 import { PortalBalanceAfterApproval } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
@@ -164,7 +165,7 @@ export default function PortalTicketDetailPage() {
     setApprovalError(null);
     setIsApproving(true);
     try {
-      await intakePortalService.approveTicketBudget(anchor, issueId, session.token);
+      await intakePortalService.approveTicketBudget(anchor, issueId, session.token, ticket?.budget?.id);
       setIsConfirmingApproval(false);
       await mutate();
     } catch (err) {
@@ -179,7 +180,13 @@ export default function PortalTicketDetailPage() {
     setApprovalError(null);
     setIsRejecting(true);
     try {
-      await intakePortalService.rejectTicketBudget(anchor, issueId, session.token, rejectionReason.trim());
+      await intakePortalService.rejectTicketBudget(
+        anchor,
+        issueId,
+        session.token,
+        rejectionReason.trim(),
+        ticket?.budget?.id
+      );
       setIsConfirmingRejection(false);
       setRejectionReason("");
       await mutate();
@@ -304,6 +311,10 @@ export default function PortalTicketDetailPage() {
     budget_hours: ticket.budget ? String(ticket.budget.estimated_hours) : null,
   });
   const budget = ticket.budget ?? null;
+  // Earlier estimates of the same ticket (the highlighted one is the pending or the latest).
+  const pastBudgets = (ticket.budgets ?? []).filter((item) => item.id !== budget?.id).toReversed();
+  const approvedHours = ticket.approved_hours ?? 0;
+  const isAdditional = !!budget && !budget.is_approved && !budget.is_rejected && approvedHours > 0;
   const budgetColor = budget?.is_approved ? "#15803D" : budget?.is_rejected ? "#B91C1C" : "#D97706";
 
   return (
@@ -352,28 +363,46 @@ export default function PortalTicketDetailPage() {
                           ? "Orçamento aprovado"
                           : budget.is_rejected
                             ? "Orçamento recusado"
-                            : ticket.can_approve_budget === false
-                              ? "Orçamento aguardando aprovação"
-                              : "Orçamento aguardando sua resposta"}
+                            : isAdditional
+                              ? ticket.can_approve_budget === false
+                                ? "Orçamento adicional aguardando aprovação"
+                                : "Orçamento adicional aguardando sua resposta"
+                              : ticket.can_approve_budget === false
+                                ? "Orçamento aguardando aprovação"
+                                : "Orçamento aguardando sua resposta"}
                       </h2>
                     </div>
                     <div className="mt-3 min-w-0">
                       <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
                         <div>
-                          <p className="text-12 text-tertiary">Horas orçadas</p>
+                          <p className="text-12 text-tertiary">{isAdditional
+                              ? "Horas adicionais"
+                              : pastBudgets.some((item) => item.is_approved)
+                                ? "Horas deste orçamento"
+                                : "Horas orçadas"}</p>
                           <p className="text-20 leading-tight font-semibold text-primary">
                             {formatBudgetHours(budget.estimated_hours)}
                           </p>
                         </div>
+                        {approvedHours > 0 && !budget.is_rejected && (
+                          <div>
+                            <p className="text-12 text-tertiary">
+                              {budget.is_approved ? "Total aprovado no chamado" : "Já aprovado no chamado"}
+                            </p>
+                            <p className="text-16 leading-tight font-medium text-secondary">
+                              {formatBudgetHours(approvedHours)}
+                            </p>
+                          </div>
+                        )}
                         {hourPackage && !budget.is_approved && !budget.is_rejected && (
                           <PortalBalanceAfterApproval pkg={hourPackage} estimatedHours={budget.estimated_hours} />
                         )}
                       </div>
                       {budget.note && (
-                        <p className="mt-3 text-13 text-secondary">
-                          <span className="text-tertiary">Observação da equipe: </span>
-                          {budget.note}
-                        </p>
+                        <div className="mt-3 rounded-md border border-subtle bg-surface-1 px-4 py-3">
+                          <p className="mb-1.5 text-12 font-medium text-tertiary">Justificativa da equipe</p>
+                          <BudgetNote text={budget.note} className="text-13" />
+                        </div>
                       )}
 
                       {budget.is_approved ? (
@@ -492,6 +521,35 @@ export default function PortalTicketDetailPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {pastBudgets.length > 0 && (
+                <div>
+                  <h2 className="text-13 font-medium text-secondary">Orçamentos anteriores</h2>
+                  <ul className="mt-2 divide-y divide-subtle rounded-lg border border-subtle">
+                    {pastBudgets.map((item) => (
+                      <li key={item.id} className="space-y-1.5 px-4 py-3">
+                        <p className="flex flex-wrap items-baseline gap-x-2 text-13">
+                          <span className="font-semibold text-primary">{formatBudgetHours(item.estimated_hours)}</span>
+                          <span className={item.is_approved ? "text-success-primary" : "text-danger-primary"}>
+                            {item.is_approved ? "Aprovado" : item.is_rejected ? "Recusado" : "Aguardando"}
+                          </span>
+                          <span className="text-12 text-tertiary">
+                            {item.is_approved && item.approved_at
+                              ? `por ${item.approved_by_email} em ${formatDateTime(item.approved_at)}`
+                              : item.is_rejected && item.rejected_at
+                                ? `por ${item.rejected_by_email} em ${formatDateTime(item.rejected_at)}`
+                                : ""}
+                          </span>
+                        </p>
+                        {item.note && <BudgetNote text={item.note} />}
+                        {item.is_rejected && item.rejection_reason && (
+                          <p className="text-12 text-secondary">Motivo: {item.rejection_reason}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

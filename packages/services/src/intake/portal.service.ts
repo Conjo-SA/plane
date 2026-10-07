@@ -7,20 +7,20 @@
 // plane imports
 import { API_BASE_URL } from "@plane/constants";
 import type {
-    TIntakePortal,
-    TIntakePortalAssetUpload,
-    TIntakePortalBudget,
-    TIntakePortalBudgetContext,
-    TIntakePortalBudgetSubmission,
-    TIntakePortalCommentSubmission,
-    TIntakePortalMeta,
-    TIntakePortalSession,
-    TIntakePortalSubmission,
-    TIntakePortalSubmissionResponse,
-    TIntakePortalTicketAttachment,
-    TIntakePortalTicketComment,
-    TIntakePortalTicketDetail,
-    TIntakePortalTicketList,
+  TIntakePortal,
+  TIntakePortalAssetUpload,
+  TIntakePortalBudget,
+  TIntakePortalBudgetContext,
+  TIntakePortalBudgetSubmission,
+  TIntakePortalCommentSubmission,
+  TIntakePortalMeta,
+  TIntakePortalSession,
+  TIntakePortalSubmission,
+  TIntakePortalSubmissionResponse,
+  TIntakePortalTicketAttachment,
+  TIntakePortalTicketComment,
+  TIntakePortalTicketDetail,
+  TIntakePortalTicketList,
 } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
@@ -31,387 +31,386 @@ import { APIService } from "../api.service";
  * @extends {APIService}
  */
 export class IntakePortalService extends APIService {
-    constructor(BASE_URL?: string) {
-        super(BASE_URL || API_BASE_URL);
-    }
+  constructor(BASE_URL?: string) {
+    super(BASE_URL || API_BASE_URL);
+  }
 
-    /**
-     * Retrieves the public presentation data of a request form.
-     * @param {string} anchor - The portal anchor
-     * @param {string} [tag] - Optional tag from the URL, applied to submissions
-     * @returns {Promise<TIntakePortalMeta>} The portal metadata
-     * @throws {Error} If the API request fails
-     */
-    async retrieveMeta(anchor: string, tag?: string): Promise<TIntakePortalMeta> {
-        return this.get(`/api/public/intake-portal/${anchor}/`, { params: tag ? { tag } : {} })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Retrieves the public presentation data of a request form.
+   * @param {string} anchor - The portal anchor
+   * @param {string} [tag] - Optional tag from the URL, applied to submissions
+   * @returns {Promise<TIntakePortalMeta>} The portal metadata
+   * @throws {Error} If the API request fails
+   */
+  async retrieveMeta(anchor: string, tag?: string): Promise<TIntakePortalMeta> {
+    return this.get(`/api/public/intake-portal/${anchor}/`, { params: tag ? { tag } : {} })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Submits a work item through the public request form.
-     * @param {string} anchor - The portal anchor
-     * @param {TIntakePortalSubmission} data - The submission payload
+  /**
+   * Submits a work item through the public request form.
+   * @param {string} anchor - The portal anchor
+   * @param {TIntakePortalSubmission} data - The submission payload
    * @param {string} token - The verified portal session token
    * @returns {Promise<TIntakePortalSubmissionResponse>} The created work item reference
    * @throws {Error} If the API request fails
    */
-    async createWorkItem(
-        anchor: string,
-        data: TIntakePortalSubmission,
-        token: string
-    ): Promise<TIntakePortalSubmissionResponse> {
-        return this.post(`/api/public/intake-portal/${anchor}/work-items/`, data, {
-            headers: { "X-Portal-Token": token },
-        })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  async createWorkItem(
+    anchor: string,
+    data: TIntakePortalSubmission,
+    token: string
+  ): Promise<TIntakePortalSubmissionResponse> {
+    return this.post(`/api/public/intake-portal/${anchor}/work-items/`, data, {
+      headers: { "X-Portal-Token": token },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Sends a one-time code to the requester email.
-     * @param {string} anchor - The portal anchor
-     * @param {string} email - The requester email
-     * @throws {Error} If the API request fails
-     */
-    async requestVerificationCode(anchor: string, email: string): Promise<void> {
-        return this.post(`/api/public/intake-portal/${anchor}/verify/`, { email })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Sends a one-time code to the requester email.
+   * @param {string} anchor - The portal anchor
+   * @param {string} email - The requester email
+   * @throws {Error} If the API request fails
+   */
+  async requestVerificationCode(anchor: string, email: string): Promise<void> {
+    return this.post(`/api/public/intake-portal/${anchor}/verify/`, { email })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Confirms the one-time code and returns a portal session.
-     * @param {string} anchor - The portal anchor
-     * @param {string} email - The requester email
-     * @param {string} code - The one-time code
-     * @returns {Promise<TIntakePortalSession>} The issued session
-     * @throws {Error} If the API request fails
-     */
-    async confirmVerificationCode(anchor: string, email: string, code: string): Promise<TIntakePortalSession> {
-        return this.post(`/api/public/intake-portal/${anchor}/verify/confirm/`, { email, code })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Confirms the one-time code and returns a portal session.
+   * @param {string} anchor - The portal anchor
+   * @param {string} email - The requester email
+   * @param {string} code - The one-time code
+   * @returns {Promise<TIntakePortalSession>} The issued session
+   * @throws {Error} If the API request fails
+   */
+  async confirmVerificationCode(anchor: string, email: string, code: string): Promise<TIntakePortalSession> {
+    return this.post(`/api/public/intake-portal/${anchor}/verify/confirm/`, { email, code })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Lists the tickets opened by the authenticated requester.
-     * @param {string} anchor - The portal anchor
-     * @param {string} token - The portal session token
-     * @returns {Promise<TIntakePortalTicketList>} The requester tickets
-     * @throws {Error} If the API request fails
-     */
-    async listTickets(anchor: string, token: string): Promise<TIntakePortalTicketList> {
-        return this.get(`/api/public/intake-portal/${anchor}/tickets/`, {}, { headers: { "X-Portal-Token": token } })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Lists the tickets opened by the authenticated requester.
+   * @param {string} anchor - The portal anchor
+   * @param {string} token - The portal session token
+   * @returns {Promise<TIntakePortalTicketList>} The requester tickets
+   * @throws {Error} If the API request fails
+   */
+  async listTickets(anchor: string, token: string): Promise<TIntakePortalTicketList> {
+    return this.get(`/api/public/intake-portal/${anchor}/tickets/`, {}, { headers: { "X-Portal-Token": token } })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Retrieves a single ticket owned by the authenticated requester.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {string} token - The portal session token
-     * @returns {Promise<TIntakePortalTicketDetail>} The ticket details
-     * @throws {Error} If the API request fails
-     */
-    async retrieveTicket(anchor: string, issueId: string, token: string): Promise<TIntakePortalTicketDetail> {
-        return this.get(
-            `/api/public/intake-portal/${anchor}/tickets/${issueId}/`,
-            {},
-            { headers: { "X-Portal-Token": token } }
-        )
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Retrieves a single ticket owned by the authenticated requester.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {string} token - The portal session token
+   * @returns {Promise<TIntakePortalTicketDetail>} The ticket details
+   * @throws {Error} If the API request fails
+   */
+  async retrieveTicket(anchor: string, issueId: string, token: string): Promise<TIntakePortalTicketDetail> {
+    return this.get(
+      `/api/public/intake-portal/${anchor}/tickets/${issueId}/`,
+      {},
+      { headers: { "X-Portal-Token": token } }
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Publishes a reply written by the requester on their own ticket.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {TIntakePortalCommentSubmission} data - The reply payload
-     * @param {string} token - The portal session token
-     * @returns {Promise<TIntakePortalTicketComment>} The created reply
-     * @throws {Error} If the API request fails
-     */
-    async createTicketComment(
-        anchor: string,
-        issueId: string,
-        data: TIntakePortalCommentSubmission,
-        token: string
-    ): Promise<TIntakePortalTicketComment> {
-        return this.post(`/api/public/intake-portal/${anchor}/tickets/${issueId}/comments/`, data, {
-            headers: { "X-Portal-Token": token },
-        })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Publishes a reply written by the requester on their own ticket.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {TIntakePortalCommentSubmission} data - The reply payload
+   * @param {string} token - The portal session token
+   * @returns {Promise<TIntakePortalTicketComment>} The created reply
+   * @throws {Error} If the API request fails
+   */
+  async createTicketComment(
+    anchor: string,
+    issueId: string,
+    data: TIntakePortalCommentSubmission,
+    token: string
+  ): Promise<TIntakePortalTicketComment> {
+    return this.post(`/api/public/intake-portal/${anchor}/tickets/${issueId}/comments/`, data, {
+      headers: { "X-Portal-Token": token },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Attaches already uploaded assets to an existing ticket.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {string[]} attachmentIds - The uploaded asset identifiers
-     * @param {string} token - The portal session token
-     * @returns {Promise<TIntakePortalTicketAttachment[]>} The ticket attachments
-     * @throws {Error} If the API request fails
-     */
-    async attachTicketFiles(
-        anchor: string,
-        issueId: string,
-        attachmentIds: string[],
-        token: string
-    ): Promise<TIntakePortalTicketAttachment[]> {
-        return this.post(
-            `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/`,
-            { attachment_ids: attachmentIds },
-            { headers: { "X-Portal-Token": token } }
-        )
-            .then((response) => response?.data?.attachments ?? [])
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Attaches already uploaded assets to an existing ticket.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {string[]} attachmentIds - The uploaded asset identifiers
+   * @param {string} token - The portal session token
+   * @returns {Promise<TIntakePortalTicketAttachment[]>} The ticket attachments
+   * @throws {Error} If the API request fails
+   */
+  async attachTicketFiles(
+    anchor: string,
+    issueId: string,
+    attachmentIds: string[],
+    token: string
+  ): Promise<TIntakePortalTicketAttachment[]> {
+    return this.post(
+      `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/`,
+      { attachment_ids: attachmentIds },
+      { headers: { "X-Portal-Token": token } }
+    )
+      .then((response) => response?.data?.attachments ?? [])
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Resolves a short lived download link for a ticket attachment.
-     * The link is requested with the session token, so it is never a public URL.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {string} assetId - The attachment identifier
-     * @param {string} token - The portal session token
-     * @param {"inline" | "attachment"} [disposition] - Preview in place or force a download
-     * @returns {Promise<string>} The signed URL
-     * @throws {Error} If the API request fails
-     */
-    async retrieveAttachmentUrl(
-        anchor: string,
-        issueId: string,
-        assetId: string,
-        token: string,
-        disposition?: "inline" | "attachment"
-    ): Promise<string> {
-        return this.get(
-            `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/${assetId}/`,
-            disposition ? { params: { disposition } } : {},
-            { headers: { "X-Portal-Token": token } }
-        )
-            .then((response) => response?.data?.url)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Resolves a short lived download link for a ticket attachment.
+   * The link is requested with the session token, so it is never a public URL.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {string} assetId - The attachment identifier
+   * @param {string} token - The portal session token
+   * @param {"inline" | "attachment"} [disposition] - Preview in place or force a download
+   * @returns {Promise<string>} The signed URL
+   * @throws {Error} If the API request fails
+   */
+  async retrieveAttachmentUrl(
+    anchor: string,
+    issueId: string,
+    assetId: string,
+    token: string,
+    disposition?: "inline" | "attachment"
+  ): Promise<string> {
+    return this.get(
+      `/api/public/intake-portal/${anchor}/tickets/${issueId}/attachments/${assetId}/`,
+      disposition ? { params: { disposition } } : {},
+      { headers: { "X-Portal-Token": token } }
+    )
+      .then((response) => response?.data?.url)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Approves the hourly estimate of a ticket. The approval is final: the API
-     * rejects a second attempt, so it can never be repeated or revoked.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {string} token - The portal session token
-     * @returns {Promise<TIntakePortalBudget>} The approved estimate
-     * @throws {Error} If the API request fails
-     */
-    async approveTicketBudget(anchor: string, issueId: string, token: string): Promise<TIntakePortalBudget> {
-        return this.post(
-            `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/approve/`,
-            {},
-            { headers: { "X-Portal-Token": token } }
-        )
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Approves the hourly estimate of a ticket. The approval is final: the API
+   * rejects a second attempt, so it can never be repeated or revoked.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {string} token - The portal session token
+   * @returns {Promise<TIntakePortalBudget>} The approved estimate
+   * @throws {Error} If the API request fails
+   */
+  async approveTicketBudget(
+    anchor: string,
+    issueId: string,
+    token: string,
+    budgetId?: string
+  ): Promise<TIntakePortalBudget> {
+    return this.post(
+      `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/approve/`,
+      budgetId ? { budget_id: budgetId } : {},
+      { headers: { "X-Portal-Token": token } }
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Rejects the hourly estimate of a ticket. Like approval, the decision is
-     * recorded once, but it leaves the team free to send a revised estimate.
-     * @param {string} anchor - The portal anchor
-     * @param {string} issueId - The ticket identifier
-     * @param {string} token - The portal session token
-     * @param {string} [reason] - Optional explanation shown to the team
-     * @returns {Promise<TIntakePortalBudget>} The rejected estimate
-     * @throws {Error} If the API request fails
-     */
-    async rejectTicketBudget(
-        anchor: string,
-        issueId: string,
-        token: string,
-        reason?: string
-    ): Promise<TIntakePortalBudget> {
-        return this.post(
-            `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/reject/`,
-            { reason: reason ?? "" },
-            { headers: { "X-Portal-Token": token } }
-        )
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Rejects the hourly estimate of a ticket. Like approval, the decision is
+   * recorded once, but it leaves the team free to send a revised estimate.
+   * @param {string} anchor - The portal anchor
+   * @param {string} issueId - The ticket identifier
+   * @param {string} token - The portal session token
+   * @param {string} [reason] - Optional explanation shown to the team
+   * @returns {Promise<TIntakePortalBudget>} The rejected estimate
+   * @throws {Error} If the API request fails
+   */
+  async rejectTicketBudget(
+    anchor: string,
+    issueId: string,
+    token: string,
+    reason?: string,
+    budgetId?: string
+  ): Promise<TIntakePortalBudget> {
+    return this.post(
+      `/api/public/intake-portal/${anchor}/tickets/${issueId}/budget/reject/`,
+      budgetId ? { reason: reason ?? "", budget_id: budgetId } : { reason: reason ?? "" },
+      { headers: { "X-Portal-Token": token } }
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Retrieves the hourly estimate of a portal ticket from the team side.
-     * @param {string} workspaceSlug - The workspace slug
-     * @param {string} projectId - The project identifier
-     * @param {string} issueId - The work item identifier
-     * @returns {Promise<TIntakePortalBudgetContext>} The estimate and its context
-     * @throws {Error} If the API request fails
-     */
-    async retrieveBudget(
-        workspaceSlug: string,
-        projectId: string,
-        issueId: string
-    ): Promise<TIntakePortalBudgetContext> {
-        return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`)
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Retrieves the hourly estimate of a portal ticket from the team side.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @param {string} issueId - The work item identifier
+   * @returns {Promise<TIntakePortalBudgetContext>} The estimate and its context
+   * @throws {Error} If the API request fails
+   */
+  async retrieveBudget(workspaceSlug: string, projectId: string, issueId: string): Promise<TIntakePortalBudgetContext> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Sends an hourly estimate to the requester for approval.
-     * @param {string} workspaceSlug - The workspace slug
-     * @param {string} projectId - The project identifier
-     * @param {string} issueId - The work item identifier
-     * @param {TIntakePortalBudgetSubmission} data - The estimate payload
-     * @returns {Promise<TIntakePortalBudget>} The pending estimate
-     * @throws {Error} If the API request fails
-     */
-    async requestBudgetApproval(
-        workspaceSlug: string,
-        projectId: string,
-        issueId: string,
-        data: TIntakePortalBudgetSubmission
-    ): Promise<TIntakePortalBudget> {
-        return this.post(
-            `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`,
-            data
-        )
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Sends an hourly estimate to the requester for approval.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @param {string} issueId - The work item identifier
+   * @param {TIntakePortalBudgetSubmission} data - The estimate payload
+   * @returns {Promise<TIntakePortalBudget>} The pending estimate
+   * @throws {Error} If the API request fails
+   */
+  async requestBudgetApproval(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    data: TIntakePortalBudgetSubmission
+  ): Promise<TIntakePortalBudget> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/portal-budget/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Requests a presigned upload for an attachment.
-     * @param {string} anchor - The portal anchor
-     * @param {File} file - The file to upload
-     * @returns {Promise<TIntakePortalAssetUpload>} The presigned upload data
-     * @throws {Error} If the API request fails
-     */
-    async createAssetUpload(anchor: string, file: File): Promise<TIntakePortalAssetUpload> {
-        return this.post(`/api/public/intake-portal/${anchor}/assets/`, {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-        })
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Requests a presigned upload for an attachment.
+   * @param {string} anchor - The portal anchor
+   * @param {File} file - The file to upload
+   * @returns {Promise<TIntakePortalAssetUpload>} The presigned upload data
+   * @throws {Error} If the API request fails
+   */
+  async createAssetUpload(anchor: string, file: File): Promise<TIntakePortalAssetUpload> {
+    return this.post(`/api/public/intake-portal/${anchor}/assets/`, {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Marks an attachment as uploaded once the storage upload succeeds.
-     * @param {string} anchor - The portal anchor
-     * @param {string} assetId - The asset identifier
-     * @throws {Error} If the API request fails
-     */
-    async completeAssetUpload(anchor: string, assetId: string): Promise<void> {
-        return this.patch(`/api/public/intake-portal/${anchor}/assets/${assetId}/`)
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Marks an attachment as uploaded once the storage upload succeeds.
+   * @param {string} anchor - The portal anchor
+   * @param {string} assetId - The asset identifier
+   * @throws {Error} If the API request fails
+   */
+  async completeAssetUpload(anchor: string, assetId: string): Promise<void> {
+    return this.patch(`/api/public/intake-portal/${anchor}/assets/${assetId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Uploads an attachment straight to object storage and returns its asset id.
-     * The file never passes through the API, only the presigned contract does.
-     * @param {string} anchor - The portal anchor
-     * @param {File} file - The file to upload
-     * @returns {Promise<string>} The uploaded asset identifier
-     * @throws {Error} If any step of the upload fails
-     */
-    async uploadAsset(anchor: string, file: File): Promise<string> {
-        const { upload_data, asset_id } = await this.createAssetUpload(anchor, file);
+  /**
+   * Uploads an attachment straight to object storage and returns its asset id.
+   * The file never passes through the API, only the presigned contract does.
+   * @param {string} anchor - The portal anchor
+   * @param {File} file - The file to upload
+   * @returns {Promise<string>} The uploaded asset identifier
+   * @throws {Error} If any step of the upload fails
+   */
+  async uploadAsset(anchor: string, file: File): Promise<string> {
+    const { upload_data, asset_id } = await this.createAssetUpload(anchor, file);
 
-        const formData = new FormData();
-        Object.entries(upload_data.fields).forEach(([key, value]) => formData.append(key, value));
-        formData.append("file", file);
+    const formData = new FormData();
+    Object.entries(upload_data.fields).forEach(([key, value]) => formData.append(key, value));
+    formData.append("file", file);
 
-        const uploadResponse = await fetch(upload_data.url, { method: "POST", body: formData });
-        if (!uploadResponse.ok) throw new Error("Upload failed");
+    const uploadResponse = await fetch(upload_data.url, { method: "POST", body: formData });
+    if (!uploadResponse.ok) throw new Error("Upload failed");
 
-        await this.completeAssetUpload(anchor, asset_id);
-        return asset_id;
-    }
+    await this.completeAssetUpload(anchor, asset_id);
+    return asset_id;
+  }
 
-    /**
-     * Retrieves the request form configuration of a project.
-     * @param {string} workspaceSlug - The workspace slug
-     * @param {string} projectId - The project identifier
-     * @returns {Promise<TIntakePortal | Record<string, never>>} The portal configuration
-     * @throws {Error} If the API request fails
-     */
-    async retrieveConfig(workspaceSlug: string, projectId: string): Promise<TIntakePortal | Record<string, never>> {
-        return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`)
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Retrieves the request form configuration of a project.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @returns {Promise<TIntakePortal | Record<string, never>>} The portal configuration
+   * @throws {Error} If the API request fails
+   */
+  async retrieveConfig(workspaceSlug: string, projectId: string): Promise<TIntakePortal | Record<string, never>> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Creates the request form of a project.
-     * @param {string} workspaceSlug - The workspace slug
-     * @param {string} projectId - The project identifier
-     * @param {Partial<TIntakePortal>} data - The portal configuration
-     * @returns {Promise<TIntakePortal>} The created portal
-     * @throws {Error} If the API request fails
-     */
-    async createConfig(workspaceSlug: string, projectId: string, data: Partial<TIntakePortal>): Promise<TIntakePortal> {
-        return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`, data)
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Creates the request form of a project.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @param {Partial<TIntakePortal>} data - The portal configuration
+   * @returns {Promise<TIntakePortal>} The created portal
+   * @throws {Error} If the API request fails
+   */
+  async createConfig(workspaceSlug: string, projectId: string, data: Partial<TIntakePortal>): Promise<TIntakePortal> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 
-    /**
-     * Updates the request form of a project.
-     * @param {string} workspaceSlug - The workspace slug
-     * @param {string} projectId - The project identifier
-     * @param {Partial<TIntakePortal> & { regenerate_anchor?: boolean }} data - The fields to update
-     * @returns {Promise<TIntakePortal>} The updated portal
-     * @throws {Error} If the API request fails
-     */
-    async updateConfig(
-        workspaceSlug: string,
-        projectId: string,
-        data: Partial<TIntakePortal> & { regenerate_anchor?: boolean }
-    ): Promise<TIntakePortal> {
-        return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`, data)
-            .then((response) => response?.data)
-            .catch((error) => {
-                throw error?.response;
-            });
-    }
+  /**
+   * Updates the request form of a project.
+   * @param {string} workspaceSlug - The workspace slug
+   * @param {string} projectId - The project identifier
+   * @param {Partial<TIntakePortal> & { regenerate_anchor?: boolean }} data - The fields to update
+   * @returns {Promise<TIntakePortal>} The updated portal
+   * @throws {Error} If the API request fails
+   */
+  async updateConfig(
+    workspaceSlug: string,
+    projectId: string,
+    data: Partial<TIntakePortal> & { regenerate_anchor?: boolean }
+  ): Promise<TIntakePortal> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-portal/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
 }

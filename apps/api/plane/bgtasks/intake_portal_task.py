@@ -16,6 +16,7 @@ from django.utils.html import escape
 from plane.db.models import IntakeIssue, IntakePortalBudget, Issue
 from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.utils.exception_logger import log_exception
+from plane.utils.intake_portal import approved_hours, note_to_html
 from plane.utils.mailjet import send_transactional_email
 
 BASE_STYLE = (
@@ -70,7 +71,7 @@ def _portal_cta_html(portal_url: str, button_label: str) -> str:
 
 def _wrap(title, body_html):
     return (
-        f"<div style=\"{BASE_STYLE}\">"
+        f'<div style="{BASE_STYLE}">'
         f'<h1 style="font-size:20px;margin:0 0 16px;color:#111827;">{title}</h1>'
         f"{body_html}"
         '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />'
@@ -118,11 +119,7 @@ def send_portal_ticket_created(issue_id, portal_url=""):
 
         effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
 
-        link_html = (
-            _portal_cta_html(effective_portal_url, "Abrir chamado no portal")
-            if effective_portal_url
-            else ""
-        )
+        link_html = _portal_cta_html(effective_portal_url, "Abrir chamado no portal") if effective_portal_url else ""
         body = (
             f"<p>Recebemos sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
             "<p>Nossa equipe já foi notificada e você receberá um e-mail a cada atualização.</p>"
@@ -156,12 +153,12 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
         effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
 
         state_html = (
-            f'<p>Status atual: <strong>{escape(issue.state.name)}</strong></p>' if issue.state_id and issue.state else ""
+            f"<p>Status atual: <strong>{escape(issue.state.name)}</strong></p>"
+            if issue.state_id and issue.state
+            else ""
         )
         link_html = (
-            _portal_cta_html(effective_portal_url, "Abrir atualização no portal")
-            if effective_portal_url
-            else ""
+            _portal_cta_html(effective_portal_url, "Abrir atualização no portal") if effective_portal_url else ""
         )
         body = (
             f"<p>Sua solicitação <strong>{escape(issue.name)}</strong> foi atualizada.</p>"
@@ -179,7 +176,7 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
 
 
 @shared_task
-def send_portal_budget_request(issue_id, portal_url=""):
+def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
     """Ask the requester to approve the hourly estimate of their ticket."""
     try:
         issue = Issue.objects.filter(pk=issue_id).first()
@@ -190,9 +187,15 @@ def send_portal_budget_request(issue_id, portal_url=""):
         if intake_issue is None or not intake_issue.source_email:
             return
 
-        budget = IntakePortalBudget.objects.filter(issue_id=issue_id).first()
+        budgets = IntakePortalBudget.objects.filter(issue_id=issue_id)
+        budget = (
+            budgets.filter(pk=budget_id).first()
+            if budget_id
+            else budgets.filter(status=IntakePortalBudgetStatus.PENDING).first()
+        )
         if budget is None or budget.status != IntakePortalBudgetStatus.PENDING:
             return
+        already_approved = approved_hours(list(budgets))
 
         portal_anchor = ""
         if isinstance(intake_issue.extra, dict):
@@ -201,12 +204,24 @@ def send_portal_budget_request(issue_id, portal_url=""):
         effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
 
         hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
-        note_html = f"<p>{escape(budget.note)}</p>" if budget.note else ""
+        note_html = (
+            '<div style="background:#f9fafb;border-left:3px solid #d1d5db;padding:12px 16px;margin:0 0 16px;">'
+            f"{note_to_html(budget.note)}</div>"
+            if budget.note
+            else ""
+        )
+        approved = f"{already_approved:.2f}".rstrip("0").rstrip(".")
+        additional_html = (
+            f"<p>Este é um orçamento adicional: {escape(approved)} horas já foram aprovadas neste chamado.</p>"
+            if already_approved > 0
+            else ""
+        )
         link_html = (
             _portal_cta_html(effective_portal_url, "Revisar e aprovar no portal") if effective_portal_url else ""
         )
         body = (
             f"<p>Preparamos um orçamento para a sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
+            f"{additional_html}"
             '<p style="font-size:28px;font-weight:700;background:#f3f4f6;padding:16px 24px;'
             'border-radius:8px;text-align:center;margin:24px 0;">'
             f"{escape(hours)} horas"

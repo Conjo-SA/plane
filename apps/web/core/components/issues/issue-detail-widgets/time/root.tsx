@@ -18,6 +18,7 @@ import type { TIssueTime, TIssueWorkLog, TWorkKind } from "@plane/types";
 import { AlertModalCore, Collapsible, CollapsibleButton, Input } from "@plane/ui";
 import { cn, getFileURL } from "@plane/utils";
 // hooks
+import { IntakePortalBudgetRoot } from "@/components/inbox/content/portal-budget";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { formatDayMonth, formatHours, formatMinutes, hoursToMinutes, todayISO } from "./format";
@@ -111,6 +112,14 @@ function TimeContent(props: ContentProps) {
       <WorkKindChips {...props} />
       <ClientLine {...props} />
       <BudgetBox {...props} />
+      {/* Conjo: estimates of portal tickets (history, additional estimate), also after leaving intake */}
+      <IntakePortalBudgetRoot
+        className="rounded-md border border-subtle px-3.5 py-3"
+        workspaceSlug={props.workspaceSlug}
+        projectId={props.projectId}
+        issueId={props.issueId}
+        disabled={props.disabled}
+      />
       {!props.disabled && <LogForm {...props} />}
       <EntryList {...props} />
     </div>
@@ -238,9 +247,20 @@ function BudgetBox(props: ContentProps) {
     <div className="flex flex-col gap-2.5 rounded-md bg-layer-1 px-3.5 py-3 text-13 text-secondary">
       <span className="font-semibold text-primary">Orçamento</span>
       <span className="flex items-center justify-between gap-2">
-        <span>Horas orçadas</span>
+        <span>
+          Horas orçadas
+          {(budget.approved_count ?? 0) > 1 && (
+            <span className="text-tertiary"> · {budget.approved_count} orçamentos aprovados</span>
+          )}
+        </span>
         <span className="font-semibold text-primary">{formatHours(budget.hours)}</span>
       </span>
+      {budget.pending_hours && (
+        <span className="flex items-center justify-between gap-2">
+          <span>Adicional aguardando o cliente</span>
+          <span className="font-medium text-primary">+{formatHours(budget.pending_hours)}</span>
+        </span>
+      )}
       <span className="flex items-center justify-between gap-2">
         <span>Status</span>
         <span className={cn("rounded-full px-2 py-0.5 text-11 font-semibold", status.pill)}>{status.label}</span>
