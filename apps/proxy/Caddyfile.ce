@@ -9,6 +9,10 @@
   redir /god-mode /god-mode/ permanent
 	reverse_proxy /god-mode/* admin:3000
 	
+	# Internal realtime publish endpoint: only the api/worker containers call it, directly on live:3000.
+	@realtime_publish path /live/realtime/publish /live/realtime/publish/*
+	respond @realtime_publish 404
+
 	reverse_proxy /live/* live:3000
 
 	reverse_proxy /api/* api:8000
