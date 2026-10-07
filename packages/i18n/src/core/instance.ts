@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import i18n from "i18next";
+import { createInstance } from "i18next";
 import { initReactI18next } from "react-i18next";
 import ICU from "i18next-icu";
 import resourcesToBackend from "i18next-resources-to-backend";
@@ -13,15 +13,33 @@ import { NAMESPACES, DEFAULT_NAMESPACE } from "../constants/namespaces";
 
 import type { i18n as I18nInstance } from "i18next";
 
-export const i18nInstance: I18nInstance = i18n.createInstance();
+export const i18nInstance: I18nInstance = createInstance();
 
 i18nInstance
   .use(ICU)
   .use(initReactI18next)
   .use(resourcesToBackend((language: string, namespace: string) => import(`../locales/${language}/${namespace}.json`)));
 
-const initialLng =
-  typeof window !== "undefined" ? localStorage.getItem(LANGUAGE_STORAGE_KEY) || FALLBACK_LANGUAGE : FALLBACK_LANGUAGE;
+// Conjo: Tasks became Portuguese by default. A stored "en" saved before that switch (the old default) is
+// moved to pt-BR once; choosing English afterwards in the profile settings is respected.
+const LANGUAGE_DEFAULT_MIGRATION_KEY = "conjoLanguageDefaultPtBR";
+
+const readStoredLanguage = (): string => {
+  if (typeof window === "undefined") return FALLBACK_LANGUAGE;
+  try {
+    if (!localStorage.getItem(LANGUAGE_DEFAULT_MIGRATION_KEY)) {
+      localStorage.setItem(LANGUAGE_DEFAULT_MIGRATION_KEY, "1");
+      if (localStorage.getItem(LANGUAGE_STORAGE_KEY) === "en")
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, FALLBACK_LANGUAGE);
+    }
+    return localStorage.getItem(LANGUAGE_STORAGE_KEY) || FALLBACK_LANGUAGE;
+  } catch {
+    // storage blocked (private mode): the default language still applies
+    return FALLBACK_LANGUAGE;
+  }
+};
+
+const initialLng = readStoredLanguage();
 
 export const initPromise = i18nInstance
   .init({

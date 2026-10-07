@@ -27,29 +27,29 @@ type TAuthHeader = {
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Boas-vindas de volta ao Tasks.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Boas-vindas de volta ao Tasks.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Boas-vindas de volta ao Tasks.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Crie sua conta no Tasks.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Crie sua conta no Tasks.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Trabalhe em todas as dimensões.",
+      header: "Projetos, chamados e clientes num só lugar.",
       subHeader: "Crie sua conta no Tasks.",
     },
   },
@@ -74,11 +74,11 @@ export const AuthHeader = observer(function AuthHeader(props: TAuthHeader) {
   const getHeaderSubHeader = (
     step: EAuthSteps,
     mode: EAuthModes,
-    invitation: IWorkspaceMemberInvitation | undefined,
+    invitationDetails: IWorkspaceMemberInvitation | undefined,
     email: string | undefined
   ) => {
-    if (invitation && email && invitation.email === email && invitation.workspace) {
-      const workspace = invitation.workspace;
+    if (invitationDetails && email && invitationDetails.email === email && invitationDetails.workspace) {
+      const workspace = invitationDetails.workspace;
       return {
         header: (
           <div className="relative inline-flex items-center gap-2">
