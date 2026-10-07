@@ -481,14 +481,38 @@ type EntryRowProps = { entry: TIssueWorkLog; canManage: boolean; onEdit: () => v
 
 function EntryRow({ entry, canManage, onEdit, onDelete }: EntryRowProps) {
   const description = entryDescription(entry);
+  // long descriptions show two lines; a click shows the whole text
+  const [expanded, setExpanded] = useState(false);
+  const isLong = description.text.length > 90;
   const meta = [formatDayMonth(entry.logged_on), entry.member?.display_name].filter(Boolean).join(" · ");
   return (
-    <div className="group flex items-center gap-3 px-3.5 py-2.5">
+    <div className="group flex items-start gap-3 px-3.5 py-2.5">
       <MemberAvatar entry={entry} />
       <div className="flex min-w-0 flex-grow flex-col">
-        <span className={cn("truncate text-13", description.muted ? "text-tertiary" : "text-primary")}>
-          {description.text}
-        </span>
+        {isLong ? (
+          <button
+            type="button"
+            title={expanded ? "Mostrar menos" : "Mostrar tudo"}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+            className={cn(
+              "text-left text-13 break-words whitespace-pre-line",
+              !expanded && "line-clamp-2",
+              description.muted ? "text-tertiary" : "text-primary"
+            )}
+          >
+            {description.text}
+          </button>
+        ) : (
+          <span
+            className={cn(
+              "text-13 break-words whitespace-pre-line",
+              description.muted ? "text-tertiary" : "text-primary"
+            )}
+          >
+            {description.text}
+          </span>
+        )}
         <span className="text-11 text-tertiary">{meta}</span>
       </div>
       {canManage && (
