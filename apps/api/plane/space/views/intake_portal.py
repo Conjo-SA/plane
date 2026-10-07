@@ -214,7 +214,7 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         ).first()
         if not triage_state:
             triage_state = State.objects.create(
-                name="Triage",
+                name="Triagem",
                 group=StateGroup.TRIAGE.value,
                 project_id=portal.project_id,
                 workspace_id=portal.workspace_id,
