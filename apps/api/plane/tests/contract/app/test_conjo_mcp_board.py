@@ -23,6 +23,7 @@ from plane.db.models import (
     IntakePortalBudget,
     Issue,
     IssueRelation,
+    IssueWorkLog,
     Module,
     Project,
     ProjectMember,
@@ -32,6 +33,7 @@ from plane.db.models import (
 )
 from plane.db.models.intake import SourceType
 from plane.mcp.models import MCPServer
+from plane.mcp.tools.registry import TOOL_REGISTRY
 from plane.utils import conjo_billing as billing
 
 D = Decimal
@@ -346,10 +348,16 @@ class TestTimeAndClients:
             work_item=item["identifier"],
             member=create_user.email,
             duration="1h30",
+            description="Relatório mensal",
         )
         assert logged["total_minutes"] == 90
         assert "member" in mcp.fails(
-            "log_work_item_time", **ws(workspace), work_item=item["identifier"], member="ninguem@x.com", duration="1h"
+            "log_work_item_time",
+            **ws(workspace),
+            work_item=item["identifier"],
+            member="ninguem@x.com",
+            duration="1h",
+            description="x",
         )
         assert "duration" in mcp.fails(
             "log_work_item_time",
@@ -357,7 +365,49 @@ class TestTimeAndClients:
             work_item=item["identifier"],
             member=create_user.email,
             duration="99h",
+            description="x",
         )
+        # Manual entries always say what was done: missing, empty or blank description is refused.
+        assert "description" in mcp.fails(
+            "log_work_item_time", **ws(workspace), work_item=item["identifier"], member=create_user.email, duration="1h"
+        )
+        for blank in ("", "   "):
+            assert "descreva o que foi feito" in mcp.fails(
+                "log_work_item_time",
+                **ws(workspace),
+                work_item=item["identifier"],
+                member=create_user.email,
+                duration="1h",
+                description=blank,
+            )
+        assert mcp("get_work_item_time", **ws(workspace), work_item=item["identifier"])["total_minutes"] == 90
+        entry_id = logged["logged"]["id"]
+        assert "descreva o que foi feito" in mcp.fails(
+            "update_work_item_time", **ws(workspace), work_item=item["identifier"], entry_id=entry_id, description=" "
+        )
+        updated = mcp(
+            "update_work_item_time", **ws(workspace), work_item=item["identifier"], entry_id=entry_id, duration="1h30"
+        )
+        assert updated["total_minutes"] == 90
+        # An old entry without description only saves when the fix brings one.
+        old = IssueWorkLog.objects.create(
+            issue_id=item["id"], project=project, member=create_user, minutes=30, logged_on=billing.today()
+        )
+        assert "descreva o que foi feito" in mcp.fails(
+            "update_work_item_time", **ws(workspace), work_item=item["identifier"], entry_id=str(old.id), duration="1h"
+        )
+        mcp(
+            "update_work_item_time",
+            **ws(workspace),
+            work_item=item["identifier"],
+            entry_id=str(old.id),
+            duration="1h",
+            description="Reunião",
+        )
+        old.refresh_from_db()
+        assert old.minutes == 60 and old.description == "Reunião"
+        old.delete()
+        assert "description" in TOOL_REGISTRY["log_work_item_time"].input_schema["required"]
 
         # Approved estimate: setting evolution debits, maintenance gives back.
         issue = Issue.objects.get(pk=item["id"])
