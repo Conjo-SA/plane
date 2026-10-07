@@ -276,8 +276,23 @@ class IntakePortalTicketsEndpoint(BaseAPIView):
         kinds = dict(
             IssueWorkKind.objects.filter(issue_id__in=[t["id"] for t in tickets]).values_list("issue_id", "kind")
         )
+        budgets = {
+            budget.issue_id: budget
+            for budget in IntakePortalBudget.objects.filter(issue_id__in=[t["id"] for t in tickets])
+        }
+        updated = dict(
+            IntakeIssue.objects.filter(issue_id__in=[t["id"] for t in tickets]).values_list(
+                "issue_id", "issue__updated_at"
+            )
+        )
         for ticket in tickets:
-            ticket["work_kind"] = kinds.get(UUID(ticket["id"]))
+            issue_id = UUID(ticket["id"])
+            ticket["work_kind"] = kinds.get(issue_id)
+            # So the portal can tell what needs the requester's action and what is still open.
+            budget = budgets.get(issue_id)
+            ticket["budget_status"] = budget.status if budget else None
+            ticket["budget_hours"] = f"{budget.estimated_hours:.2f}" if budget else None
+            ticket["updated_at"] = updated.get(issue_id)
         return Response(
             {
                 "email": session.email,

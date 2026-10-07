@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowLeft, LogOut, Ticket } from "lucide-react";
+import { ArrowLeft, ChevronRight, LogOut, Ticket } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -12,25 +12,26 @@ import useSWR from "swr";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { IntakePortalService } from "@plane/services";
+import type { TIntakePortalTicket } from "@plane/types";
 import { Input } from "@plane/ui";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
+import { PortalChip } from "@/components/portal/chip";
 import { PortalPackageBalanceCard } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
 import { clearPortalSession, getPortalSession, setPortalSession } from "@/helpers/portal-session";
+import { getPortalTicketStatus } from "@/helpers/portal-ticket-status";
+import type { TPortalTicketBucket } from "@/helpers/portal-ticket-status";
 
 const intakePortalService = new IntakePortalService();
 
-const STATE_STYLES: Record<string, string> = {
-  backlog: "bg-neutral-100 text-neutral-700",
-  unstarted: "bg-sky-100 text-sky-700",
-  started: "bg-amber-100 text-amber-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
-  triage: "bg-violet-100 text-violet-700",
-};
+const SECTIONS: { bucket: TPortalTicketBucket; title: string; empty: string | null }[] = [
+  { bucket: "action", title: "Precisa da sua ação", empty: null },
+  { bucket: "open", title: "Em aberto", empty: "Nenhum chamado em aberto no momento." },
+  { bucket: "closed", title: "Concluídos", empty: null },
+];
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString("pt-BR");
 
@@ -212,37 +213,7 @@ export default function PortalTicketsPage() {
                       <p className="text-14 text-secondary">Nenhum chamado encontrado para {session.email}.</p>
                     </div>
                   ) : (
-                    <ul className="divide-y divide-subtle-1 overflow-hidden rounded-lg border border-subtle">
-                      {ticketList.tickets.map((ticket) => (
-                        <li key={ticket.id}>
-                          <Link
-                            to={`/portal/${anchor}/${ticket.id}`}
-                            className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-layer-1"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-14 font-medium text-primary">{ticket.name}</p>
-                              <p className="mt-0.5 text-11 text-tertiary">
-                                #{ticket.sequence_id} · {ticket.project_name} · {formatDate(ticket.created_at)}
-                              </p>
-                              {ticket.work_kind === "maintenance" && (
-                                <p className="mt-0.5 text-12 text-secondary">
-                                  Correção de bug · não desconta do pacote
-                                </p>
-                              )}
-                            </div>
-                            {ticket.state && (
-                              <span
-                                className={`shrink-0 rounded-full px-2.5 py-1 text-11 font-medium ${
-                                  STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
-                                }`}
-                              >
-                                {ticket.state}
-                              </span>
-                            )}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                    <PortalTicketSections anchor={anchor} tickets={ticketList.tickets} />
                   )}
                 </div>
               )}
@@ -252,5 +223,102 @@ export default function PortalTicketsPage() {
       </div>
       <PoweredBy />
     </>
+  );
+}
+
+/** Tickets grouped by what they need: the requester's action first, then what is still open, then history. */
+function PortalTicketSections(props: { anchor: string; tickets: TIntakePortalTicket[] }) {
+  const { anchor, tickets } = props;
+  const rows = tickets.map((ticket) => ({ ticket, status: getPortalTicketStatus(ticket) }));
+  const count = (bucket: TPortalTicketBucket) => rows.filter((row) => row.status.bucket === bucket).length;
+  const openCount = count("open");
+  const actionCount = count("action");
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-2">
+        <SummaryTile label="Precisam de você" value={actionCount} highlight={actionCount > 0} />
+        <SummaryTile label="Em aberto" value={openCount} />
+        <SummaryTile label="Concluídos" value={count("closed")} />
+      </div>
+
+      {SECTIONS.map(({ bucket, title, empty }) => {
+        const items = rows.filter((row) => row.status.bucket === bucket);
+        if (!items.length && !empty) return null;
+        const list = items.length ? (
+          <ul className="divide-y divide-subtle-1 overflow-hidden rounded-lg border border-subtle">
+            {items.map(({ ticket, status }) => (
+              <li key={ticket.id}>
+                <Link
+                  to={`/portal/${anchor}/${ticket.id}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-layer-1 sm:gap-4"
+                >
+                  <span className="w-1 shrink-0 self-stretch rounded-full" style={{ backgroundColor: status.color }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                      <p className="line-clamp-2 text-14 font-medium text-primary sm:truncate">{ticket.name}</p>
+                      <PortalChip label={status.label} color={status.color} />
+                    </div>
+                    {(status.hint || ticket.work_kind === "maintenance") && (
+                      <p className="mt-1 text-12 text-secondary">
+                        {[
+                          status.hint,
+                          ticket.work_kind === "maintenance" ? "Correção de bug, não desconta do pacote" : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                    <p className="mt-0.5 text-11 text-tertiary">
+                      #{ticket.sequence_id} · aberto em {formatDate(ticket.created_at)}
+                      {ticket.updated_at ? ` · atualizado em ${formatDate(ticket.updated_at)}` : ""}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-tertiary" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-lg border border-dashed border-subtle px-4 py-5 text-center text-13 text-tertiary">
+            {empty}
+          </p>
+        );
+
+        if (bucket === "closed")
+          return (
+            <details key={bucket} className="group" open={!openCount && !actionCount}>
+              <summary className="mb-2 flex cursor-pointer list-none items-center gap-1.5 text-13 font-semibold text-primary">
+                <ChevronRight className="size-4 text-tertiary transition-transform group-open:rotate-90" />
+                {title} ({items.length})
+              </summary>
+              {list}
+            </details>
+          );
+        return (
+          <section key={bucket}>
+            <h2 className="mb-2 text-13 font-semibold text-primary">
+              {title} ({items.length})
+            </h2>
+            {list}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function SummaryTile(props: { label: string; value: number; highlight?: boolean }) {
+  const { label, value, highlight = false } = props;
+  return (
+    <div
+      className="rounded-lg border border-subtle px-3 py-2.5"
+      style={highlight ? { borderColor: "#C2410C66", backgroundColor: "#C2410C0D" } : undefined}
+    >
+      <p className="text-20 font-semibold text-primary" style={highlight ? { color: "#C2410C" } : undefined}>
+        {value}
+      </p>
+      <p className="text-12 text-secondary">{label}</p>
+    </div>
   );
 }

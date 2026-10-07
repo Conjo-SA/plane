@@ -30,23 +30,16 @@ import { getAttachmentPreviewKind } from "@plane/utils";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
+import { PortalChip } from "@/components/portal/chip";
 import { PortalBalanceAfterApproval } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
 import { getPortalSession } from "@/helpers/portal-session";
+import { getPortalTicketStatus } from "@/helpers/portal-ticket-status";
 
 const intakePortalService = new IntakePortalService();
 
 const MAX_ATTACHMENTS = 10;
-
-const STATE_STYLES: Record<string, string> = {
-  backlog: "bg-neutral-100 text-neutral-700",
-  unstarted: "bg-sky-100 text-sky-700",
-  started: "bg-amber-100 text-amber-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
-  triage: "bg-violet-100 text-violet-700",
-};
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: "Urgente",
@@ -54,23 +47,6 @@ const PRIORITY_LABELS: Record<string, string> = {
   medium: "Média",
   low: "Baixa",
   none: "Sem prioridade",
-};
-
-const PRIORITY_STYLES: Record<string, string> = {
-  urgent: "bg-red-100 text-red-700",
-  high: "bg-orange-100 text-orange-700",
-  medium: "bg-amber-100 text-amber-700",
-  low: "bg-sky-100 text-sky-700",
-  none: "bg-neutral-100 text-neutral-700",
-};
-
-// Mirrors IntakeIssueStatus on the API side.
-const INTAKE_STATUS_LABELS: Record<number, string> = {
-  [-2]: "Em triagem",
-  [-1]: "Recusado",
-  0: "Adiado",
-  1: "Aceito",
-  2: "Duplicado",
 };
 
 type TPendingAttachment = {
@@ -313,7 +289,18 @@ export default function PortalTicketDetailPage() {
     ? `${ticket.project_identifier}-${ticket.sequence_id}`
     : `#${ticket.sequence_id}`;
   const priority = ticket.priority ?? "none";
-  const intakeStatusLabel = INTAKE_STATUS_LABELS[ticket.intake_status];
+  // Same wording as the ticket list ("Na fila", "Em andamento"...), never the team's internal state names.
+  const portalStatus = getPortalTicketStatus({
+    ...ticket,
+    budget_status: ticket.budget
+      ? ticket.budget.is_approved
+        ? "APPROVED"
+        : ticket.budget.is_rejected
+          ? "REJECTED"
+          : "PENDING"
+      : null,
+    budget_hours: ticket.budget ? String(ticket.budget.estimated_hours) : null,
+  });
   const budget = ticket.budget ?? null;
 
   return (
@@ -335,27 +322,8 @@ export default function PortalTicketDetailPage() {
               </p>
               <h1 className="mt-1 text-20 leading-tight font-semibold text-primary">{ticket.name}</h1>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-12 text-tertiary">
-                {ticket.state && (
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-11 font-medium ${
-                      STATE_STYLES[ticket.state_group ?? ""] ?? "bg-neutral-100 text-neutral-700"
-                    }`}
-                  >
-                    {ticket.state}
-                  </span>
-                )}
-                <span
-                  className={`rounded-full px-2.5 py-1 text-11 font-medium ${
-                    PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.none
-                  }`}
-                >
-                  {PRIORITY_LABELS[priority] ?? PRIORITY_LABELS.none}
-                </span>
-                {intakeStatusLabel && (
-                  <span className="rounded-full border border-subtle bg-surface-1 px-2.5 py-1 text-11 font-medium text-secondary">
-                    {intakeStatusLabel}
-                  </span>
-                )}
+                <PortalChip label={portalStatus.label} color={portalStatus.color} title={ticket.state ?? undefined} />
+                <PortalChip label={PRIORITY_LABELS[priority] ?? PRIORITY_LABELS.none} />
               </div>
             </div>
 
@@ -551,17 +519,7 @@ export default function PortalTicketDetailPage() {
                         <span className="text-13 text-tertiary">Nenhuma</span>
                       ) : (
                         labels.map((label) => (
-                          <span
-                            key={label.name}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-subtle bg-surface-1 px-2 py-0.5 text-11 text-secondary"
-                          >
-                            <span
-                              aria-hidden
-                              className="size-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: label.color || "#6b7280" }}
-                            />
-                            {label.name}
-                          </span>
+                          <PortalChip key={label.name} label={label.name} color={label.color || "#6b7280"} />
                         ))
                       )}
                     </dd>

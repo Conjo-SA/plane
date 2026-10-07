@@ -102,6 +102,10 @@ export type TIntakePortalTicket = {
   intake_status: number;
   /** Conjo: how the work counts against the client's hour package (list endpoint only). */
   work_kind?: TWorkKind | null;
+  /** Conjo: estimate decision, so the list shows what waits for the requester (list endpoint only). */
+  budget_status?: "PENDING" | "APPROVED" | "REJECTED" | null;
+  budget_hours?: string | null;
+  updated_at?: string | null;
 };
 
 /**
