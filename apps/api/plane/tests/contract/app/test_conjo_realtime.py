@@ -42,7 +42,14 @@ def _client(user):
 
 
 @pytest.fixture
-def secret(monkeypatch):
+def no_redis():
+    """Redis unavailable: exercises the HTTP fallback to the live server."""
+    with mock.patch("plane.utils.realtime._publish_redis", return_value=False):
+        yield
+
+
+@pytest.fixture
+def secret(monkeypatch, no_redis):
     monkeypatch.setenv("LIVE_SERVER_SECRET_KEY", "s3cr3t")
     monkeypatch.delenv("LIVE_INTERNAL_URL", raising=False)
     return "s3cr3t"
@@ -50,6 +57,20 @@ def secret(monkeypatch):
 
 @pytest.mark.unit
 class TestPublishHelper:
+    def test_redis_is_used_first_without_any_secret(self, monkeypatch):
+        """Workers share the internal Redis with the live server: no secret needed, no HTTP hop."""
+        monkeypatch.delenv("LIVE_SERVER_SECRET_KEY", raising=False)
+        fake = mock.Mock()
+        with (
+            mock.patch("plane.settings.redis.redis_instance", return_value=fake),
+            mock.patch("plane.utils.realtime.requests.post") as post,
+        ):
+            assert realtime.send_event({"type": "issue.updated", "issue_ids": ["x"]}) is True
+        channel, message = fake.publish.call_args.args
+        assert channel == "tasks:realtime:events"
+        assert json.loads(message) == {"type": "issue.updated", "issue_ids": ["x"]}
+        post.assert_not_called()
+
     def test_send_event_posts_to_live_with_secret_and_short_timeout(self, secret):
         with mock.patch("plane.utils.realtime.requests.post") as post:
             post.return_value.status_code = 202
@@ -66,7 +87,7 @@ class TestPublishHelper:
             realtime.send_event({"type": "issue.updated"})
         assert post.call_args.args[0] == "http://tasks-live:3100/live/realtime/publish"
 
-    def test_without_secret_nothing_is_sent(self, monkeypatch):
+    def test_without_redis_and_secret_nothing_is_sent(self, monkeypatch, no_redis):
         monkeypatch.delenv("LIVE_SERVER_SECRET_KEY", raising=False)
         with mock.patch("plane.utils.realtime.requests.post") as post:
             assert realtime.send_event({"type": "issue.updated"}) is False

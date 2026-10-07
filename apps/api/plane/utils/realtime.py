@@ -8,9 +8,11 @@ Events are notifications, never data: they carry only ids, field names and the
 actor. Browsers that receive one refetch the work item through the normal,
 authenticated REST API, so permissions keep being enforced by the API.
 
-Publishing is fire-and-forget: a POST to the live server's internal endpoint,
-authenticated with ``LIVE_SERVER_SECRET_KEY``, with a short timeout. Any failure
-is only logged at debug level and never breaks the caller.
+Publishing is fire-and-forget. The event goes to the Redis channel the live server
+subscribes to (the api and the workers already share that internal Redis, no secret
+needed); without Redis it falls back to a POST to the live server's internal endpoint,
+authenticated with ``LIVE_SERVER_SECRET_KEY``. Any failure is only logged at debug
+level and never breaks the caller.
 """
 
 # Python imports
@@ -28,6 +30,8 @@ from django.db import connection, transaction
 logger = logging.getLogger("plane.realtime")
 
 PUBLISH_PATH = "/live/realtime/publish"
+# Same channel the live server subscribes to (apps/live/src/realtime/fanout.ts).
+REDIS_CHANNEL = "tasks:realtime:events"
 PUBLISH_TIMEOUT_SECONDS = 1.0
 MAX_ISSUE_IDS = 500
 MAX_FIELDS = 50
@@ -89,8 +93,24 @@ def build_event(event_type, workspace_slug, project_id, issue_ids=None, actor_id
     }
 
 
+def _publish_redis(payload):
+    """Publish through the shared Redis. Returns True when Redis took it."""
+    try:
+        import json
+
+        from plane.settings.redis import redis_instance
+
+        redis_instance().publish(REDIS_CHANNEL, json.dumps(payload))
+        return True
+    except Exception as e:
+        logger.debug("realtime: redis publish failed: %s", e)
+        return False
+
+
 def send_event(payload):
-    """POST one event to the live server. Returns True when it was accepted."""
+    """Deliver one event to the live server (Redis first, HTTP fallback). Returns True when delivered."""
+    if _publish_redis(payload):
+        return True
     secret = _secret()
     if not secret:
         return False
@@ -132,7 +152,7 @@ def publish_project_event(
     pass ``background=False`` to send it inline. Never raises.
     """
     try:
-        if not project_id or not _secret():
+        if not project_id:
             return
         if not workspace_slug:
             from plane.db.models import Project
