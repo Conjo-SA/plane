@@ -30,7 +30,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
   const [email, setEmail] = useState(defaultEmail);
 
   const emailError = useMemo(
-    () => (email && !checkEmailValidity(email) ? { email: "Email is invalid" } : undefined),
+    () => (email && !checkEmailValidity(email) ? { email: "E-mail inválido" } : undefined),
     [email]
   );
 
@@ -53,7 +53,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
     <form onSubmit={handleFormSubmit} className="mt-5 space-y-4">
       <div className="space-y-1">
         <label className="text-13 font-medium text-tertiary" htmlFor="email">
-          Email
+          E-mail
         </label>
         <div
           className={cn(
@@ -73,7 +73,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@company.com"
+            placeholder="nome@empresa.com"
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder autofill:bg-danger-subtle focus:bg-none active:bg-transparent`}
             autoComplete="off"
             autoFocus
@@ -82,7 +82,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
           {email.length > 0 && (
             <button
               type="button"
-              aria-label="Clear email"
+              aria-label="Limpar e-mail"
               onClick={() => {
                 setEmail("");
                 inputRef.current?.focus();
@@ -101,7 +101,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         )}
       </div>
       <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-        {isSubmitting ? <Spinner height="20px" width="20px" /> : "Continue"}
+        {isSubmitting ? <Spinner height="20px" width="20px" /> : "Continuar"}
       </Button>
     </form>
   );

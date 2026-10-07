@@ -87,7 +87,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       <input type="hidden" value={nextPath} name="next_path" />
       <div className="space-y-1">
         <label className="text-13 font-medium text-tertiary" htmlFor="email">
-          Email
+          E-mail
         </label>
         <div className={`relative flex items-center rounded-md border border-subtle bg-surface-1`}>
           <Input
@@ -96,7 +96,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
             type="email"
             value={uniqueCodeFormData.email}
             onChange={(e) => handleFormChange("email", e.target.value)}
-            placeholder="name@company.com"
+            placeholder="nome@empresa.com"
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder`}
             autoComplete="off"
             disabled
@@ -112,7 +112,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
 
       <div className="space-y-1">
         <label className="text-13 font-medium text-tertiary" htmlFor="code">
-          Unique code
+          Código único
         </label>
         <Input
           name="code"
@@ -126,7 +126,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
         <div className="flex w-full items-center justify-between px-1 pt-1 text-11">
           <p className="flex items-center gap-1 font-medium text-success-primary">
             <CircleCheck height={12} width={12} />
-            Paste the code sent to your email
+            Cole o código enviado para seu e-mail
           </p>
           <button
             type="button"
@@ -139,17 +139,23 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
             disabled={isRequestNewCodeDisabled}
           >
             {resendTimerCode > 0
-              ? `Resend in ${resendTimerCode}s`
+              ? `Reenviar em ${resendTimerCode}s`
               : isRequestingNewCode
-                ? "Requesting new code"
-                : "Resend"}
+                ? "Solicitando novo código"
+                : "Reenviar"}
           </button>
         </div>
       </div>
 
       <div className="space-y-2.5">
         <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
-          {isRequestingNewCode ? "Sending code" : isSubmitting ? <Spinner height="20px" width="20px" /> : "Continue"}
+          {isRequestingNewCode ? (
+            "Enviando código"
+          ) : isSubmitting ? (
+            <Spinner height="20px" width="20px" />
+          ) : (
+            "Continuar"
+          )}
         </Button>
       </div>
     </form>

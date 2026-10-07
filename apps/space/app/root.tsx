@@ -52,7 +52,7 @@ export const headers: Route.HeadersFunction = () => ({
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -78,7 +78,7 @@ export const meta: Route.MetaFunction = () => [
   {
     name: "keywords",
     content:
-      "software development, customer feedback, software, accelerate, code management, release management, project management, work item tracking, agile, scrum, kanban, collaboration",
+      "desenvolvimento de software, feedback de clientes, software, gestão de código, gestão de releases, gestão de projetos, acompanhamento de tarefas, ágil, scrum, kanban, colaboração",
   },
 ];
 

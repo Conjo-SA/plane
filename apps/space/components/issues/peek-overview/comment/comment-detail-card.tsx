@@ -98,7 +98,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
             {comment.actor_detail.is_bot ? comment.actor_detail.first_name + " Bot" : comment.actor_detail.display_name}
           </div>
           <p className="mt-0.5 text-11 text-secondary">
-            <>commented {timeAgo(comment.created_at)}</>
+            <>comentou {timeAgo(comment.created_at)}</>
           </p>
         </div>
         <div className="issue-comments-section p-0">
@@ -199,7 +199,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
                         active ? "bg-layer-transparent-hover" : ""
                       }`}
                     >
-                      Edit
+                      Editar
                     </button>
                   </div>
                 )}
@@ -214,7 +214,7 @@ export const CommentCard = observer(function CommentCard(props: Props) {
                         active ? "bg-layer-transparent-hover" : ""
                       }`}
                     >
-                      Delete
+                      Excluir
                     </button>
                   </div>
                 )}

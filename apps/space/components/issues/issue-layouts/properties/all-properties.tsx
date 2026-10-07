@@ -138,7 +138,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         displayPropertyKey="sub_issue_count"
         shouldRenderProperty={(properties) => !!properties.sub_issue_count && !!issue.sub_issues_count}
       >
-        <Tooltip tooltipHeading="Sub-work items" tooltipContent={`${issue.sub_issues_count}`}>
+        <Tooltip tooltipHeading="Subtarefas" tooltipContent={`${issue.sub_issues_count}`}>
           <div
             className={cn(
               "flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1",
@@ -159,7 +159,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         displayPropertyKey="attachment_count"
         shouldRenderProperty={(properties) => !!properties.attachment_count && !!issue.attachment_count}
       >
-        <Tooltip tooltipHeading="Attachments" tooltipContent={`${issue.attachment_count}`}>
+        <Tooltip tooltipHeading="Anexos" tooltipContent={`${issue.attachment_count}`}>
           <div className="flex h-5 flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-sm border-[0.5px] border-strong px-2.5 py-1">
             <Paperclip className="h-3 w-3 flex-shrink-0" strokeWidth={2} />
             <div className="text-11">{issue.attachment_count}</div>

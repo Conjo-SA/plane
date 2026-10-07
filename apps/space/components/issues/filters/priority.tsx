@@ -35,7 +35,7 @@ export const FilterPriority = observer(function FilterPriority(props: Props) {
   return (
     <>
       <FilterHeader
-        title={`Priority${appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}`}
+        title={`Prioridade${appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}`}
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />

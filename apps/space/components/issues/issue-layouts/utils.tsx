@@ -26,6 +26,14 @@ import type { IIssueMemberStore } from "@/store/members.store";
 import type { IIssueModuleStore } from "@/store/module.store";
 import type { IStateStore } from "@/store/state.store";
 
+const PRIORITY_LABELS: Record<string, string> = {
+  urgent: "Urgente",
+  high: "Alta",
+  medium: "Média",
+  low: "Baixa",
+  none: "Nenhuma",
+};
+
 export const HIGHLIGHT_CLASS = "highlight";
 export const HIGHLIGHT_WITH_LINE = "highlight-with-line";
 
@@ -54,7 +62,7 @@ export const getGroupByColumns = (
     case "created_by":
       return getCreatedByColumns(member) as any;
     default:
-      if (includeNone) return [{ id: `All Issues`, name: `All work items`, payload: {}, icon: undefined }];
+      if (includeNone) return [{ id: `All Issues`, name: `Todas as tarefas`, payload: {}, icon: undefined }];
   }
 };
 
@@ -78,7 +86,7 @@ const getCycleColumns = (cycleStore: ICycleStore): IGroupByColumn[] | undefined 
   });
   cycleGroups.push({
     id: "None",
-    name: "None",
+    name: "Nenhum",
     icon: <CycleIcon className="h-3.5 w-3.5" />,
     payload: { cycle_id: null },
   });
@@ -104,7 +112,7 @@ const getModuleColumns = (moduleStore: IIssueModuleStore): IGroupByColumn[] | un
   }) as any;
   moduleGroups.push({
     id: "None",
-    name: "None",
+    name: "Nenhum",
     icon: <ModuleIcon className="h-3.5 w-3.5" />,
     payload: { module_ids: [] },
   });
@@ -133,7 +141,7 @@ const getPriorityColumns = () => {
 
   return priorities.map((priority) => ({
     id: priority.key,
-    name: priority.title,
+    name: PRIORITY_LABELS[priority.key] ?? priority.title,
     icon: <PriorityIcon priority={priority?.key} />,
     payload: { priority: priority.key },
   }));
@@ -144,7 +152,7 @@ const getLabelsColumns = (label: IIssueLabelStore) => {
 
   if (!storeLabels) return;
 
-  const labels = [...storeLabels, { id: "None", name: "None", color: "#666" }];
+  const labels = [...storeLabels, { id: "None", name: "Nenhuma", color: "#666" }];
 
   return labels.map((label) => ({
     id: label.id,
@@ -168,7 +176,7 @@ const getAssigneeColumns = (member: IIssueMemberStore) => {
     payload: { assignee_ids: [member.id] },
   }));
 
-  assigneeColumns.push({ id: "None", name: "None", icon: <Avatar size="md" />, payload: {} });
+  assigneeColumns.push({ id: "None", name: "Nenhum", icon: <Avatar size="md" />, payload: {} });
 
   return assigneeColumns;
 };

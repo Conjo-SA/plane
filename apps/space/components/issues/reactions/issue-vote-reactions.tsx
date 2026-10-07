@@ -89,10 +89,10 @@ export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
                   .map((r) => r.actor_details?.display_name)
                   .splice(0, VOTES_LIMIT)
                   .join(", ")}
-                {allUpVotes.length > VOTES_LIMIT && " and " + (allUpVotes.length - VOTES_LIMIT) + " more"}
+                {allUpVotes.length > VOTES_LIMIT && " e mais " + (allUpVotes.length - VOTES_LIMIT)}
               </>
             ) : (
-              "No upvotes yet"
+              "Nenhum voto positivo ainda"
             )}
           </div>
         }
@@ -130,10 +130,10 @@ export const IssueVotes = observer(function IssueVotes(props: TIssueVotes) {
                   .map((r) => r.actor_details.display_name)
                   .splice(0, VOTES_LIMIT)
                   .join(", ")}
-                {allDownVotes.length > VOTES_LIMIT && " and " + (allDownVotes.length - VOTES_LIMIT) + " more"}
+                {allDownVotes.length > VOTES_LIMIT && " e mais " + (allDownVotes.length - VOTES_LIMIT)}
               </>
             ) : (
-              "No downvotes yet"
+              "Nenhum voto negativo ainda"
             )}
           </div>
         }

@@ -27,9 +27,8 @@ export function PoweredBy(props: TPoweredBy) {
     >
       <PlaneLogo className="h-3 w-auto text-primary" />
       <div className="text-11">
-        Powered by <span className="font-semibold">Conjo SA</span>
+        Desenvolvido por <span className="font-semibold">Conjo SA</span>
       </div>
     </a>
   );
 }
-  

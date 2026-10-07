@@ -4,10 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { format, isValid } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { isNumber } from "lodash-es";
 
-export const timeAgo = (time: any) => {
+export const timeAgo = (time: any): string => {
   switch (typeof time) {
     case "number":
       break;
@@ -20,6 +21,8 @@ export const timeAgo = (time: any) => {
     default:
       time = +new Date();
   }
+  if (!Number.isFinite(time)) return "";
+  return formatDistanceToNow(time, { addSuffix: true, locale: ptBR });
 };
 
 /**
@@ -59,7 +62,7 @@ export const renderFormattedDate = (date: string | Date | undefined | null): str
   if (!parsedDate) return null;
   // Check if the parsed date is valid before formatting
   if (!isValid(parsedDate)) return null; // Return null for invalid dates
-  // Format the date in format (MMM dd, yyyy)
-  const formattedDate = format(parsedDate, "MMM dd, yyyy");
+  // Format the date in format (dd MMM yyyy), pt-BR
+  const formattedDate = format(parsedDate, "dd MMM yyyy", { locale: ptBR });
   return formattedDate;
 };
