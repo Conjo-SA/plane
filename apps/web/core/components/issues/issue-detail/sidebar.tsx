@@ -40,6 +40,7 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { IssueClientSelect } from "./client";
+import { IssueStateTimeline } from "./state-timeline";
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
@@ -263,6 +264,14 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
               />
             </SidebarPropertyListItem>
           </div>
+
+          {/* Conjo: time spent in each column, until done */}
+          <IssueStateTimeline
+            className="mt-6 border-t border-subtle pt-5"
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            issueId={issueId}
+          />
         </div>
       </div>
     </>

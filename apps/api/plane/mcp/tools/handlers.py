@@ -509,7 +509,7 @@ def retrieve_project(workspace_slug, project):
 @register_tool(
     name="create_project",
     description=(
-        "Cria um projeto no workspace com os estados padrão (Backlog, Todo, In Progress, Done, Cancelled). "
+        "Cria um projeto no workspace com os estados padrão (Backlog, A fazer, Em andamento, Concluída, Cancelada). "
         "Informe admin (e-mail de um membro do workspace) para que alguém administre o projeto; sem isso o "
         "projeto nasce sem membros e só aparece para quem for adicionado depois (add_project_member)."
     ),

@@ -157,6 +157,8 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
     labels = models.ManyToManyField("db.Label", blank=True, related_name="labels", through="IssueLabel")
     sort_order = models.FloatField(default=65535)
     completed_at = models.DateTimeField(null=True)
+    # Tasks (Conjo SA): when the card entered its current state (board column), for the time counter.
+    state_changed_at = models.DateTimeField(null=True, blank=True)
     archived_at = models.DateField(null=True)
     is_draft = models.BooleanField(default=False)
     external_source = models.CharField(max_length=255, null=True, blank=True)
@@ -238,20 +240,22 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
             log_exception(e)
 
     def _sync_completed_at(self, kwargs):
-        """Update completed_at when state changes. Returns kwargs."""
+        """Update completed_at and state_changed_at when the state changes. Returns kwargs."""
         if not self.state:
             return kwargs
         if not self._state.adding and not self.has_changed("state_id"):
             return kwargs
 
+        now = timezone.now()
         if self.state.group == StateGroup.COMPLETED.value:
-            self.completed_at = timezone.now()
+            self.completed_at = now
         else:
             self.completed_at = None
+        self.state_changed_at = now
 
         update_fields = kwargs.get("update_fields")
         if update_fields is not None:
-            kwargs["update_fields"] = list(set(update_fields) | {"completed_at"})
+            kwargs["update_fields"] = list(set(update_fields) | {"completed_at", "state_changed_at"})
         return kwargs
 
 

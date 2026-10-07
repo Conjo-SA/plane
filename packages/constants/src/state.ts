@@ -28,25 +28,25 @@ export const STATE_GROUPS: {
   unstarted: {
     key: "unstarted",
     label: "Não iniciado",
-    defaultStateName: "Todo",
+    defaultStateName: "A fazer",
     color: "#3f76ff",
   },
   started: {
     key: "started",
     label: "Iniciado",
-    defaultStateName: "In Progress",
+    defaultStateName: "Em andamento",
     color: "#f59e0b",
   },
   completed: {
     key: "completed",
     label: "Concluído",
-    defaultStateName: "Done",
+    defaultStateName: "Concluída",
     color: "#16a34a",
   },
   cancelled: {
     key: "cancelled",
     label: "Cancelado",
-    defaultStateName: "Cancelled",
+    defaultStateName: "Cancelada",
     color: "#dc2626",
   },
 };

@@ -122,13 +122,15 @@ def close_old_issues():
                     close_state = project.default_state
 
                 issues_to_update = []
+                closed_at = timezone.now()
                 for issue in issues:
                     issue.state = close_state
+                    issue.state_changed_at = closed_at
                     issues_to_update.append(issue)
 
                 # Bulk Update the issues and log the activity
                 if issues_to_update:
-                    Issue.objects.bulk_update(issues_to_update, ["state"], batch_size=100)
+                    Issue.objects.bulk_update(issues_to_update, ["state", "state_changed_at"], batch_size=100)
                     [
                         issue_activity.delay(
                             type="issue.activity.updated",

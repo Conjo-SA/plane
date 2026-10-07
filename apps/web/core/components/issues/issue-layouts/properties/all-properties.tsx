@@ -47,6 +47,7 @@ import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 import { IssueDevelopmentCardIndicator } from "@/components/issues/issue-detail-widgets/development";
 import { IssueClientCardChip } from "@/components/issues/issue-detail/client";
+import { IssueStateTimeCardChip } from "@/components/issues/issue-detail/state-timeline";
 
 export interface IIssueProperties {
   issue: TIssue;
@@ -492,6 +493,9 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
           issueId={issue.id}
         />
       )}
+
+      {/* Conjo: time in the current column (or until done) */}
+      {!isEpic && <IssueStateTimeCardChip issue={issue} />}
 
       {/* Conjo: client chosen on the card */}
       {!isEpic && (

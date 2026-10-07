@@ -11,7 +11,9 @@
  * unique per rendered instance, e.g. the card in a column) or by their `issue-<uuid>` element id
  * (spreadsheet rows, calendar blocks, sub-items, gantt). Before a remote change is applied to the stores
  * the layout is captured; after React renders, every card that moved glides from its old place to
- * the new one, new cards fade in and changed cards get a short highlight. Only Web Animations are
+ * the new one, new cards fade in and changed cards get a short highlight. A card that changed column
+ * would be clipped by the column's scroll container (it seemed to travel behind the columns), so it
+ * flies as a copy in a layer above the board while the real card stays hidden until it lands. Only Web Animations are
  * used (no classes or inline styles), so React re-renders never fight the animation. Nothing is
  * animated while the user drags, and movement respects `prefers-reduced-motion`.
  */
@@ -19,6 +21,7 @@
 const SELECTOR = '[data-rt-issue], [id^="issue-"]';
 const ID_PATTERN = /^issue-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 const MOVE_DURATION_MS = 320;
+const FLY_DURATION_MS = 480;
 const ENTER_DURATION_MS = 260;
 const LEAVE_DURATION_MS = 200;
 const HIGHLIGHT_DURATION_MS = 1300;
@@ -165,6 +168,72 @@ const showBadge = (element: HTMLElement, text: string, accent: string) => {
   setTimeout(remove, BADGE_DURATION_MS + 200);
 };
 
+/** The box that clips the element: its nearest ancestor that does not let content overflow. */
+const clipRectOf = (element: HTMLElement): DOMRect | null => {
+  for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll|hidden|clip)/.test(style.overflow + style.overflowX + style.overflowY))
+      return node.getBoundingClientRect();
+  }
+  return null;
+};
+
+const isInside = (box: TRect, clip: DOMRect) =>
+  box.left >= clip.left - 1 &&
+  box.top >= clip.top - 1 &&
+  box.left + box.width <= clip.right + 1 &&
+  box.top + box.height <= clip.bottom + 1;
+
+/** Flies a copy of the card above everything, from its old place to the new one. */
+const flyAcross = (target: HTMLElement, from: TRect, to: DOMRect) => {
+  const ghost = target.cloneNode(true) as HTMLElement;
+  // the copy must never be taken for the card itself
+  ghost.removeAttribute("id");
+  ghost.removeAttribute("data-rt-issue");
+  ghost.removeAttribute("data-rt-key");
+  ghost.querySelectorAll("[id], [data-rt-issue]").forEach((node) => {
+    node.removeAttribute("id");
+    node.removeAttribute("data-rt-issue");
+  });
+  ghost.setAttribute("aria-hidden", "true");
+  Object.assign(ghost.style, {
+    position: "fixed",
+    left: `${to.left}px`,
+    top: `${to.top}px`,
+    width: `${to.width}px`,
+    height: `${to.height}px`,
+    margin: "0",
+    boxSizing: "border-box",
+    zIndex: "50",
+    pointerEvents: "none",
+  } satisfies Partial<CSSStyleDeclaration>);
+  document.body.appendChild(ghost);
+
+  const dx = from.left - to.left;
+  const dy = from.top - to.top;
+  const flight = ghost.animate(
+    [
+      { transform: `translate(${dx}px, ${dy}px) scale(1)`, boxShadow: "0 0 0 0 rgba(0,0,0,0)" },
+      {
+        transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 12}px) scale(1.03)`,
+        boxShadow: "0 12px 28px rgba(0,0,0,0.18)",
+        offset: 0.5,
+      },
+      { transform: "translate(0, 0) scale(1)", boxShadow: "0 0 0 0 rgba(0,0,0,0)" },
+    ],
+    { duration: FLY_DURATION_MS, easing: EASING }
+  );
+  // the real card waits, invisible, in its new place
+  const hidden = target.animate([{ opacity: 0 }, { opacity: 0 }], { duration: FLY_DURATION_MS });
+  const land = () => {
+    ghost.remove();
+    hidden.cancel();
+  };
+  flight.addEventListener("finish", land);
+  flight.addEventListener("cancel", land);
+  setTimeout(land, FLY_DURATION_MS + 200);
+};
+
 export type TPlayOptions = {
   /** Work items changed by this update (they may have changed column). */
   changedIssueIds: Set<string>;
@@ -195,6 +264,7 @@ export const playLayoutChanges = (before: TLayoutSnapshot, options: TPlayOptions
       const ancestor = target.parentElement?.closest<HTMLElement>(SELECTOR);
       const movesWithAncestor = !!ancestor && moved.has(targetOf(ancestor));
 
+      let flew = false;
       let previous = before.byKey.get(key);
       if (!previous && options.changedIssueIds.has(issueId)) previous = before.byIssue.get(issueId);
 
@@ -203,10 +273,16 @@ export const playLayoutChanges = (before: TLayoutSnapshot, options: TPlayOptions
         const dy = previous.top - rect.top;
         if (!reduceMotion && !movesWithAncestor && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
           moved.add(target);
-          target.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], {
-            duration: MOVE_DURATION_MS,
-            easing: EASING,
-          });
+          const clip = clipRectOf(target);
+          if (clip && !isInside(previous, clip)) {
+            flyAcross(target, previous, rect);
+            flew = true;
+          } else {
+            target.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], {
+              duration: MOVE_DURATION_MS,
+              easing: EASING,
+            });
+          }
         }
       } else if (options.animateNewCards && !before.byIssue.has(issueId) && !reduceMotion && !movesWithAncestor) {
         target.animate(
@@ -219,11 +295,15 @@ export const playLayoutChanges = (before: TLayoutSnapshot, options: TPlayOptions
       }
 
       if (options.highlightIssueIds?.has(issueId)) {
-        highlight(target, accent);
-        if (options.badgeText && badges < MAX_BADGES && options.highlightIssueIds.size <= MAX_BADGES) {
-          badges += 1;
-          showBadge(target, options.badgeText, accent);
-        }
+        const withBadge = !!options.badgeText && badges < MAX_BADGES && options.highlightIssueIds.size <= MAX_BADGES;
+        if (withBadge) badges += 1;
+        const mark = () => {
+          highlight(target, accent);
+          if (withBadge && options.badgeText) showBadge(target, options.badgeText, accent);
+        };
+        // a card in flight is marked once it lands
+        if (flew) setTimeout(mark, FLY_DURATION_MS);
+        else mark();
       }
     }
   });

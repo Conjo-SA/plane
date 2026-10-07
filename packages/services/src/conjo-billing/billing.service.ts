@@ -20,6 +20,7 @@ import type {
   TClientTimeline,
   TClientUpdate,
   TIssueClient,
+  TIssueStateTimeline,
   TIssueTime,
   TIssueTimeCreate,
   TIssueTimeUpdate,
@@ -97,6 +98,11 @@ export class ConjoBillingService extends APIService {
   }
 
   // Client of a work item
+
+  /** How long the work item stayed in each board column, until done. */
+  async getIssueStateTimeline(workspaceSlug: string, projectId: string, issueId: string): Promise<TIssueStateTimeline> {
+    return this.call(this.get(`${this.issueUrl(workspaceSlug, projectId, issueId)}/state-timeline/`));
+  }
 
   async getIssueClient(workspaceSlug: string, projectId: string, issueId: string): Promise<TIssueClient> {
     return this.call(this.get(`${this.issueUrl(workspaceSlug, projectId, issueId)}/client/`));

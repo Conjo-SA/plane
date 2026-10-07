@@ -226,3 +226,31 @@ export type TClientNoteCreate = {
   occurred_at?: string;
   contact_ids?: string[];
 };
+
+/** Conjo: time a work item spent in each state (board column), until done. */
+export type TIssueStateRef = {
+  state_id: string | null;
+  name: string;
+  color: string;
+  group: string | null;
+};
+
+export type TIssueStateSegment = TIssueStateRef & {
+  started_at: string;
+  /** null for the current state. */
+  ended_at: string | null;
+  /** null for the final completed/cancelled state (the clock stopped there). */
+  seconds: number | null;
+};
+
+export type TIssueStateTimeline = {
+  segments: TIssueStateSegment[];
+  totals: (TIssueStateRef & { seconds: number })[];
+  created_at: string;
+  current: TIssueStateRef;
+  current_since: string;
+  is_done: boolean;
+  done_at: string | null;
+  /** From creation until done (or until now). */
+  lead_seconds: number;
+};

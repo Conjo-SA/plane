@@ -38,6 +38,7 @@ from plane.db.models import (
     State,
     WorkspaceMember,
 )
+from plane.utils.conjo_state_timeline import build_state_timeline
 from plane.mcp.tools.handlers import (
     _CONFIRM_PROPERTY,
     _PROJECT_PROPERTY,
@@ -510,6 +511,20 @@ def list_work_item_links(workspace_slug, work_item):
         "work_item": _issue_identifier(issue),
         "links": [{"id": str(link.id), "title": link.title, "url": link.url} for link in links],
     }
+
+
+@register_tool(
+    name="get_work_item_state_timeline",
+    description=(
+        "Tempo que o item passou em cada coluna (estado) do board, em ordem, até ser concluído ou cancelado; "
+        "inclui o total por coluna e o tempo desde a criação."
+    ),
+    input_schema=_schema({**_WORKSPACE_SLUG_PROPERTY, **_WORK_ITEM_PROPERTY}, ["workspace_slug", "work_item"]),
+    category="work_items",
+)
+def get_work_item_state_timeline(workspace_slug, work_item):
+    issue = _get_issue(workspace_slug, work_item)
+    return {"work_item": _issue_identifier(issue), **build_state_timeline(issue)}
 
 
 @register_tool(

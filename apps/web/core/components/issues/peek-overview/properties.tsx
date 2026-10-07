@@ -40,6 +40,7 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueClientSelect } from "../issue-detail/client";
+import { IssueStateTimeline } from "../issue-detail/state-timeline";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
@@ -258,6 +259,14 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
           />
         </SidebarPropertyListItem>
       </div>
+
+      {/* Conjo: time spent in each column, until done */}
+      <IssueStateTimeline
+        className="mt-5 border-t border-subtle pt-4"
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        issueId={issueId}
+      />
     </div>
   );
 });

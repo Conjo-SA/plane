@@ -136,7 +136,7 @@ def create_intake_item(
         triage_state = State.triage_objects.filter(project=project_instance).first()
         if triage_state is None:
             triage_state = State.objects.create(
-                name="Triage",
+                name="Triagem",
                 group=StateGroup.TRIAGE.value,
                 project=project_instance,
                 color="#4E5355",

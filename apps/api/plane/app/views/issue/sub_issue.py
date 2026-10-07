@@ -144,6 +144,7 @@ class SubIssuesEndpoint(BaseAPIView):
                 "state_id",
                 "sort_order",
                 "completed_at",
+                "state_changed_at",
                 "estimate_point",
                 "priority",
                 "start_date",

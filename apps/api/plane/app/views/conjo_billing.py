@@ -45,6 +45,7 @@ from plane.db.models import (
 from plane.utils import conjo_billing as billing
 from plane.utils.uuid import is_valid_uuid
 from plane.utils.conjo_timeline import TYPES, build_timeline
+from plane.utils.conjo_state_timeline import build_state_timeline
 
 NOT_FOUND = {"error": "Não encontrado."}
 
@@ -266,6 +267,22 @@ def _issue_client_payload(issue, user, slug):
         "project_client": {"id": str(project_client.id), "name": project_client.name} if project_client else None,
         "can_change": not is_guest_or_out and (not moves_hours or _is_workspace_admin(user, slug)),
     }
+
+
+class IssueStateTimelineEndpoint(BaseAPIView):
+    """How long the work item stayed in each board column, until it was done."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, issue_id):
+        issue = _get_issue(slug, project_id, issue_id)
+        if issue is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        is_guest = ProjectMember.objects.filter(
+            project_id=project_id, member=request.user, role=ROLE.GUEST.value, is_active=True
+        ).exists()
+        if is_guest and not issue.project.guest_view_all_features and issue.created_by_id != request.user.id:
+            return _error("Você não tem acesso a esta tarefa.", status.HTTP_403_FORBIDDEN)
+        return Response(build_state_timeline(issue))
 
 
 class IssueClientEndpoint(BaseAPIView):

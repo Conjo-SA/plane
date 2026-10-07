@@ -111,6 +111,7 @@ class IssueCreateSerializer(BaseSerializer):
             "created_at",
             "updated_at",
             "completed_at",
+            "state_changed_at",
         ]
 
     def to_representation(self, instance):
@@ -789,6 +790,7 @@ class IssueSerializer(DynamicBaseSerializer):
             "state_id",
             "sort_order",
             "completed_at",
+            "state_changed_at",
             "estimate_point",
             "priority",
             "start_date",
@@ -846,6 +848,7 @@ class IssueListDetailSerializer(serializers.Serializer):
             "state_id": instance.state_id,
             "sort_order": instance.sort_order,
             "completed_at": instance.completed_at,
+            "state_changed_at": instance.state_changed_at,
             "estimate_point": instance.estimate_point_id,
             "priority": instance.priority,
             "start_date": instance.start_date,

@@ -69,6 +69,8 @@ export type TBaseIssue = {
   start_date: string | null;
   target_date: string | null;
   completed_at: string | null;
+  /** Conjo: when the work item entered its current state (board column). */
+  state_changed_at?: string | null;
   archived_at: string | null;
 
   created_by: string;
