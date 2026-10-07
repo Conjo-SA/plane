@@ -306,13 +306,13 @@ function LogForm(props: ContentProps) {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!duration.trim() || submitting) return;
+    if (!duration.trim() || !description.trim() || submitting) return;
     setSubmitting(true);
     try {
       const next = await billingService.logIssueTime(workspaceSlug, projectId, issueId, {
         duration: duration.trim(),
         logged_on: date || undefined,
-        description: description.trim() || undefined,
+        description: description.trim(),
       });
       onChange(next);
       setDuration("");
@@ -348,8 +348,9 @@ function LogForm(props: ContentProps) {
           aria-label="Data"
         />
       </Field>
-      <Field label="O que foi feito (opcional)" className="col-span-2">
+      <Field label="O que foi feito" className="col-span-2">
         <Input
+          required
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="ex.: ajustes no filtro"
@@ -362,7 +363,7 @@ function LogForm(props: ContentProps) {
         size="xl"
         className="col-span-2 justify-self-end"
         loading={submitting}
-        disabled={!duration.trim()}
+        disabled={!duration.trim() || !description.trim()}
       >
         Adicionar
       </Button>
@@ -525,10 +526,12 @@ function EditEntryRow(props: EditEntryRowProps) {
   const [date, setDate] = useState(entry.logged_on);
   const [description, setDescription] = useState(entry.description);
   const [saving, setSaving] = useState(false);
+  // Lançamento manual exige descrição; os automáticos (commit/chat) já vêm descritos.
+  const missingDescription = entry.source === "manual" && !description.trim();
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!duration.trim() || saving) return;
+    if (!duration.trim() || missingDescription || saving) return;
     setSaving(true);
     try {
       onDone(
@@ -565,6 +568,7 @@ function EditEntryRow(props: EditEntryRowProps) {
         className="w-full"
       />
       <Input
+        required={entry.source === "manual"}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="O que foi feito"
@@ -575,7 +579,7 @@ function EditEntryRow(props: EditEntryRowProps) {
         <Button type="button" variant="secondary" size="lg" disabled={saving} onClick={() => onDone(null)}>
           Cancelar
         </Button>
-        <Button type="submit" size="lg" loading={saving} disabled={!duration.trim()}>
+        <Button type="submit" size="lg" loading={saving} disabled={!duration.trim() || missingDescription}>
           Salvar
         </Button>
       </div>

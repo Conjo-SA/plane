@@ -140,6 +140,13 @@ def _issue_time_payload(issue):
     }
 
 
+WORK_LOG_DESCRIPTION_REQUIRED = "Descreva o que foi feito."
+
+
+def _work_log_description(value):
+    return str(value or "").strip()[:2000]
+
+
 def _get_issue(slug, project_id, issue_id):
     return Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=issue_id).first()
 
@@ -173,13 +180,16 @@ class IssueTimeEndpoint(BaseAPIView):
         logged_on = _date(request.data.get("logged_on"), billing.today())
         if logged_on is None or logged_on > billing.today():
             return _error("Data inválida.")
+        description = _work_log_description(request.data.get("description"))
+        if not description:
+            return _error(WORK_LOG_DESCRIPTION_REQUIRED)
         IssueWorkLog.objects.create(
             issue=issue,
             project_id=issue.project_id,
             member=request.user,
             minutes=minutes,
             logged_on=logged_on,
-            description=(request.data.get("description") or "").strip()[:2000],
+            description=description,
         )
         publish_project_event("issue.time", project_id, [issue.id], request.user.id, ["time"], workspace_slug=slug)
         return Response(_issue_time_payload(issue), status=status.HTTP_201_CREATED)
@@ -215,7 +225,10 @@ class IssueTimeDetailEndpoint(BaseAPIView):
                 return _error("Data inválida.")
             entry.logged_on = logged_on
         if "description" in request.data:
-            entry.description = (request.data.get("description") or "").strip()[:2000]
+            entry.description = _work_log_description(request.data.get("description"))
+        # Manual entries need a description; old ones without it only save when the edit adds one.
+        if entry.source == IssueWorkLog.SOURCE_MANUAL and not entry.description:
+            return _error(WORK_LOG_DESCRIPTION_REQUIRED)
         entry.save()
         publish_project_event("issue.time", project_id, [issue_id], request.user.id, ["time"], workspace_slug=slug)
         return Response(_issue_time_payload(entry.issue))
