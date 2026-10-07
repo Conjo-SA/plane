@@ -734,7 +734,7 @@
   "entity": {
     "grouping_title": "Agrupamento de {entity}",
     "priority": "Prioridade de {entity}",
-    "all": "Todos os {entity}",
+    "all": "{entity}: todos",
     "drop_here_to_move": "Solte aqui para mover o {entity}",
     "delete": {
       "label": "Excluir {entity}",
