@@ -73,6 +73,7 @@ from plane.utils.grouper import (
 from plane.utils.host import base_host
 from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
+from plane.utils.realtime import publish_project_event
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
 
@@ -163,13 +164,15 @@ class IssueListEndpoint(BaseAPIView):
         # issue queryset
         issue_queryset = issue_queryset_grouper(queryset=issue_queryset, group_by=group_by, sub_group_by=sub_group_by)
 
-        recent_visited_task.delay(
-            slug=slug,
-            project_id=project_id,
-            entity_name="project",
-            entity_identifier=project_id,
-            user_id=request.user.id,
-        )
+        # Realtime refreshes (a card changed by someone else) are not a visit to the project.
+        if request.GET.get("source") != "realtime":
+            recent_visited_task.delay(
+                slug=slug,
+                project_id=project_id,
+                entity_name="project",
+                entity_identifier=project_id,
+                user_id=request.user.id,
+            )
 
         if self.fields or self.expand:
             issues = IssueSerializer(issue_queryset, many=True, fields=self.fields, expand=self.expand).data
@@ -810,7 +813,9 @@ class BulkDeleteIssuesEndpoint(BaseAPIView):
         ModuleIssue.objects.filter(issue__in=issues).delete()
 
         # Finally, delete the issues themselves
+        deleted_issue_ids = [issue.id for issue in issues]
         issues.delete()
+        publish_project_event("issue.deleted", project_id, deleted_issue_ids, request.user.id, workspace_slug=slug)
 
         return Response(
             {"message": f"{total_issues} tarefas foram excluídas"},
@@ -1200,6 +1205,14 @@ class IssueBulkUpdateDateEndpoint(BaseAPIView):
 
         # Bulk update issues
         Issue.objects.bulk_update(issues_to_update, ["start_date", "target_date"])
+        publish_project_event(
+            "issue.updated",
+            project_id,
+            [issue.id for issue in issues_to_update],
+            request.user.id,
+            ["start_date", "target_date"],
+            workspace_slug=slug,
+        )
 
         return Response({"message": "Tarefas atualizadas com sucesso"}, status=status.HTTP_200_OK)
 
