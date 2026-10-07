@@ -173,7 +173,9 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-            ]
+            ],
+            # Tags da marca Conjo disponíveis em todos os templates (e-mails).
+            "builtins": ["plane.utils.email_brand"],
         },
     }
 ]
