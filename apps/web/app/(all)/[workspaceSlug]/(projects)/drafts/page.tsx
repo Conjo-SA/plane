@@ -11,7 +11,7 @@ import type { Route } from "./+types/page";
 
 function WorkspaceDraftPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
-  const pageTitle = "Workspace Draft";
+  const pageTitle = "Rascunhos do workspace";
 
   return (
     <>

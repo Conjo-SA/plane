@@ -62,9 +62,9 @@ export function AskPiMenu(props: Props) {
                 className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
                 onClick={() => handleInsertText(false)}
               >
-                Replace selection
+                Substituir seleção
               </button>
-              <Tooltip tooltipContent="Add to next line">
+              <Tooltip tooltipContent="Adicionar na próxima linha">
                 <button
                   type="button"
                   className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
@@ -94,7 +94,7 @@ export function AskPiMenu(props: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-13 text-secondary">AI is answering...</p>
+          <p className="text-13 text-secondary">A IA está respondendo...</p>
         )}
       </div>
       <div className="px-4 py-3">

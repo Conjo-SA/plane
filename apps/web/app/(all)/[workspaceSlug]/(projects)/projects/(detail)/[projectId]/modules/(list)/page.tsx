@@ -47,7 +47,7 @@ function ProjectModulesPage({ params }: Route.ComponentProps) {
   const { allowPermissions } = useUserPermissions();
   // derived values
   const project = getProjectById(projectId);
-  const pageTitle = project?.name ? `${project?.name} - Modules` : undefined;
+  const pageTitle = project?.name ? `${project?.name} - Módulos` : undefined;
   const canPerformEmptyStateActions = allowPermissions([EUserProjectRoles.ADMIN], EUserPermissionsLevel.PROJECT);
   const resolvedPath = resolvedTheme === "light" ? lightModulesAsset : darkModulesAsset;
 

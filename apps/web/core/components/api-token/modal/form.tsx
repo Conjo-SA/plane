@@ -29,22 +29,22 @@ type Props = {
 const EXPIRY_DATE_OPTIONS = [
   {
     key: "1_week",
-    label: "1 week",
+    label: "1 semana",
     value: { weeks: 1 },
   },
   {
     key: "1_month",
-    label: "1 month",
+    label: "1 mês",
     value: { months: 1 },
   },
   {
     key: "3_months",
-    label: "3 months",
+    label: "3 meses",
     value: { months: 3 },
   },
   {
     key: "1_year",
-    label: "1 year",
+    label: "1 ano",
     value: { years: 1 },
   },
 ];
@@ -90,8 +90,8 @@ export function CreateApiTokenForm(props: Props) {
     if (!neverExpires && (!data.expired_at || (data.expired_at === "custom" && !customDate)))
       return setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Please select an expiration date.",
+        title: "Erro!",
+        message: "Selecione uma data de expiração.",
       });
 
     const payload: Partial<IApiToken> = {
@@ -189,10 +189,10 @@ export function CreateApiTokenForm(props: Props) {
                         >
                           <Calendar className="h-3 w-3" />
                           {value === "custom"
-                            ? "Custom date"
+                            ? "Data personalizada"
                             : selectedOption
                               ? selectedOption.label
-                              : "Set expiration date"}
+                              : "Definir data de expiração"}
                         </div>
                       }
                       value={value}
@@ -204,7 +204,7 @@ export function CreateApiTokenForm(props: Props) {
                           {option.label}
                         </CustomSelect.Option>
                       ))}
-                      <CustomSelect.Option value="custom">Custom</CustomSelect.Option>
+                      <CustomSelect.Option value="custom">Personalizada</CustomSelect.Option>
                     </CustomSelect>
                   );
                 }}
@@ -217,7 +217,7 @@ export function CreateApiTokenForm(props: Props) {
                     minDate={tomorrow}
                     icon={<Calendar className="h-3 w-3" />}
                     buttonVariant="border-with-text"
-                    placeholder="Set date"
+                    placeholder="Definir data"
                     disabled={neverExpires}
                   />
                 </div>
@@ -227,10 +227,10 @@ export function CreateApiTokenForm(props: Props) {
               <span className="text-11 text-placeholder">
                 {expiredAt === "custom"
                   ? customDate
-                    ? `Expires ${renderFormattedDate(customDateFormatted ?? "")} at ${renderFormattedTime(customDateFormatted ?? "")}`
+                    ? `Expira em ${renderFormattedDate(customDateFormatted ?? "")} às ${renderFormattedTime(customDateFormatted ?? "")}`
                     : null
                   : expiredAt
-                    ? `Expires ${renderFormattedDate(expiryDate ?? "")} at ${renderFormattedTime(expiryDate ?? "")}`
+                    ? `Expira em ${renderFormattedDate(expiryDate ?? "")} às ${renderFormattedTime(expiryDate ?? "")}`
                     : null}
               </span>
             )}

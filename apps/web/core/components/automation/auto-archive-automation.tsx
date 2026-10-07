@@ -91,7 +91,7 @@ export const AutoArchiveAutomation = observer(function AutoArchiveAutomation(pro
                   <CustomSelect
                     value={currentProjectDetails?.archive_in}
                     label={`${currentProjectDetails?.archive_in} ${
-                      currentProjectDetails?.archive_in === 1 ? "month" : "months"
+                      currentProjectDetails?.archive_in === 1 ? "mês" : "meses"
                     }`}
                     onChange={(val: number) => void handleChange({ archive_in: val })}
                     input

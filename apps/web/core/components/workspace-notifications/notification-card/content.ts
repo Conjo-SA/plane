@@ -10,10 +10,36 @@ import type { TNotificationContentMap } from "@/components/workspace-notificatio
 // Additional notification content map for CE (empty - EE extends this)
 export const ADDITIONAL_NOTIFICATION_CONTENT_MAP: TNotificationContentMap = {};
 
+const NOTIFICATION_VERB_LABELS: Record<string, string> = {
+  created: "adicionou",
+  updated: "alterou",
+  deleted: "removeu",
+};
+
+const NOTIFICATION_FIELD_LABELS: Record<string, string> = {
+  name: "o título",
+  priority: "a prioridade",
+  state: "o estado",
+  description: "a descrição",
+  estimate_point: "a estimativa",
+  estimate_time: "a estimativa de tempo",
+  cycles: "o ciclo",
+  modules: "o módulo",
+  link: "o link",
+  attachment: "o anexo",
+  blocking: "o bloqueio",
+  blocked_by: "o bloqueio",
+  issue_type: "o tipo",
+  type: "o tipo",
+};
+
 // Fallback action renderer for fields not in the map
 export const renderAdditionalAction = (notificationField: string, verb: string | undefined) => {
-  const baseAction = !["comment", "archived_at"].includes(notificationField) ? verb : "";
-  return `${baseAction} ${replaceUnderscoreIfSnakeCase(notificationField)}`;
+  const baseAction = !["comment", "archived_at"].includes(notificationField)
+    ? ((verb && NOTIFICATION_VERB_LABELS[verb]) ?? verb)
+    : "";
+  const fieldLabel = NOTIFICATION_FIELD_LABELS[notificationField] ?? replaceUnderscoreIfSnakeCase(notificationField);
+  return `${baseAction} ${fieldLabel}`;
 };
 
 // Fallback value renderer for fields not in the map

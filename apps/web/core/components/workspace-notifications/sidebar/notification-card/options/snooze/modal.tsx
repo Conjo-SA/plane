@@ -116,7 +116,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(onSubmit)} className="p-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-h5-medium leading-6 text-primary">Customize Snooze Time</h3>
+          <h3 className="text-h5-medium leading-6 text-primary">Personalizar adiamento</h3>
 
           <div>
             <button type="button" onClick={handleClose}>
@@ -127,15 +127,15 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
 
         <div className="mt-5 flex flex-col gap-3 md:!flex-row md:items-center">
           <div className="flex-1 pb-3 md:pb-0">
-            <h6 className="mb-2 block text-body-xs-medium text-placeholder">Pick a date</h6>
+            <h6 className="mb-2 block text-body-xs-medium text-placeholder">Escolha uma data</h6>
             <Controller
               name="date"
               control={control}
-              rules={{ required: "Please select a date" }}
+              rules={{ required: "Selecione uma data" }}
               render={({ field: { value, onChange } }) => (
                 <DateDropdown
                   value={value || null}
-                  placeholder="Select date"
+                  placeholder="Selecionar data"
                   onChange={(val) => {
                     setValue("time", undefined);
                     onChange(val);
@@ -150,11 +150,11 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
             />
           </div>
           <div className="flex-1">
-            <h6 className="mb-2 block text-body-xs-medium text-placeholder">Pick a time</h6>
+            <h6 className="mb-2 block text-body-xs-medium text-placeholder">Escolha um horário</h6>
             <Controller
               control={control}
               name="time"
-              rules={{ required: "Please select a time" }}
+              rules={{ required: "Selecione um horário" }}
               render={({ field: { value, onChange } }) => (
                 <CustomSelect
                   value={value}
@@ -166,7 +166,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
                           {value} {watch("period").toLowerCase()}
                         </span>
                       ) : (
-                        <span className="text-body-xs-medium text-placeholder">Select a time</span>
+                        <span className="text-body-xs-medium text-placeholder">Selecionar horário</span>
                       )}
                     </div>
                   }
@@ -205,7 +205,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
                       </CustomSelect.Option>
                     ))
                   ) : (
-                    <p className="p-3 text-center text-secondary">No available time for this date.</p>
+                    <p className="p-3 text-center text-secondary">Nenhum horário disponível para esta data.</p>
                   )}
                 </CustomSelect>
               )}
@@ -216,10 +216,10 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
         <div className="mt-5 flex items-center justify-between gap-2">
           <div className="flex w-full items-center justify-end gap-2">
             <Button variant="secondary" size="lg" onClick={handleClose}>
-              Cancel
+              Cancelar
             </Button>
             <Button variant="primary" size="lg" type="submit" loading={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit"}
+              {isSubmitting ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </div>

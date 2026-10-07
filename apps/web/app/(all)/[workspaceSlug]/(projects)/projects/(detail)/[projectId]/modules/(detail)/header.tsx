@@ -139,7 +139,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
               <Breadcrumbs.Item
                 component={
                   <BreadcrumbLink
-                    label="Modules"
+                    label="Módulos"
                     href={`/${workspaceSlug}/projects/${projectId}/modules/`}
                     icon={<ModuleIcon className="h-4 w-4 text-tertiary" />}
                     isLast
@@ -165,9 +165,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
             {workItemsCount && workItemsCount > 0 ? (
               <Tooltip
                 isMobile={isMobile}
-                tooltipContent={`There are ${workItemsCount} ${
-                  workItemsCount > 1 ? "work items" : "work item"
-                } in this module`}
+                tooltipContent={`Há ${workItemsCount} ${workItemsCount > 1 ? "tarefas" : "tarefa"} neste módulo`}
                 position="bottom"
               >
                 <span className="flex flex-shrink-0 cursor-default items-center justify-center rounded-xl bg-accent-primary/20 px-2 text-center text-11 font-semibold text-accent-primary">
@@ -207,7 +205,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
             </div>
             {moduleId && <WorkItemFiltersToggle entityType={EIssuesStoreType.MODULE} entityId={moduleId} />}
             <FiltersDropdown
-              title="Display"
+              title="Exibição"
               placement="bottom-end"
               miniIcon={<SlidersHorizontal className="size-3.5" />}
             >
@@ -229,7 +227,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
           {canUserCreateIssue ? (
             <>
               <Button className="hidden md:block" onClick={() => setAnalyticsModal(true)} variant="secondary" size="lg">
-                <span className="hidden @4xl:flex">Analytics</span>
+                <span className="hidden @4xl:flex">Análises</span>
                 <span className="@4xl:hidden">
                   <ChartNoAxesColumn className="size-3.5" />
                 </span>
@@ -243,7 +241,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
                 }}
                 data-ph-element={WORK_ITEM_TRACKER_ELEMENTS.HEADER_ADD_BUTTON.MODULE}
               >
-                Add work item
+                Adicionar tarefa
               </Button>
             </>
           ) : (

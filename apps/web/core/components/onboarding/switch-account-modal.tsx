@@ -49,8 +49,8 @@ export function SwitchAccountModal(props: Props) {
       .catch(() =>
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Failed to sign out. Please try again.",
+          title: "Erro!",
+          message: "Falha ao sair. Tente novamente.",
         })
       )
       .finally(() => setSwitchingAccount(false));
@@ -92,12 +92,12 @@ export function SwitchAccountModal(props: Props) {
                     </div>
                     <div className="flex flex-col gap-y-6 py-3">
                       <Dialog.Title as="h3" className="text-20 leading-6 font-medium text-primary">
-                        Switch account
+                        Trocar de conta
                       </Dialog.Title>
                       {userData?.email && (
                         <div className="text-14 font-regular text-secondary">
-                          If you have signed up via <span className="text-accent-primary">{userData.email}</span>{" "}
-                          un-intentionally, you can switch your account to a different one from here.
+                          Se você se cadastrou com <span className="text-accent-primary">{userData.email}</span> sem
+                          querer, pode trocar para outra conta aqui.
                         </div>
                       )}
                     </div>
@@ -105,7 +105,7 @@ export function SwitchAccountModal(props: Props) {
                 </div>
                 <div className="mb-2 flex items-center justify-end gap-3 p-4 sm:px-6">
                   <Button variant="secondary" size="lg" onClick={handleSwitchAccount} disabled={switchingAccount}>
-                    {switchingAccount ? "Switching..." : "Switch account"}
+                    {switchingAccount ? "Trocando..." : "Trocar de conta"}
                   </Button>
                 </div>
               </Dialog.Panel>

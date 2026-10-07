@@ -54,11 +54,13 @@ export const PaidPlanUpgradeModal = observer(function PaidPlanUpgradeModal(props
         <div className="grid h-full grid-cols-12 gap-6">
           {/* Free Plan Section */}
           <div className={cn(COMMON_CARD_CLASSNAME)}>
-            <div className="flex text-24 leading-8 font-bold">Upgrade to a paid plan and unlock missing features.</div>
+            <div className="flex text-24 leading-8 font-bold">
+              Faça upgrade para um plano pago e desbloqueie os recursos que faltam.
+            </div>
             <div className="mt-4 mb-2">
               <p className="mb-4 pr-8 text-13 text-primary">
-                Dashboards, Workflows, Approvals, Time Management, and other superpowers are just a click away. Upgrade
-                today to unlock features your teams need yesterday.
+                Dashboards, fluxos de trabalho, aprovações, gestão de tempo e outros superpoderes estão a um clique de
+                distância. Faça upgrade hoje e desbloqueie os recursos de que suas equipes precisam.
               </p>
             </div>
 
@@ -76,7 +78,7 @@ export const PaidPlanUpgradeModal = observer(function PaidPlanUpgradeModal(props
               extraFeatures={
                 <p className={COMMON_EXTRA_FEATURES_CLASSNAME}>
                   <a href={SUBSCRIPTION_WEBPAGE_URLS[EProductSubscriptionEnum.PRO]} target="_blank" rel="noreferrer">
-                    See full features list
+                    Ver lista completa de recursos
                   </a>
                 </p>
               }
@@ -98,7 +100,7 @@ export const PaidPlanUpgradeModal = observer(function PaidPlanUpgradeModal(props
                     target="_blank"
                     rel="noreferrer"
                   >
-                    See full features list
+                    Ver lista completa de recursos
                   </a>
                 </p>
               }
@@ -120,7 +122,7 @@ export const PaidPlanUpgradeModal = observer(function PaidPlanUpgradeModal(props
                     target="_blank"
                     rel="noreferrer"
                   >
-                    See full features list
+                    Ver lista completa de recursos
                   </a>
                 </p>
               }

@@ -19,7 +19,7 @@ function ProjectArchivedModulesPage({ params }: Route.ComponentProps) {
   const { getProjectById } = useProject();
   // derived values
   const project = getProjectById(projectId);
-  const pageTitle = project?.name && `${project?.name} - Archived modules`;
+  const pageTitle = project?.name && `${project?.name} - Módulos arquivados`;
 
   return (
     <>

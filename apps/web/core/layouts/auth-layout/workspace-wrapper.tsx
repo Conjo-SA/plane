@@ -131,8 +131,8 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     await signOut().catch(() =>
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Failed to sign out. Please try again.",
+        title: "Erro!",
+        message: "Falha ao sair. Tente novamente.",
       })
     );
   };
@@ -163,7 +163,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
                 className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm hover:bg-layer-1"
                 onClick={handleSignOut}
               >
-                <Tooltip tooltipContent={"Sign out"} position="top" className="ml-2" isMobile={isMobile}>
+                <Tooltip tooltipContent={"Sair"} position="top" className="ml-2" isMobile={isMobile}>
                   <LogOut size={14} />
                 </Tooltip>
               </div>
@@ -173,24 +173,24 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
             <div className="relative flex-shrink-0">
               <img src={WorkSpaceNotAvailable} className="h-[220px] object-contain object-center" alt="Tasks" />
             </div>
-            <h3 className="text-center text-16 font-semibold">Workspace not found</h3>
+            <h3 className="text-center text-16 font-semibold">Workspace não encontrado</h3>
             <p className="text-center text-13 text-secondary">
-              No workspace found with the URL. It may not exist or you lack authorization to view it.
+              Nenhum workspace encontrado com esta URL. Ele pode não existir ou você não tem permissão para acessá-lo.
             </p>
             <div className="flex items-center justify-center gap-2 pt-4">
               {allWorkspaces && allWorkspaces.length > 0 && (
                 <Link href="/" className={cn(getButtonStyling("primary", "base"))}>
-                  Go Home
+                  Ir para o início
                 </Link>
               )}
               {allWorkspaces?.length > 0 && (
                 <Link href="/settings/profile/general/" className={cn(getButtonStyling("secondary", "base"))}>
-                  Visit Profile
+                  Ver perfil
                 </Link>
               )}
               {allWorkspaces && allWorkspaces.length === 0 && (
                 <Link href="/create-workspace/" className={cn(getButtonStyling("secondary", "base"))}>
-                  Create new workspace
+                  Criar novo workspace
                 </Link>
               )}
             </div>
@@ -209,21 +209,21 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
         <div className="grid h-full place-items-center p-4">
           <div className="space-y-8 text-center">
             <div className="space-y-2">
-              <h3 className="text-16 font-semibold">Not Authorized!</h3>
+              <h3 className="text-16 font-semibold">Sem autorização!</h3>
               <p className="mx-auto w-1/2 text-13 text-secondary">
-                You{"'"}re not a member of this workspace. Please contact the workspace admin to get an invitation or
-                check your pending invitations.
+                Você não é membro deste workspace. Peça um convite ao administrador do workspace ou verifique seus
+                convites pendentes.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2">
               <Link href="/invitations">
                 <span>
-                  <Button variant="secondary">Check pending invites</Button>
+                  <Button variant="secondary">Ver convites pendentes</Button>
                 </span>
               </Link>
               <Link href="/create-workspace">
                 <span>
-                  <Button variant="primary">Create new workspace</Button>
+                  <Button variant="primary">Criar novo workspace</Button>
                 </span>
               </Link>
             </div>

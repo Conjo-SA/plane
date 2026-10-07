@@ -23,15 +23,15 @@ export function InstanceNotReady() {
           <div className="flex h-full w-full flex-col items-center justify-center gap-7">
             <div className="flex flex-col items-center gap-11">
               <div className="flex max-w-124 flex-col items-center gap-3">
-                <h1 className="text-h2-semibold text-primary">Welcome to Tasks</h1>
+                <h1 className="text-h2-semibold text-primary">Boas-vindas ao Tasks</h1>
                 <p className="text-center text-body-md-regular text-secondary">
-                  Set up your instance and create your first workspace to begin managing projects and work.
+                  Configure sua instância e crie seu primeiro workspace para começar a gerenciar projetos e tarefas.
                 </p>
               </div>
             </div>
             <a href={GOD_MODE_URL} className="w-72">
               <Button variant="primary" className="w-full" size="xl">
-                Get started
+                Começar
               </Button>
             </a>
           </div>

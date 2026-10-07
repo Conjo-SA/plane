@@ -102,11 +102,11 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
         </CustomMenu>
         <div className="flex flex-grow items-center justify-center border-l border-subtle text-13 text-secondary">
           <FiltersDropdown
-            title="Display"
+            title="Exibição"
             placement="bottom-end"
             menuButton={
               <span className="flex items-center text-13 text-secondary">
-                Display
+                Exibição
                 <ChevronDownIcon className="ml-2 h-4 w-4 text-secondary" />
               </span>
             }
@@ -130,7 +130,7 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
           onClick={() => setAnalyticsModal(true)}
           className="flex flex-grow justify-center border-l border-subtle text-13 text-secondary"
         >
-          Analytics
+          Análises
         </button>
       </div>
     </div>

@@ -24,6 +24,14 @@ const priorityColors = {
   none: "#e5e5e5",
 };
 
+const PRIORITY_PT: Record<string, string> = {
+  urgent: "Urgente",
+  high: "Alta",
+  medium: "Média",
+  low: "Baixa",
+  none: "Nenhuma",
+};
+
 export function ProfilePriorityDistribution({ userProfile }: Props) {
   const { t } = useTranslation();
   return (
@@ -37,13 +45,15 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
               margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
               data={userProfile.priority_distribution.map((priority) => ({
                 key: priority.priority ?? "None",
-                name: capitalizeFirstLetter(priority.priority ?? "None"),
+                name:
+                  PRIORITY_PT[(priority.priority ?? "none").toLowerCase()] ??
+                  capitalizeFirstLetter(priority.priority ?? "None"),
                 count: priority.priority_count,
               }))}
               bars={[
                 {
                   key: "count",
-                  label: "Count",
+                  label: "Quantidade",
                   stackId: "bar-one",
                   fill: (payload: any) => priorityColors[payload.key as keyof typeof priorityColors], // TODO: fix types
                   textClassName: "",

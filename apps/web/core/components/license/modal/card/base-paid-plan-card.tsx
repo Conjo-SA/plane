@@ -71,7 +71,7 @@ export const BasePaidPlanCard = observer(function BasePaidPlanCard(props: TBaseP
                 {renderActionButton(price)}
               </div>
               <div className="px-2 pt-6 pb-2">
-                <div className="p-2 text-caption-md-semibold">{`Everything in ${basePlan} +`}</div>
+                <div className="p-2 text-caption-md-semibold">{`Tudo do ${basePlan} +`}</div>
                 <ul className="grid grid-cols-12 gap-x-4">
                   {features.map((feature) => (
                     <li

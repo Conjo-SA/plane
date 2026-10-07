@@ -36,13 +36,13 @@ type Props = {
 const integrationDetails: { [key: string]: any } = {
   github: {
     logo: GithubLogo,
-    installed: "Activate GitHub on individual projects to sync with specific repositories.",
-    notInstalled: "Connect with GitHub with your Tasks workspace to sync project work items.",
+    installed: "Ative o GitHub em projetos individuais para sincronizar com repositórios específicos.",
+    notInstalled: "Conecte o GitHub ao seu workspace do Tasks para sincronizar as tarefas dos projetos.",
   },
   slack: {
     logo: SlackLogo,
-    installed: "Activate Slack on individual projects to sync with specific channels.",
-    notInstalled: "Connect with Slack with your Tasks workspace to sync project work items.",
+    installed: "Ative o Slack em projetos individuais para sincronizar com canais específicos.",
+    notInstalled: "Conecte o Slack ao seu workspace do Tasks para sincronizar as tarefas dos projetos.",
   },
 };
 
@@ -89,8 +89,8 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
 
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Deleted successfully!",
-          message: `${integration.title} integration deleted successfully.`,
+          title: "Excluída com sucesso!",
+          message: `Integração ${integration.title} excluída com sucesso.`,
         });
       })
       .catch(() => {
@@ -98,8 +98,8 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
 
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: `${integration.title} integration could not be deleted. Please try again.`,
+          title: "Erro!",
+          message: `Não foi possível excluir a integração ${integration.title}. Tente novamente.`,
         });
       });
   };
@@ -113,7 +113,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
           <img
             src={integrationDetails[integration.provider].logo}
             className="h-full w-full object-cover"
-            alt={`${integration.title} Logo`}
+            alt={`Logo do ${integration.title}`}
           />
         </div>
         <div>
@@ -128,7 +128,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               ? isInstalled
                 ? integrationDetails[integration.provider].installed
                 : integrationDetails[integration.provider].notInstalled
-              : "Loading..."}
+              : "Carregando..."}
           </p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
           <Tooltip
             isMobile={isMobile}
             disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
+            tooltipContent={!isUserAdmin ? "Você não tem permissão para realizar esta ação" : null}
           >
             <Button
               className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
@@ -150,14 +150,14 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               disabled={!isUserAdmin}
               loading={deletingIntegration}
             >
-              {deletingIntegration ? "Uninstalling..." : "Uninstall"}
+              {deletingIntegration ? "Desinstalando..." : "Desinstalar"}
             </Button>
           </Tooltip>
         ) : (
           <Tooltip
             isMobile={isMobile}
             disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
+            tooltipContent={!isUserAdmin ? "Você não tem permissão para realizar esta ação" : null}
           >
             <Button
               className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
@@ -168,7 +168,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
               }}
               loading={isInstalling}
             >
-              {isInstalling ? "Installing..." : "Install"}
+              {isInstalling ? "Instalando..." : "Instalar"}
             </Button>
           </Tooltip>
         )

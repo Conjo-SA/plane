@@ -31,7 +31,7 @@ export const PowerKLabelsMenu = observer(function PowerKLabelsMenu({ labels, onS
       getLabel={(label) => label.name}
       isSelected={(label) => !!value?.includes(label.id)}
       onSelect={onSelect}
-      emptyText="No labels found"
+      emptyText="Nenhuma etiqueta encontrada"
     />
   );
 });

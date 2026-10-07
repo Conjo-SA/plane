@@ -54,7 +54,7 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
                   )}
                 >
                   <SmilePlus className="size-4 flex-shrink-0" />
-                  Icon
+                  Ícone
                 </button>
               }
               onChange={updatePageLogo}

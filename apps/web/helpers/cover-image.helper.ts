@@ -211,14 +211,14 @@ export const uploadCoverImage = async (
   const response = await fetch(imageUrl);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
+    throw new Error(`Falha ao carregar a imagem: ${response.statusText}`);
   }
 
   const blob = await response.blob();
 
   // Validate it's actually an image
   if (!blob.type.startsWith("image/")) {
-    throw new Error("Invalid file type. Please select an image.");
+    throw new Error("Tipo de arquivo inválido. Selecione uma imagem.");
   }
 
   const fileName = imageUrl.split("/").pop()?.split("?")[0] || "image.jpg";

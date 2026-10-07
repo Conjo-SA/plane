@@ -39,20 +39,20 @@ const MENU_ITEMS: {
   {
     key: AI_EDITOR_TASKS.ASK_ANYTHING,
     icon: Sparkles,
-    label: "Ask Pi",
+    label: "Perguntar à IA",
   },
 ];
 
 const TONES_LIST = [
   {
     key: "default",
-    label: "Default",
+    label: "Padrão",
     casual_score: 5,
     formal_score: 5,
   },
   {
     key: "professional",
-    label: "💼 Professional",
+    label: "💼 Profissional",
     casual_score: 0,
     formal_score: 10,
   },
@@ -232,9 +232,9 @@ export function EditorAIMenu(props: Props) {
                         className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
                         onClick={() => handleInsertText(false)}
                       >
-                        Replace selection
+                        Substituir seleção
                       </button>
-                      <Tooltip tooltipContent="Add to next line">
+                      <Tooltip tooltipContent="Adicionar na próxima linha">
                         <button
                           type="button"
                           className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
@@ -265,7 +265,7 @@ export function EditorAIMenu(props: Props) {
                   </div>
                 ) : (
                   <p className="text-13 text-secondary">
-                    {activeTask ? LOADING_TEXTS[activeTask] : "Pi is writing"}...
+                    {activeTask ? LOADING_TEXTS[activeTask] : "A IA está escrevendo"}...
                   </p>
                 )}
               </div>
@@ -300,7 +300,7 @@ export function EditorAIMenu(props: Props) {
             <TriangleAlert className="size-3" />
           </span>
           <p className="flex-shrink-0 text-11 font-medium">
-            By using this feature, you consent to sharing the message with a 3rd party service.
+            Ao usar este recurso, você concorda em compartilhar a mensagem com um serviço de terceiros.
           </p>
         </div>
       )}

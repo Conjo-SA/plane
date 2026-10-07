@@ -37,7 +37,7 @@ export const formatShortcutForDisplay = (shortcut: string | undefined): string |
       case "return":
         return "↵";
       case "space":
-        return "Space";
+        return "Espaço";
       case "escape":
       case "esc":
         return "Esc";
@@ -107,7 +107,7 @@ export function KeySequenceBadge({ sequence }: { sequence: string | undefined })
           <kbd className="inline-flex h-5 items-center justify-center rounded-sm border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
             {char.toUpperCase()}
           </kbd>
-          {index < chars.length - 1 && <span className="text-10 text-placeholder">then</span>}
+          {index < chars.length - 1 && <span className="text-10 text-placeholder">depois</span>}
         </React.Fragment>
       ))}
     </div>

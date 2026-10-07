@@ -78,9 +78,9 @@ export const CreateOrJoinWorkspaces = observer(function CreateOrJoinWorkspaces(p
                 <div className="mt-4 flex w-full items-start justify-center gap-2.5 rounded-sm border border-accent-strong/20 bg-accent-primary/10 px-6 py-4 text-13 leading-5 text-accent-secondary">
                   <OctagonAlert className="mt-1 size-5 flex-shrink-0" />
                   <span>
-                    You don&apos;t seem to have any invites to a workspace and your instance admin has restricted
-                    creation of new workspaces. Please ask a workspace owner or admin to invite you to a workspace first
-                    and come back to this screen to join.
+                    Parece que você não tem convites para nenhum workspace e o administrador da instância restringiu a
+                    criação de novos workspaces. Peça a um proprietário ou administrador de workspace que convide você
+                    primeiro e volte a esta tela para entrar.
                   </span>
                 </div>
               </div>

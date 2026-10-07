@@ -29,7 +29,7 @@ export function SingleProgressStats({ title, completed, total, onClick, selected
             {isNaN(Math.round((completed / total) * 100)) ? "0" : Math.round((completed / total) * 100)}%
           </span>
         </div>
-        <span>of {total}</span>
+        <span>de {total}</span>
       </div>
     </div>
   );

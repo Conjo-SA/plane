@@ -28,7 +28,7 @@ export const PowerKModulesMenu = observer(function PowerKModulesMenu({ modules, 
       getLabel={(module) => module.name}
       isSelected={(module) => !!value?.includes(module.id)}
       onSelect={onSelect}
-      emptyText="No modules found"
+      emptyText="Nenhum módulo encontrado"
     />
   );
 });

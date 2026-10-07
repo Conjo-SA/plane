@@ -47,7 +47,7 @@ export const DeleteWorkspaceForm = observer(function DeleteWorkspaceForm(props: 
     watch,
   } = useForm({ defaultValues });
 
-  const canDelete = watch("workspaceName") === data?.name && watch("confirmDelete") === "delete my workspace";
+  const canDelete = watch("workspaceName") === data?.name && watch("confirmDelete") === "excluir meu workspace";
 
   const handleClose = () => {
     const timer = setTimeout(() => {
@@ -94,14 +94,15 @@ export const DeleteWorkspaceForm = observer(function DeleteWorkspaceForm(props: 
           <div className="text-center sm:text-left">
             <h3 className="text-h5-medium">{t("workspace_settings.settings.general.delete_modal.title")}</h3>
             <p className="mt-1 text-body-xs-regular text-secondary">
-              You are about to delete the workspace{" "}
-              <span className="text-body-xs-semibold break-words">{data?.name}</span>. If you confirm, you will lose
-              access to all your work data in this workspace without any way to restore it. Tread very carefully.
+              Você está prestes a excluir o workspace{" "}
+              <span className="text-body-xs-semibold break-words">{data?.name}</span>. Se confirmar, você perderá o
+              acesso a todos os dados de trabalho deste workspace, sem possibilidade de restauração. Tenha muito
+              cuidado.
             </p>
           </div>
 
           <div className="mt-4 text-secondary">
-            <p className="text-body-xs-regular break-words">Type in this workspace&apos;s name to continue.</p>
+            <p className="text-body-xs-regular break-words">Digite o nome deste workspace para continuar.</p>
             <Controller
               control={control}
               name="workspaceName"
@@ -124,9 +125,9 @@ export const DeleteWorkspaceForm = observer(function DeleteWorkspaceForm(props: 
 
           <div className="mt-4 text-secondary">
             <p className="text-body-xs-regular">
-              For final confirmation, type{" "}
-              <span className="text-body-xs-medium text-primary">delete my workspace </span>
-              below.
+              Para a confirmação final, digite{" "}
+              <span className="text-body-xs-medium text-primary">excluir meu workspace </span>
+              abaixo.
             </p>
             <Controller
               control={control}

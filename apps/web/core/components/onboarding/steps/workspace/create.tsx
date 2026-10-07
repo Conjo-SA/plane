@@ -118,9 +118,9 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
     return (
       <div className="flex flex-col gap-10">
         <span className="text-center text-14 text-tertiary">
-          You don&apos;t seem to have any invites to a workspace and your instance admin has restricted creation of new
-          workspaces. Please ask a workspace owner or admin to invite you to a workspace first and come back to this
-          screen to join.
+          Parece que você não tem convites para nenhum workspace e o administrador da instância restringiu a criação de
+          novos workspaces. Peça a um proprietário ou administrador de workspace que convide você primeiro e volte a
+          esta tela para entrar.
         </span>
       </div>
     );
@@ -132,7 +132,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
         void handleSubmit(handleCreateWorkspace)(e);
       }}
     >
-      <CommonOnboardingHeader title="Create your workspace" description="All your work — unified." />
+      <CommonOnboardingHeader title="Crie seu workspace" description="Todo o seu trabalho, em um só lugar." />
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">
           <label
@@ -166,7 +166,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                       shouldValidate: true,
                     });
                   }}
-                  placeholder="Enter workspace name"
+                  placeholder="Informe o nome do workspace"
                   ref={ref}
                   className={cn(
                     "w-full rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
@@ -295,7 +295,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
         </Button>
         {hasInvitations && (
           <Button variant="ghost" size="xl" className="w-full" onClick={handleCurrentViewChange}>
-            Join existing workspace
+            Entrar em um workspace existente
           </Button>
         )}
       </div>

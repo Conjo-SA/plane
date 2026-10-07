@@ -122,7 +122,7 @@ export const AutoCloseAutomation = observer(function AutoCloseAutomation(props: 
                     <CustomSelect
                       value={currentProjectDetails?.close_in}
                       label={`${currentProjectDetails?.close_in} ${
-                        currentProjectDetails?.close_in === 1 ? "month" : "months"
+                        currentProjectDetails?.close_in === 1 ? "mês" : "meses"
                       }`}
                       onChange={(val: number) => void handleChange({ close_in: val })}
                       input

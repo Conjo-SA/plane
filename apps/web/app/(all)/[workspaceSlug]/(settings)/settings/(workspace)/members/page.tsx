@@ -59,7 +59,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
 
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
+        title: "Sucesso!",
         message: t("workspace_settings.settings.members.invitations_sent_successfully"),
       });
     } catch (error: unknown) {
@@ -70,7 +70,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
       }
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
+        title: "Erro!",
         message: `${message ?? t("something_went_wrong_please_try_again")}`,
       });
 
@@ -90,7 +90,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
   };
 
   // derived values
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Members` : undefined;
+  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Membros` : undefined;
   const appliedRoleFilters = filtersStore.filters?.roles || [];
 
   // if user is not authorized to view this page
