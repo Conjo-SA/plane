@@ -41,6 +41,8 @@ const intakePortalService = new IntakePortalService();
 
 const MAX_ATTACHMENTS = 10;
 
+const formatBudgetHours = (hours: number) => `${Number(hours).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}h`;
+
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: "Urgente",
   high: "Alta",
@@ -302,6 +304,7 @@ export default function PortalTicketDetailPage() {
     budget_hours: ticket.budget ? String(ticket.budget.estimated_hours) : null,
   });
   const budget = ticket.budget ?? null;
+  const budgetColor = budget?.is_approved ? "#15803D" : budget?.is_rejected ? "#B91C1C" : "#D97706";
 
   return (
     <>
@@ -329,24 +332,21 @@ export default function PortalTicketDetailPage() {
 
             <div className="space-y-6 px-6 py-7 sm:px-9">
               {budget && (
-                <div
-                  className={`rounded-lg border px-4 py-4 ${
-                    budget.is_approved
-                      ? "border-emerald-200 bg-emerald-50"
-                      : budget.is_rejected
-                        ? "border-red-200 bg-red-50"
-                        : "border-amber-200 bg-amber-50"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {budget.is_approved ? (
-                      <CheckCircle2 className="text-emerald-600 mt-0.5 size-5 shrink-0" />
-                    ) : budget.is_rejected ? (
-                      <XCircle className="text-red-600 mt-0.5 size-5 shrink-0" />
-                    ) : (
-                      <Clock className="text-amber-600 mt-0.5 size-5 shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1">
+                <div className="relative overflow-hidden rounded-lg border border-subtle bg-layer-1 py-4 pr-5 pl-6">
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-1"
+                    style={{ backgroundColor: budgetColor }}
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {budget.is_approved ? (
+                        <CheckCircle2 className="size-4 shrink-0" style={{ color: budgetColor }} />
+                      ) : budget.is_rejected ? (
+                        <XCircle className="size-4 shrink-0" style={{ color: budgetColor }} />
+                      ) : (
+                        <Clock className="size-4 shrink-0" style={{ color: budgetColor }} />
+                      )}
                       <h2 className="text-14 font-semibold text-primary">
                         {budget.is_approved
                           ? "Orçamento aprovado"
@@ -356,11 +356,25 @@ export default function PortalTicketDetailPage() {
                               ? "Orçamento aguardando aprovação"
                               : "Orçamento aguardando sua resposta"}
                       </h2>
-                      <p className="mt-1 text-20 font-semibold text-primary">{budget.estimated_hours} horas</p>
-                      {hourPackage && !budget.is_approved && !budget.is_rejected && (
-                        <PortalBalanceAfterApproval pkg={hourPackage} estimatedHours={budget.estimated_hours} />
+                    </div>
+                    <div className="mt-3 min-w-0">
+                      <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
+                        <div>
+                          <p className="text-12 text-tertiary">Horas orçadas</p>
+                          <p className="text-20 leading-tight font-semibold text-primary">
+                            {formatBudgetHours(budget.estimated_hours)}
+                          </p>
+                        </div>
+                        {hourPackage && !budget.is_approved && !budget.is_rejected && (
+                          <PortalBalanceAfterApproval pkg={hourPackage} estimatedHours={budget.estimated_hours} />
+                        )}
+                      </div>
+                      {budget.note && (
+                        <p className="mt-3 text-13 text-secondary">
+                          <span className="text-tertiary">Observação da equipe: </span>
+                          {budget.note}
+                        </p>
                       )}
-                      {budget.note && <p className="mt-2 text-13 text-secondary">{budget.note}</p>}
 
                       {budget.is_approved ? (
                         <p className="mt-2 text-12 text-tertiary">
@@ -382,7 +396,7 @@ export default function PortalTicketDetailPage() {
                         </>
                       ) : (
                         <>
-                          <p className="mt-2 text-12 text-secondary">
+                          <p className="mt-3 text-12 text-tertiary">
                             O trabalho começa depois da sua aprovação. A aprovação é definitiva: só pode ser feita uma
                             vez e não pode ser cancelada.
                           </p>
@@ -396,7 +410,7 @@ export default function PortalTicketDetailPage() {
                             />
                           )}
 
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-subtle pt-4">
                             {isConfirmingApproval ? (
                               <>
                                 <Button

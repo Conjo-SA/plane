@@ -46,18 +46,15 @@ export function PortalBalanceAfterApproval({
   estimatedHours: number;
 }) {
   const after = hoursToMinutes(pkg.available) - hoursToMinutes(estimatedHours);
-  if (after >= 0)
-    return (
-      <p className="mt-1 text-13 text-secondary">
-        Seu saldo depois da aprovação: <span className="font-semibold text-primary">{formatMinutes(after)}</span>
-      </p>
-    );
   return (
-    <p className="mt-1 text-13 text-secondary">
-      Seu saldo depois da aprovação: <span className="font-semibold text-primary">0h</span> ·{" "}
-      <span className="font-medium text-warning-primary">
-        {formatMinutes(-after)} além do saldo serão cobradas à parte
-      </span>
-    </p>
+    <div>
+      <p className="text-12 text-tertiary">Seu saldo depois da aprovação</p>
+      <p className="text-20 leading-tight font-semibold text-primary">{formatMinutes(Math.max(after, 0))}</p>
+      {after < 0 && (
+        <p className="mt-0.5 text-12 font-medium text-warning-primary">
+          {formatMinutes(-after)} além do saldo serão cobradas à parte
+        </p>
+      )}
+    </div>
   );
 }
