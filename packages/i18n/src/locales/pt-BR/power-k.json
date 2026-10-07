@@ -1,12 +1,12 @@
 {
   "power_k": {
     "actions_commands": {
-      "bulk_delete_work_items": "Excluir itens de trabalho em massa"
+      "bulk_delete_work_items": "Excluir tarefas em massa"
     },
     "contextual_actions": {
       "work_item": {
-        "title": "Ações do item de trabalho",
-        "indicator": "Item de trabalho",
+        "title": "Ações da tarefa",
+        "indicator": "Tarefa",
         "change_state": "Alterar estado",
         "change_priority": "Alterar prioridade",
         "change_assignees": "Atribuir a",
@@ -20,14 +20,14 @@
         "unsubscribe": "Cancelar inscrição nas notificações",
         "delete": "Excluir",
         "copy_id": "Copiar ID",
-        "copy_id_toast_success": "ID do item de trabalho copiado para a área de transferência.",
-        "copy_id_toast_error": "Ocorreu um erro ao copiar o ID do item de trabalho para a área de transferência.",
+        "copy_id_toast_success": "ID da tarefa copiado para a área de transferência.",
+        "copy_id_toast_error": "Ocorreu um erro ao copiar o ID da tarefa para a área de transferência.",
         "copy_title": "Copiar título",
-        "copy_title_toast_success": "Título do item de trabalho copiado para a área de transferência.",
-        "copy_title_toast_error": "Ocorreu um erro ao copiar o título do item de trabalho para a área de transferência.",
+        "copy_title_toast_success": "Título da tarefa copiado para a área de transferência.",
+        "copy_title_toast_error": "Ocorreu um erro ao copiar o título da tarefa para a área de transferência.",
         "copy_url": "Copiar URL",
-        "copy_url_toast_success": "URL do item de trabalho copiada para a área de transferência.",
-        "copy_url_toast_error": "Ocorreu um erro ao copiar a URL do item de trabalho para a área de transferência."
+        "copy_url_toast_success": "URL da tarefa copiada para a área de transferência.",
+        "copy_url_toast_error": "Ocorreu um erro ao copiar a URL da tarefa para a área de transferência."
       },
       "cycle": {
         "title": "Ações do ciclo",
@@ -66,33 +66,33 @@
       }
     },
     "creation_actions": {
-      "create_work_item": "Novo item de trabalho",
+      "create_work_item": "Nova tarefa",
       "create_page": "Nova página",
       "create_view": "Nova visualização",
       "create_cycle": "Novo ciclo",
       "create_module": "Novo módulo",
       "create_project": "Novo projeto",
-      "create_workspace": "Novo espaço de trabalho",
+      "create_workspace": "Novo workspace",
       "create_project_automation": "Nova automação"
     },
     "navigation_actions": {
-      "open_workspace": "Abrir um espaço de trabalho",
+      "open_workspace": "Abrir um workspace",
       "nav_home": "Ir para a página inicial",
       "nav_inbox": "Ir para a caixa de entrada",
       "nav_your_work": "Ir para seu trabalho",
       "nav_account_settings": "Ir para configurações da conta",
       "open_project": "Abrir um projeto",
       "nav_projects_list": "Ir para lista de projetos",
-      "nav_all_workspace_work_items": "Ir para todos os itens de trabalho",
-      "nav_assigned_workspace_work_items": "Ir para itens de trabalho atribuídos",
-      "nav_created_workspace_work_items": "Ir para itens de trabalho criados",
-      "nav_subscribed_workspace_work_items": "Ir para itens de trabalho inscritos",
-      "nav_workspace_analytics": "Ir para análises do espaço de trabalho",
-      "nav_workspace_drafts": "Ir para rascunhos do espaço de trabalho",
-      "nav_workspace_archives": "Ir para arquivos do espaço de trabalho",
-      "open_workspace_setting": "Abrir uma configuração do espaço de trabalho",
-      "nav_workspace_settings": "Ir para configurações do espaço de trabalho",
-      "nav_project_work_items": "Ir para itens de trabalho",
+      "nav_all_workspace_work_items": "Ir para todas as tarefas",
+      "nav_assigned_workspace_work_items": "Ir para tarefas atribuídas",
+      "nav_created_workspace_work_items": "Ir para tarefas criadas",
+      "nav_subscribed_workspace_work_items": "Ir para tarefas inscritas",
+      "nav_workspace_analytics": "Ir para análises do workspace",
+      "nav_workspace_drafts": "Ir para rascunhos do workspace",
+      "nav_workspace_archives": "Ir para arquivos do workspace",
+      "open_workspace_setting": "Abrir uma configuração do workspace",
+      "nav_workspace_settings": "Ir para configurações do workspace",
+      "nav_project_work_items": "Ir para tarefas",
       "open_project_cycle": "Abrir um ciclo",
       "nav_project_cycles": "Ir para ciclos",
       "open_project_module": "Abrir um módulo",
@@ -100,7 +100,7 @@
       "open_project_view": "Abrir uma visualização do projeto",
       "nav_project_views": "Ir para visualizações do projeto",
       "nav_project_pages": "Ir para páginas",
-      "nav_project_intake": "Ir para admissão",
+      "nav_project_intake": "Ir para Entrada",
       "nav_project_archives": "Ir para arquivos do projeto",
       "open_project_setting": "Abrir uma configuração do projeto",
       "nav_project_settings": "Ir para configurações do projeto",
@@ -109,7 +109,7 @@
     },
     "account_actions": {
       "sign_out": "Sair",
-      "workspace_invites": "Convites do espaço de trabalho"
+      "workspace_invites": "Convites do workspace"
     },
     "miscellaneous_actions": {
       "toggle_app_sidebar": "Alternar barra lateral do aplicativo",
@@ -147,9 +147,9 @@
     },
     "page_placeholders": {
       "default": "Digite um comando ou pesquise",
-      "open_workspace": "Abrir um espaço de trabalho",
+      "open_workspace": "Abrir um workspace",
       "open_project": "Abrir um projeto",
-      "open_workspace_setting": "Abrir uma configuração do espaço de trabalho",
+      "open_workspace_setting": "Abrir uma configuração do workspace",
       "open_project_cycle": "Abrir um ciclo",
       "open_project_module": "Abrir um módulo",
       "open_project_view": "Abrir uma visualização do projeto",
@@ -174,7 +174,7 @@
       "go_to_advanced_search": "Ir para pesquisa avançada"
     },
     "footer": {
-      "workspace_level": "Nível do espaço de trabalho"
+      "workspace_level": "Nível do workspace"
     },
     "group_titles": {
       "actions": "Ações",

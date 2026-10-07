@@ -24,30 +24,30 @@
     },
     "modals": {
       "decline": {
-        "title": "Recusar item de trabalho",
-        "content": "Tem certeza de que deseja recusar o item de trabalho {value}?"
+        "title": "Recusar tarefa",
+        "content": "Tem certeza de que deseja recusar a tarefa {value}?"
       },
       "delete": {
-        "title": "Excluir item de trabalho",
-        "content": "Tem certeza de que deseja excluir o item de trabalho {value}?",
-        "success": "Item de trabalho excluído com sucesso"
+        "title": "Excluir tarefa",
+        "content": "Tem certeza de que deseja excluir a tarefa {value}?",
+        "success": "Tarefa excluída com sucesso"
       }
     },
     "errors": {
-      "snooze_permission": "Apenas administradores do projeto podem adiar/reativar itens de trabalho",
-      "accept_permission": "Apenas administradores do projeto podem aceitar itens de trabalho",
-      "decline_permission": "Apenas administradores do projeto podem recusar itens de trabalho"
+      "snooze_permission": "Apenas administradores do projeto podem adiar/reativar tarefas",
+      "accept_permission": "Apenas administradores do projeto podem aceitar tarefas",
+      "decline_permission": "Apenas administradores do projeto podem recusar tarefas"
     },
     "actions": {
       "accept": "Aceitar",
       "decline": "Recusar",
       "snooze": "Adiar",
       "unsnooze": "Reativar",
-      "copy": "Copiar link do item de trabalho",
+      "copy": "Copiar link da tarefa",
       "delete": "Excluir",
-      "open": "Abrir item de trabalho",
+      "open": "Abrir tarefa",
       "mark_as_duplicate": "Marcar como duplicado",
-      "move": "Mover {value} para os itens de trabalho do projeto"
+      "move": "Mover {value} para as tarefas do projeto"
     },
     "source": {
       "in-app": "no aplicativo"
@@ -57,10 +57,10 @@
       "updated_at": "Atualizado em",
       "id": "ID"
     },
-    "label": "Admissão",
-    "page_label": "{workspace} - Admissão",
+    "label": "Entrada",
+    "page_label": "{workspace} - Entrada",
     "modal": {
-      "title": "Criar item de trabalho de admissão"
+      "title": "Criar tarefa de Entrada"
     },
     "tabs": {
       "open": "Aberto",
@@ -68,19 +68,19 @@
     },
     "empty_state": {
       "sidebar_open_tab": {
-        "title": "Nenhum item de trabalho aberto",
-        "description": "Encontre itens de trabalho abertos aqui. Crie um novo item de trabalho."
+        "title": "Nenhuma tarefa aberta",
+        "description": "Encontre tarefas abertas aqui. Crie uma nova tarefa."
       },
       "sidebar_closed_tab": {
-        "title": "Nenhum item de trabalho fechado",
-        "description": "Todos os itens de trabalho, sejam aceitos ou recusados, podem ser encontrados aqui."
+        "title": "Nenhuma tarefa fechada",
+        "description": "Todas as tarefas, sejam aceitas ou recusadas, podem ser encontradas aqui."
       },
       "sidebar_filter": {
-        "title": "Nenhum item de trabalho correspondente",
-        "description": "Nenhum item de trabalho corresponde ao filtro aplicado na admissão. Crie um novo item de trabalho."
+        "title": "Nenhuma tarefa correspondente",
+        "description": "Nenhuma tarefa corresponde ao filtro aplicado na Entrada. Crie uma nova tarefa."
       },
       "detail": {
-        "title": "Selecione um item de trabalho para visualizar seus detalhes."
+        "title": "Selecione uma tarefa para visualizar seus detalhes."
       }
     }
   }

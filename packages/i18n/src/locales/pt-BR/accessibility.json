@@ -1,8 +1,8 @@
 {
   "aria_labels": {
     "projects_sidebar": {
-      "workspace_logo": "Logo do espaço de trabalho",
-      "open_workspace_switcher": "Abrir seletor de espaço de trabalho",
+      "workspace_logo": "Logo do workspace",
+      "open_workspace_switcher": "Abrir seletor de workspace",
       "open_user_menu": "Abrir menu do usuário",
       "open_command_palette": "Abrir paleta de comandos",
       "open_extended_sidebar": "Abrir barra lateral estendida",

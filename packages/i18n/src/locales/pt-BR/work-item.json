@@ -1,50 +1,50 @@
 {
   "issue": {
-    "label": "{count, plural, one {Item de trabalho} other {Itens de trabalho}}",
-    "all": "Todos os Itens de trabalho",
-    "edit": "Editar item de trabalho",
+    "label": "{count, plural, one {Tarefa} other {Tarefas}}",
+    "all": "Todas as tarefas",
+    "edit": "Editar tarefa",
     "title": {
-      "label": "Título do item de trabalho",
-      "required": "O título do item de trabalho é obrigatório."
+      "label": "Título da tarefa",
+      "required": "O título da tarefa é obrigatório."
     },
     "add": {
-      "press_enter": "Pressione 'Enter' para adicionar outro item de trabalho",
-      "label": "Adicionar item de trabalho",
+      "press_enter": "Pressione 'Enter' para adicionar outra tarefa",
+      "label": "Adicionar tarefa",
       "cycle": {
-        "failed": "Não foi possível adicionar o item de trabalho ao ciclo. Por favor, tente novamente.",
-        "success": "{count, plural, one {Item de trabalho} other {Itens de trabalho}} adicionado(s) ao ciclo com sucesso.",
-        "loading": "Adicionando {count, plural, one {item de trabalho} other {itens de trabalho}} ao ciclo"
+        "failed": "Não foi possível adicionar a tarefa ao ciclo. Por favor, tente novamente.",
+        "success": "{count, plural, one {Tarefa} other {Tarefas}} adicionada(s) ao ciclo com sucesso.",
+        "loading": "Adicionando {count, plural, one {tarefa} other {tarefas}} ao ciclo"
       },
       "assignee": "Adicionar responsáveis",
       "start_date": "Adicionar data de início",
       "due_date": "Adicionar data de vencimento",
-      "parent": "Adicionar item de trabalho pai",
-      "sub_issue": "Adicionar sub-item de trabalho",
+      "parent": "Adicionar tarefa pai",
+      "sub_issue": "Adicionar subtarefa",
       "dependency": "Adicionar dependência",
       "relation": "Adicionar relação",
       "link": "Adicionar link",
-      "existing": "Adicionar item de trabalho existente"
+      "existing": "Adicionar tarefa existente"
     },
     "remove": {
-      "label": "Remover item de trabalho",
+      "label": "Remover tarefa",
       "cycle": {
-        "loading": "Removendo item de trabalho do ciclo",
-        "success": "Item de trabalho removido do ciclo com sucesso.",
-        "failed": "Não foi possível remover o item de trabalho do ciclo. Por favor, tente novamente."
+        "loading": "Removendo tarefa do ciclo",
+        "success": "Tarefa removida do ciclo com sucesso.",
+        "failed": "Não foi possível remover a tarefa do ciclo. Por favor, tente novamente."
       },
       "module": {
-        "loading": "Removendo item de trabalho do módulo",
-        "success": "Item de trabalho removido do módulo com sucesso.",
-        "failed": "Não foi possível remover o item de trabalho do módulo. Por favor, tente novamente."
+        "loading": "Removendo tarefa do módulo",
+        "success": "Tarefa removida do módulo com sucesso.",
+        "failed": "Não foi possível remover a tarefa do módulo. Por favor, tente novamente."
       },
       "parent": {
-        "label": "Remover item de trabalho pai"
+        "label": "Remover tarefa pai"
       }
     },
-    "new": "Novo Item de trabalho",
-    "adding": "Adicionando item de trabalho",
+    "new": "Nova Tarefa",
+    "adding": "Adicionando tarefa",
     "create": {
-      "success": "Item de trabalho criado com sucesso"
+      "success": "Tarefa criada com sucesso"
     },
     "priority": {
       "urgent": "Urgente",
@@ -57,15 +57,15 @@
       "properties": {
         "label": "Exibir Propriedades",
         "id": "ID",
-        "issue_type": "Tipo de Item de Trabalho",
-        "sub_issue_count": "Contagem de sub-itens de trabalho",
+        "issue_type": "Tipo de Tarefa",
+        "sub_issue_count": "Contagem de subtarefas",
         "attachment_count": "Contagem de anexos",
         "created_on": "Criado em",
-        "sub_issue": "Sub-item de trabalho",
-        "work_item_count": "Contagem de itens de trabalho"
+        "sub_issue": "Subtarefa",
+        "work_item_count": "Contagem de tarefas"
       },
       "extra": {
-        "show_sub_issues": "Mostrar sub-itens de trabalho",
+        "show_sub_issues": "Mostrar subtarefas",
         "show_empty_groups": "Mostrar grupos vazios"
       }
     },
@@ -153,35 +153,35 @@
     },
     "empty_state": {
       "issue_detail": {
-        "title": "O item de trabalho não existe",
-        "description": "O item de trabalho que você está procurando não existe, foi arquivado ou foi excluído.",
+        "title": "A tarefa não existe",
+        "description": "A tarefa que você está procurando não existe, foi arquivada ou excluída.",
         "primary_button": {
-          "text": "Visualizar outros itens de trabalho"
+          "text": "Visualizar outras tarefas"
         }
       }
     },
     "sibling": {
-      "label": "Itens de trabalho irmãos"
+      "label": "Tarefas irmãs"
     },
     "archive": {
-      "description": "Apenas itens de trabalho concluídos ou cancelados\npodem ser arquivados",
-      "label": "Arquivar Item de Trabalho",
-      "confirm_message": "Tem certeza de que deseja arquivar o item de trabalho? Todos os seus itens de trabalho arquivados podem ser restaurados posteriormente.",
+      "description": "Apenas tarefas concluídas ou canceladas\npodem ser arquivados",
+      "label": "Arquivar Tarefa",
+      "confirm_message": "Tem certeza de que deseja arquivar a tarefa? Todas as suas tarefas arquivadas podem ser restauradas posteriormente.",
       "success": {
         "label": "Sucesso ao arquivar",
         "message": "Seus arquivos podem ser encontrados nos arquivos do projeto."
       },
       "failed": {
-        "message": "Não foi possível arquivar o item de trabalho. Por favor, tente novamente."
+        "message": "Não foi possível arquivar a tarefa. Por favor, tente novamente."
       }
     },
     "restore": {
       "success": {
         "title": "Sucesso ao restaurar",
-        "message": "Seu item de trabalho pode ser encontrado nos itens de trabalho do projeto."
+        "message": "Sua tarefa pode ser encontrada nas tarefas do projeto."
       },
       "failed": {
-        "message": "Não foi possível restaurar o item de trabalho. Por favor, tente novamente."
+        "message": "Não foi possível restaurar a tarefa. Por favor, tente novamente."
       }
     },
     "relation": {
@@ -196,29 +196,29 @@
       "implements": "Implementa",
       "implemented_by": "Implementado por"
     },
-    "copy_link": "Copiar link do item de trabalho",
+    "copy_link": "Copiar link da tarefa",
     "delete": {
-      "label": "Excluir item de trabalho",
-      "error": "Erro ao excluir item de trabalho"
+      "label": "Excluir tarefa",
+      "error": "Erro ao excluir tarefa"
     },
     "subscription": {
       "actions": {
-        "subscribed": "Item de trabalho inscrito com sucesso",
-        "unsubscribed": "Item de trabalho não inscrito com sucesso"
+        "subscribed": "Inscrição na tarefa feita com sucesso",
+        "unsubscribed": "Inscrição na tarefa cancelada com sucesso"
       }
     },
     "select": {
-      "error": "Selecione pelo menos um item de trabalho",
-      "empty": "Nenhum item de trabalho selecionado",
-      "add_selected": "Adicionar itens de trabalho selecionados",
+      "error": "Selecione pelo menos uma tarefa",
+      "empty": "Nenhuma tarefa selecionada",
+      "add_selected": "Adicionar tarefas selecionadas",
       "select_all": "Selecionar tudo",
       "deselect_all": "Desmarcar tudo"
     },
-    "open_in_full_screen": "Abrir item de trabalho em tela cheia",
+    "open_in_full_screen": "Abrir tarefa em tela cheia",
     "duplicate": {
       "modal": {
         "title": "Fazer uma cópia para outro projeto",
-        "description1": "Isto cria uma cópia do item de trabalho.",
+        "description1": "Isto cria uma cópia da tarefa.",
         "description2": "Todos os dados de propriedades serão removidos ao duplicar.",
         "placeholder": "Selecionar um projeto"
       }
@@ -226,10 +226,10 @@
     "toast": {
       "duplicate": {
         "success": {
-          "message": "Item de trabalho duplicado com sucesso"
+          "message": "Tarefa duplicada com sucesso"
         },
         "error": {
-          "message": "Falha ao duplicar o item de trabalho"
+          "message": "Falha ao duplicar a tarefa"
         }
       }
     },
@@ -271,22 +271,22 @@
   },
   "sub_work_item": {
     "update": {
-      "success": "Sub-item de trabalho atualizado com sucesso",
-      "error": "Erro ao atualizar sub-item de trabalho"
+      "success": "Subtarefa atualizada com sucesso",
+      "error": "Erro ao atualizar subtarefa"
     },
     "remove": {
-      "success": "Sub-item de trabalho removido com sucesso",
-      "error": "Erro ao remover sub-item de trabalho"
+      "success": "Subtarefa removida com sucesso",
+      "error": "Erro ao remover subtarefa"
     },
     "empty_state": {
       "sub_list_filters": {
-        "title": "Você não tem sub-itens de trabalho que correspondem aos filtros que você aplicou.",
-        "description": "Para ver todos os sub-itens de trabalho, limpe todos os filtros aplicados.",
+        "title": "Você não tem subtarefas que correspondem aos filtros que você aplicou.",
+        "description": "Para ver todas as subtarefas, limpe todos os filtros aplicados.",
         "action": "Limpar filtros"
       },
       "list_filters": {
-        "title": "Você não tem itens de trabalho que correspondem aos filtros que você aplicou.",
-        "description": "Para ver todos os itens de trabalho, limpe todos os filtros aplicados.",
+        "title": "Você não tem tarefas que correspondem aos filtros que você aplicou.",
+        "description": "Para ver todas as tarefas, limpe todos os filtros aplicados.",
         "action": "Limpar filtros"
       }
     }
@@ -294,10 +294,10 @@
   "issue_relation": {
     "empty_state": {
       "search": {
-        "title": "Nenhum item de trabalho correspondente encontrado"
+        "title": "Nenhuma tarefa correspondente encontrada"
       },
       "no_issues": {
-        "title": "Nenhum item de trabalho encontrado"
+        "title": "Nenhuma tarefa encontrada"
       }
     }
   },
@@ -305,36 +305,36 @@
     "empty_state": {
       "general": {
         "title": "Nenhum comentário ainda",
-        "description": "Os comentários podem ser usados como um espaço de discussão e acompanhamento para os itens de trabalho"
+        "description": "Os comentários podem ser usados como um espaço de discussão e acompanhamento para as tarefas"
       }
     }
   },
   "bulk_operations": {
     "error_details": {
       "invalid_archive_state_group": {
-        "title": "Não é possível arquivar itens de trabalho",
-        "message": "Apenas itens de trabalho pertencentes aos grupos de estado Concluído ou Cancelado podem ser arquivados."
+        "title": "Não é possível arquivar tarefas",
+        "message": "Apenas tarefas pertencentes aos grupos de estado Concluído ou Cancelado podem ser arquivadas."
       },
       "invalid_issue_start_date": {
-        "title": "Não é possível atualizar itens de trabalho",
-        "message": "A data de início selecionada sucede a data de vencimento para alguns itens de trabalho. Certifique-se de que a data de início seja anterior à data de vencimento."
+        "title": "Não é possível atualizar tarefas",
+        "message": "A data de início selecionada sucede a data de vencimento para algumas tarefas. Certifique-se de que a data de início seja anterior à data de vencimento."
       },
       "invalid_issue_target_date": {
-        "title": "Não é possível atualizar itens de trabalho",
-        "message": "A data de vencimento selecionada precede a data de início para alguns itens de trabalho. Certifique-se de que a data de vencimento seja posterior à data de início."
+        "title": "Não é possível atualizar tarefas",
+        "message": "A data de vencimento selecionada precede a data de início para algumas tarefas. Certifique-se de que a data de vencimento seja posterior à data de início."
       },
       "invalid_state_transition": {
-        "title": "Não é possível atualizar itens de trabalho",
-        "message": "A mudança de estado não é permitida para alguns itens de trabalho. Certifique-se de que a mudança de estado seja permitida."
+        "title": "Não é possível atualizar tarefas",
+        "message": "A mudança de estado não é permitida para algumas tarefas. Certifique-se de que a mudança de estado seja permitida."
       }
     }
   },
   "recurring_work_items": {
     "settings": {
-      "heading": "Itens de trabalho recorrentes",
+      "heading": "Tarefas recorrentes",
       "description": "Configure seu trabalho recorrente uma vez e nós cuidaremos das repetições. Você verá tudo aqui quando for necessário.",
-      "new_recurring_work_item": "Novo item de trabalho recorrente",
-      "update_recurring_work_item": "Atualizar item de trabalho recorrente",
+      "new_recurring_work_item": "Nova tarefa recorrente",
+      "update_recurring_work_item": "Atualizar tarefa recorrente",
       "form": {
         "interval": {
           "title": "Agendamento",
@@ -350,13 +350,13 @@
           }
         },
         "button": {
-          "create": "Criar item de trabalho recorrente",
-          "update": "Atualizar item de trabalho recorrente"
+          "create": "Criar tarefa recorrente",
+          "update": "Atualizar tarefa recorrente"
         }
       },
       "create_button": {
-        "label": "Criar item de trabalho recorrente",
-        "no_permission": "Entre em contato com o administrador do projeto para criar itens de trabalho recorrentes"
+        "label": "Criar tarefa recorrente",
+        "no_permission": "Entre em contato com o administrador do projeto para criar tarefas recorrentes"
       }
     },
     "empty_state": {
@@ -365,46 +365,46 @@
         "description": "Configure uma vez. Nós o traremos de volta quando chegar a hora. Faça upgrade para o Business para tornar o trabalho recorrente mais fácil."
       },
       "no_templates": {
-        "button": "Crie seu primeiro item de trabalho recorrente"
+        "button": "Crie sua primeira tarefa recorrente"
       }
     },
     "toasts": {
       "create": {
         "success": {
-          "title": "Item de trabalho recorrente criado",
-          "message": "{name}, o item de trabalho recorrente, agora está disponível no seu espaço de trabalho."
+          "title": "Tarefa recorrente criada",
+          "message": "{name}, a tarefa recorrente, agora está disponível no seu workspace."
         },
         "error": {
-          "title": "Não foi possível criar o item de trabalho recorrente desta vez.",
-          "message": "Tente salvar seus dados novamente ou copie-os para um novo item de trabalho recorrente, de preferência em outra aba."
+          "title": "Não foi possível criar a tarefa recorrente desta vez.",
+          "message": "Tente salvar seus dados novamente ou copie-os para uma nova tarefa recorrente, de preferência em outra aba."
         }
       },
       "update": {
         "success": {
-          "title": "Item de trabalho recorrente alterado",
-          "message": "{name}, o item de trabalho recorrente, foi alterado."
+          "title": "Tarefa recorrente alterada",
+          "message": "{name}, a tarefa recorrente, foi alterada."
         },
         "error": {
-          "title": "Não foi possível salvar as alterações neste item de trabalho recorrente.",
-          "message": "Tente salvar seus dados novamente ou volte a este item de trabalho recorrente mais tarde. Se o problema persistir, entre em contato conosco."
+          "title": "Não foi possível salvar as alterações nesta tarefa recorrente.",
+          "message": "Tente salvar seus dados novamente ou volte a esta tarefa recorrente mais tarde. Se o problema persistir, entre em contato conosco."
         }
       },
       "delete": {
         "success": {
-          "title": "Item de trabalho recorrente excluído",
-          "message": "{name}, o item de trabalho recorrente, foi excluído do seu espaço de trabalho."
+          "title": "Tarefa recorrente excluída",
+          "message": "{name}, a tarefa recorrente, foi excluída do seu workspace."
         },
         "error": {
-          "title": "Não foi possível excluir o item de trabalho recorrente.",
+          "title": "Não foi possível excluir a tarefa recorrente.",
           "message": "Tente excluir novamente ou volte mais tarde. Se não conseguir excluir, entre em contato conosco."
         }
       }
     },
     "delete_confirmation": {
-      "title": "Excluir item de trabalho recorrente",
+      "title": "Excluir tarefa recorrente",
       "description": {
-        "prefix": "Tem certeza que deseja excluir o item de trabalho recorrente-",
-        "suffix": "? Todos os dados relacionados ao item de trabalho recorrente serão removidos permanentemente. Esta ação não pode ser desfeita."
+        "prefix": "Tem certeza que deseja excluir a tarefa recorrente-",
+        "suffix": "? Todos os dados relacionados à tarefa recorrente serão removidos permanentemente. Esta ação não pode ser desfeita."
       }
     }
   },
