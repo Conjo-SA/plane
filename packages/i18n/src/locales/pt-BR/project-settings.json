@@ -237,7 +237,7 @@
       "heading": "Fluxos de trabalho",
       "description": "Automatize as transições das tarefas e defina regras para controlar como as tarefas avançam pelo fluxo do seu projeto.",
       "add_button": "Adicionar novo fluxo de trabalho",
-      "search": "Pesquisar fluxos de trabalho",
+      "search": "Buscar fluxos de trabalho",
       "detail": {
         "define": "Definir fluxo de trabalho",
         "add_states": "Adicionar estados",
@@ -388,7 +388,7 @@
           "work_item_type": "Tipo de tarefa",
           "remove_property": "Remover propriedade",
           "select_properties": "Selecionar propriedades",
-          "search_placeholder": "Pesquisar propriedades",
+          "search_placeholder": "Buscar propriedades",
           "toasts": {
             "success_create": "Formulário de recebimento criado com sucesso",
             "success_update": "Formulário de recebimento atualizado com sucesso",
