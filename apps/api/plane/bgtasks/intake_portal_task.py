@@ -249,3 +249,53 @@ def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
         )
     except Exception as e:
         log_exception(e)
+
+
+@shared_task
+def send_portal_budget_cancelled(issue_id, budget_id, portal_url=""):
+    """Tell the requester that the team cancelled an estimate (Conjo): it can no longer be approved."""
+    try:
+        issue = Issue.objects.filter(pk=issue_id).first()
+        if issue is None:
+            return
+
+        intake_issue = IntakeIssue.objects.filter(issue_id=issue_id, source=SourceType.PORTAL).first()
+        if intake_issue is None or not intake_issue.source_email:
+            return
+
+        budget = IntakePortalBudget.objects.filter(pk=budget_id, issue_id=issue_id).first()
+        if budget is None or budget.status != IntakePortalBudgetStatus.CANCELLED:
+            return
+
+        portal_anchor = ""
+        if isinstance(intake_issue.extra, dict):
+            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
+
+        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+
+        hours = _hours_label(budget.estimated_hours)
+        reason_html = (
+            '<div style="background:#f9fafb;border-left:3px solid #d1d5db;padding:12px 16px;margin:0 0 16px;">'
+            f'<p style="margin:0;"><strong>Motivo:</strong> {escape(budget.cancellation_reason)}</p></div>'
+            if budget.cancellation_reason
+            else ""
+        )
+        link_html = _portal_cta_html(effective_portal_url, "Abrir chamado no portal") if effective_portal_url else ""
+        body = (
+            f"<p>A equipe cancelou o orçamento da sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
+            '<p style="font-size:28px;font-weight:700;background:#f3f4f6;padding:16px 24px;'
+            'border-radius:8px;text-align:center;margin:24px 0;color:#6b7280;text-decoration:line-through;">'
+            f"{escape(hours)} horas"
+            "</p>"
+            f"{reason_html}"
+            "<p>Este orçamento não precisa mais de resposta e não pode mais ser aprovado. Nenhuma hora foi "
+            "descontada por ele. Se for preciso, a equipe enviará um novo orçamento.</p>"
+            f"{link_html}"
+        )
+        send_transactional_email(
+            intake_issue.source_email,
+            f"Orçamento cancelado: {issue.name}",
+            _wrap("Orçamento cancelado", body),
+        )
+    except Exception as e:
+        log_exception(e)

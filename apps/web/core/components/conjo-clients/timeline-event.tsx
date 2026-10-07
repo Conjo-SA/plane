@@ -6,6 +6,7 @@
 
 import type { ReactNode } from "react";
 import {
+  Ban,
   Check,
   CircleCheck,
   CircleX,
@@ -164,6 +165,24 @@ function renderEvent(event: TClientTimelineEvent, workspaceSlug: string): TRende
           </>
         ),
         details: [`${formatHours(event.hours)} orçadas`, event.reason ? `motivo: ${event.reason}` : null],
+      };
+    case "estimate_cancelled":
+      return {
+        marker: (
+          <Marker className="bg-layer-3 text-secondary">
+            <Ban className={iconClass} />
+          </Marker>
+        ),
+        title: (
+          <>
+            <b className="font-semibold">Orçamento cancelado</b>
+            {event.by && <> por {event.by}</>} · <IssueLink workspaceSlug={workspaceSlug} issue={event.issue} />
+          </>
+        ),
+        details: [
+          `${formatHours(event.hours)} orçadas, nada debitado`,
+          event.reason ? `motivo: ${event.reason}` : null,
+        ],
       };
     case "delivered": {
       const debits = event.kind === "evolution" || event.kind === null;

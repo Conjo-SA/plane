@@ -6,6 +6,7 @@
 
 import {
   ArrowLeft,
+  Ban,
   CheckCircle2,
   Clock,
   Download,
@@ -303,21 +304,24 @@ export default function PortalTicketDetailPage() {
   // Same wording as the ticket list ("Na fila", "Em andamento"...), never the team's internal state names.
   const portalStatus = getPortalTicketStatus({
     ...ticket,
-    budget_status: ticket.budget
-      ? ticket.budget.is_approved
-        ? "APPROVED"
-        : ticket.budget.is_rejected
-          ? "REJECTED"
-          : "PENDING"
-      : null,
+    budget_status: ticket.budget?.status ?? null,
     budget_hours: ticket.budget ? String(ticket.budget.estimated_hours) : null,
   });
   const budget = ticket.budget ?? null;
   // Earlier estimates of the same ticket (the highlighted one is the pending or the latest).
   const pastBudgets = reverse((ticket.budgets ?? []).filter((item) => item.id !== budget?.id));
   const approvedHours = ticket.approved_hours ?? 0;
-  const isAdditional = !!budget && !budget.is_approved && !budget.is_rejected && approvedHours > 0;
-  const budgetColor = budget?.is_approved ? "#15803D" : budget?.is_rejected ? "#B91C1C" : "#D97706";
+  // MAN-156: the team withdrew it; it can no longer be answered (an old e-mail link lands here too).
+  const isCancelled = !!budget && (budget.is_cancelled ?? budget.status === "CANCELLED");
+  const isAnswered = !!budget && (budget.is_approved || budget.is_rejected || isCancelled);
+  const isAdditional = !!budget && !isAnswered && approvedHours > 0;
+  const budgetColor = budget?.is_approved
+    ? "#15803D"
+    : isCancelled
+      ? "#6B7280"
+      : budget?.is_rejected
+        ? "#B91C1C"
+        : "#D97706";
 
   return (
     <>
@@ -355,6 +359,8 @@ export default function PortalTicketDetailPage() {
                     <div className="flex items-center gap-2">
                       {budget.is_approved ? (
                         <CheckCircle2 className="size-4 shrink-0" style={{ color: budgetColor }} />
+                      ) : isCancelled ? (
+                        <Ban className="size-4 shrink-0" style={{ color: budgetColor }} />
                       ) : budget.is_rejected ? (
                         <XCircle className="size-4 shrink-0" style={{ color: budgetColor }} />
                       ) : (
@@ -363,15 +369,17 @@ export default function PortalTicketDetailPage() {
                       <h2 className="text-14 font-semibold text-primary">
                         {budget.is_approved
                           ? "Orçamento aprovado"
-                          : budget.is_rejected
-                            ? "Orçamento recusado"
-                            : isAdditional
-                              ? ticket.can_approve_budget === false
-                                ? "Orçamento adicional aguardando aprovação"
-                                : "Orçamento adicional aguardando sua resposta"
-                              : ticket.can_approve_budget === false
-                                ? "Orçamento aguardando aprovação"
-                                : "Orçamento aguardando sua resposta"}
+                          : isCancelled
+                            ? "Orçamento cancelado pela equipe"
+                            : budget.is_rejected
+                              ? "Orçamento recusado"
+                              : isAdditional
+                                ? ticket.can_approve_budget === false
+                                  ? "Orçamento adicional aguardando aprovação"
+                                  : "Orçamento adicional aguardando sua resposta"
+                                : ticket.can_approve_budget === false
+                                  ? "Orçamento aguardando aprovação"
+                                  : "Orçamento aguardando sua resposta"}
                       </h2>
                     </div>
                     <div className="mt-3 min-w-0">
@@ -388,7 +396,7 @@ export default function PortalTicketDetailPage() {
                             {formatBudgetHours(budget.estimated_hours)}
                           </p>
                         </div>
-                        {approvedHours > 0 && !budget.is_rejected && (
+                        {approvedHours > 0 && !budget.is_rejected && !isCancelled && (
                           <div>
                             <p className="text-12 text-tertiary">
                               {budget.is_approved ? "Total aprovado no chamado" : "Já aprovado no chamado"}
@@ -398,7 +406,7 @@ export default function PortalTicketDetailPage() {
                             </p>
                           </div>
                         )}
-                        {hourPackage && !budget.is_approved && !budget.is_rejected && (
+                        {hourPackage && !isAnswered && (
                           <PortalBalanceAfterApproval pkg={hourPackage} estimatedHours={budget.estimated_hours} />
                         )}
                       </div>
@@ -420,7 +428,21 @@ export default function PortalTicketDetailPage() {
                         </div>
                       )}
 
-                      {budget.is_approved ? (
+                      {isCancelled ? (
+                        <>
+                          <p className="mt-2 text-12 text-tertiary">
+                            Cancelado pela equipe
+                            {budget.cancelled_at ? ` em ${formatDateTime(budget.cancelled_at)}` : ""}.
+                          </p>
+                          {budget.cancellation_reason && (
+                            <p className="mt-1 text-13 text-secondary">Motivo: {budget.cancellation_reason}</p>
+                          )}
+                          <p className="mt-2 text-12 text-secondary">
+                            Este orçamento não precisa mais de resposta e não pode ser aprovado. Nenhuma hora foi
+                            descontada por ele. Se for preciso, a equipe enviará um novo orçamento.
+                          </p>
+                        </>
+                      ) : budget.is_approved ? (
                         <p className="mt-2 text-12 text-tertiary">
                           Aprovado por {budget.approved_by_email}
                           {budget.approved_at ? ` em ${formatDateTime(budget.approved_at)}` : ""}.
@@ -547,23 +569,42 @@ export default function PortalTicketDetailPage() {
                       <li key={item.id} className="space-y-1.5 px-4 py-3">
                         <p className="flex flex-wrap items-baseline gap-x-2 text-13">
                           <span className="font-semibold text-primary">{formatBudgetHours(item.estimated_hours)}</span>
-                          <span className={item.is_approved ? "text-success-primary" : "text-danger-primary"}>
-                            {item.is_approved ? "Aprovado" : item.is_rejected ? "Recusado" : "Aguardando"}
+                          <span
+                            className={
+                              item.is_approved
+                                ? "text-success-primary"
+                                : item.status === "CANCELLED"
+                                  ? "text-tertiary"
+                                  : "text-danger-primary"
+                            }
+                          >
+                            {item.is_approved
+                              ? "Aprovado"
+                              : item.status === "CANCELLED"
+                                ? "Cancelado pela equipe"
+                                : item.is_rejected
+                                  ? "Recusado"
+                                  : "Aguardando"}
                           </span>
                           <span className="text-12 text-tertiary">
                             {item.is_approved && item.approved_at
                               ? `por ${item.approved_by_email} em ${formatDateTime(item.approved_at)}`
-                              : item.is_rejected && item.rejected_at
-                                ? `por ${item.rejected_by_email} em ${formatDateTime(item.rejected_at)}`
-                                : ""}
+                              : item.status === "CANCELLED" && item.cancelled_at
+                                ? `em ${formatDateTime(item.cancelled_at)}`
+                                : item.is_rejected && item.rejected_at
+                                  ? `por ${item.rejected_by_email} em ${formatDateTime(item.rejected_at)}`
+                                  : ""}
                           </span>
                         </p>
                         {item.note && <BudgetNote text={item.note} />}
                         {(item.events?.length ?? 0) > 1 && (
                           <BudgetTimeline events={item.events ?? []} className="pt-1" />
                         )}
-                        {item.is_rejected && item.rejection_reason && (
-                          <p className="text-12 text-secondary">Motivo: {item.rejection_reason}</p>
+                        {item.rejection_reason && (
+                          <p className="text-12 text-secondary">Motivo da recusa: {item.rejection_reason}</p>
+                        )}
+                        {item.status === "CANCELLED" && item.cancellation_reason && (
+                          <p className="text-12 text-secondary">Motivo do cancelamento: {item.cancellation_reason}</p>
                         )}
                       </li>
                     ))}

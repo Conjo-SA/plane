@@ -55,6 +55,7 @@ MAX_BUDGET_REASON_LENGTH = 1000
 # Marks the replies an external requester wrote from the portal, so the portal
 # can tell them apart from the ones written by the support team.
 PORTAL_COMMENT_SOURCE = "INTAKE_PORTAL"
+BUDGET_CANCELLED_ERROR = "Este orçamento foi cancelado pela equipe e não pode mais ser respondido."
 
 
 def get_owned_intake_issue(portal, issue_id, email):
@@ -572,6 +573,9 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
                 {"error": "Não há orçamento para responder neste chamado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        # Conjo: the team withdrew this estimate; an old e-mail or an open page can no longer answer it.
+        if budget.status == IntakePortalBudgetStatus.CANCELLED:
+            return Response({"error": BUDGET_CANCELLED_ERROR}, status=status.HTTP_400_BAD_REQUEST)
 
         is_approval = action == "approve"
         if is_approval and not can_approve_estimate(intake_issue.issue, session.email):
@@ -635,6 +639,8 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             )
         if not decided_count:
             budget.refresh_from_db()
+            if budget.status == IntakePortalBudgetStatus.CANCELLED:
+                return Response({"error": BUDGET_CANCELLED_ERROR}, status=status.HTTP_400_BAD_REQUEST)
             already = "aprovado" if budget.status == IntakePortalBudgetStatus.APPROVED else "recusado"
             return Response(
                 {"error": f"Este orçamento já foi {already}."},

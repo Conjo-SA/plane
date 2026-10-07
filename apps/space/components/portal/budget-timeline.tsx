@@ -21,6 +21,7 @@ const DOT: Record<TIntakePortalBudgetEvent["kind"], string> = {
   revised: "bg-warning-primary",
   approved: "bg-success-primary",
   rejected: "bg-danger-primary",
+  cancelled: "bg-layer-3",
 };
 
 const describe = (event: TIntakePortalBudgetEvent) => {
@@ -38,6 +39,8 @@ const describe = (event: TIntakePortalBudgetEvent) => {
       return `Aprovado: ${formatHours(event.hours)}`;
     case "rejected":
       return "Recusado";
+    case "cancelled":
+      return "Cancelado pela equipe";
   }
 };
 
@@ -56,7 +59,9 @@ function TimelineEvent(props: { event: TIntakePortalBudgetEvent; isLast: boolean
           {event.actor} · {formatDateTime(event.occurred_at)}
         </span>
       </p>
-      {event.kind === "rejected" && event.reason && <p className="text-12 text-secondary">Motivo: {event.reason}</p>}
+      {(event.kind === "rejected" || event.kind === "cancelled") && event.reason && (
+        <p className="text-12 text-secondary">Motivo: {event.reason}</p>
+      )}
       {event.kind === "revised" && event.note_changed && (
         <button
           type="button"

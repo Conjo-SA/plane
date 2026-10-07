@@ -18,7 +18,13 @@ from plane.app.serializers import IntakePortalSerializer
 from plane.app.views.base import BaseAPIView
 from plane.db.models import Intake, IntakeIssue, IntakePortal
 from plane.db.models.intake import SourceType, get_intake_portal_anchor
-from plane.utils.intake_portal import request_portal_budget, serialize_budget_context, serialize_portal_budget
+from plane.utils.intake_portal import (
+    cancel_portal_budget,
+    request_portal_budget,
+    serialize_budget_context,
+    serialize_portal_budget,
+)
+from plane.utils.uuid import is_valid_uuid
 
 EDITABLE_FIELDS = ["is_enabled", "title", "description", "success_message", "is_attachment_enabled"]
 
@@ -116,22 +122,26 @@ class IntakePortalEndpoint(BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+def get_portal_ticket(slug, project_id, issue_id):
+    """Only tickets that came from the portal have a requester who can approve."""
+    return (
+        IntakeIssue.objects.filter(
+            issue_id=issue_id,
+            project_id=project_id,
+            workspace__slug=slug,
+            source=SourceType.PORTAL,
+            source_email__isnull=False,
+        )
+        .select_related("issue")
+        .first()
+    )
+
+
 class IntakePortalBudgetEndpoint(BaseAPIView):
     """Hourly estimate the team sends to a portal requester for approval."""
 
     def get_portal_ticket(self, slug, project_id, issue_id):
-        """Only tickets that came from the portal have a requester who can approve."""
-        return (
-            IntakeIssue.objects.filter(
-                issue_id=issue_id,
-                project_id=project_id,
-                workspace__slug=slug,
-                source=SourceType.PORTAL,
-                source_email__isnull=False,
-            )
-            .select_related("issue")
-            .first()
-        )
+        return get_portal_ticket(slug, project_id, issue_id)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def get(self, request, slug, project_id, issue_id):
@@ -166,6 +176,35 @@ class IntakePortalBudgetEndpoint(BaseAPIView):
 
         budget, error = request_portal_budget(
             intake_issue, request.data.get("estimated_hours"), request.data.get("note"), actor_id=request.user.id
+        )
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serialize_portal_budget(budget), status=status.HTTP_200_OK)
+
+
+class IntakePortalBudgetCancelEndpoint(BaseAPIView):
+    """Conjo: the team withdraws a pending or rejected estimate (an approved one is final).
+
+    Same permission as sending an estimate. Body: ``budget_id`` (optional, defaults to the pending
+    estimate) and ``reason`` (optional, shown to the client).
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id, issue_id):
+        intake_issue = get_portal_ticket(slug, project_id, issue_id)
+        if intake_issue is None:
+            return Response(
+                {"error": "Este item não veio do portal, então não há orçamento para cancelar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        budget_id = request.data.get("budget_id")
+        if budget_id and not is_valid_uuid(str(budget_id)):
+            return Response({"error": "Orçamento não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        budget, error = cancel_portal_budget(
+            intake_issue, request.user.id, budget_id=budget_id, raw_reason=request.data.get("reason")
         )
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)

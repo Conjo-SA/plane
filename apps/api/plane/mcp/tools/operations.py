@@ -39,7 +39,9 @@ from plane.mcp.tools.handlers import (
 )
 from plane.mcp.tools.registry import register_tool
 from plane.utils.intake_portal import (
+    MAX_BUDGET_CANCELLATION_REASON_LENGTH,
     MAX_BUDGET_NOTE_LENGTH,
+    cancel_portal_budget,
     request_portal_budget,
     serialize_budget_context,
     serialize_portal_budget,
@@ -188,8 +190,9 @@ def create_intake_item(
 @register_tool(
     name="get_hours_estimate",
     description=(
-        "Situação do orçamento de horas de um chamado do portal: horas, nota, PENDING/APPROVED/REJECTED, quem "
-        "aprovou ou recusou e o motivo, e quem é o solicitante."
+        "Situação do orçamento de horas de um chamado do portal: horas, nota, PENDING/APPROVED/REJECTED/CANCELLED, "
+        "quem aprovou, recusou ou cancelou (e o motivo), o histórico de cada orçamento e quem é o solicitante. "
+        "can_cancel indica se o orçamento ainda pode ser cancelado (cancel_hours_estimate)."
     ),
     input_schema=_schema({**_WORKSPACE_SLUG_PROPERTY, **_WORK_ITEM_PROPERTY}, ["workspace_slug", "work_item"]),
     category="intake",
@@ -216,7 +219,8 @@ def get_hours_estimate(workspace_slug, work_item):
     description=(
         "Envia ao cliente o orçamento de horas de um chamado do portal (VISÍVEL AO CLIENTE): ele recebe e-mail "
         "e aprova ou recusa no portal. Se há um orçamento pendente, ele é revisado; senão, cria um novo (depois de "
-        "uma recusa, ou como orçamento adicional depois de uma aprovação — os aprovados se somam e nunca mudam). "
+        "uma recusa ou de um cancelamento, ou como orçamento adicional depois de uma aprovação — os aprovados se "
+        "somam e nunca mudam). Para retirar um orçamento sem mandar outro, use cancel_hours_estimate. "
         "Quando aprovado, itens 'evolution' debitam essas horas do pacote do cliente. A nota aceita parágrafos, "
         "listas com '-' ou '1.' e **negrito**."
     ),
@@ -245,6 +249,44 @@ def send_hours_estimate(workspace_slug, work_item, hours, note=""):
     return {
         "work_item": _issue_identifier(issue),
         "sent_to": ticket.source_email,
+        "estimate": serialize_portal_budget(budget),
+    }
+
+
+@register_tool(
+    name="cancel_hours_estimate",
+    description=(
+        "Cancela o orçamento de horas de um chamado do portal (VISÍVEL AO CLIENTE): o pendente, ou o último se "
+        "foi recusado. O cliente recebe e-mail avisando, o link de aprovação deixa de funcionar e o chamado volta a "
+        "aceitar um novo orçamento (send_hours_estimate). Orçamento APROVADO não pode ser cancelado (as horas já "
+        "foram registradas/debitadas): corrija com reverse_client_debit ou adjust_client_hours. Orçamento "
+        "cancelado nunca debita horas. O motivo (opcional) aparece para o cliente."
+    ),
+    input_schema=_schema(
+        {
+            **_WORKSPACE_SLUG_PROPERTY,
+            **_WORK_ITEM_PROPERTY,
+            "reason": _text_property(
+                "Motivo do cancelamento (opcional; aparece no portal e no e-mail)",
+                MAX_BUDGET_CANCELLATION_REASON_LENGTH,
+            ),
+        },
+        ["workspace_slug", "work_item"],
+    ),
+    category="intake",
+)
+def cancel_hours_estimate(workspace_slug, work_item, reason=""):
+    issue = _get_issue(workspace_slug, work_item)
+    ticket = _portal_ticket(issue)
+    if ticket is None:
+        raise MCPToolError(f"{_issue_identifier(issue)} não veio do portal, então não há orçamento para cancelar")
+    reason = _clean_text(reason, "reason", MAX_BUDGET_CANCELLATION_REASON_LENGTH)
+    budget, error = cancel_portal_budget(ticket, _mcp_actor().id, raw_reason=reason)
+    if error:
+        raise MCPToolError(error)
+    return {
+        "work_item": _issue_identifier(issue),
+        "notified": ticket.source_email,
         "estimate": serialize_portal_budget(budget),
     }
 

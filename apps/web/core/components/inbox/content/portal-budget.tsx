@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, Clock, Eye, History, Pencil, Plus, Send, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Clock, Eye, History, Pencil, Plus, Send, XCircle } from "lucide-react";
 import { observer } from "mobx-react";
 import { useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
@@ -56,11 +56,46 @@ const STATUS = {
     tone: "border-subtle bg-surface-2",
     iconTone: "text-tertiary",
   },
+  CANCELLED: {
+    label: "Cancelado",
+    icon: Ban,
+    tone: "border-subtle bg-layer-1",
+    iconTone: "text-tertiary",
+  },
 } as const;
 
-function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?: () => void }) {
-  const { budget, index, onEdit } = props;
+const readError = (error: unknown) => (error as { data?: { error?: string } })?.data?.error;
+
+type BudgetItemProps = {
+  budget: TIntakePortalBudget;
+  index: number;
+  onEdit?: () => void;
+  /** Cancels this estimate (pending or rejected only); rejects with the API message on failure. */
+  onCancel?: (reason: string) => Promise<void>;
+};
+
+function BudgetItem(props: BudgetItemProps) {
+  const { budget, index, onEdit, onCancel } = props;
   const [showTimeline, setShowTimeline] = useState(budget.status === "PENDING" && (budget.revision_count ?? 0) > 0);
+  const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const handleConfirmCancel = async () => {
+    if (!onCancel) return;
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      await onCancel(cancelReason.trim());
+      setIsConfirmingCancel(false);
+      setCancelReason("");
+    } catch (error) {
+      setCancelError(readError(error) || "Não foi possível cancelar o orçamento. Tente novamente.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
   const events = budget.events ?? [];
   const status = STATUS[budget.status];
   const Icon = status.icon;
@@ -69,9 +104,11 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?
       ? `por ${budget.approved_by_email} em ${formatDateTime(budget.approved_at)}`
       : budget.status === "REJECTED" && budget.rejected_at
         ? `por ${budget.rejected_by_email} em ${formatDateTime(budget.rejected_at)}`
-        : budget.requested_at
-          ? `${(budget.revision_count ?? 0) > 0 ? "atualizado" : "enviado"} em ${formatDateTime(budget.requested_at)}`
-          : "";
+        : budget.status === "CANCELLED" && budget.cancelled_at
+          ? `por ${budget.cancelled_by ?? "Equipe"} em ${formatDateTime(budget.cancelled_at)}`
+          : budget.requested_at
+            ? `${(budget.revision_count ?? 0) > 0 ? "atualizado" : "enviado"} em ${formatDateTime(budget.requested_at)}`
+            : "";
 
   return (
     <li className={cn("flex gap-3 rounded-md border px-3 py-2.5", status.tone)}>
@@ -91,9 +128,14 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?
           )}
         </p>
         {budget.note && <BudgetNote text={budget.note} />}
-        {budget.status === "REJECTED" && budget.rejection_reason && (
+        {budget.rejection_reason && (budget.status === "REJECTED" || budget.status === "CANCELLED") && (
           <p className="text-12 text-secondary">
             <span className="font-medium text-primary">Motivo da recusa:</span> {budget.rejection_reason}
+          </p>
+        )}
+        {budget.status === "CANCELLED" && budget.cancellation_reason && (
+          <p className="text-12 text-secondary">
+            <span className="font-medium text-primary">Motivo do cancelamento:</span> {budget.cancellation_reason}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-3 pt-0.5">
@@ -107,6 +149,19 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?
               Editar
             </button>
           )}
+          {onCancel && budget.can_cancel && !isConfirmingCancel && (
+            <button
+              type="button"
+              className="flex items-center gap-1 text-12 font-medium text-danger-primary hover:underline"
+              onClick={() => {
+                setCancelError(null);
+                setIsConfirmingCancel(true);
+              }}
+            >
+              <Ban className="size-3" />
+              Cancelar orçamento
+            </button>
+          )}
           {events.length > 1 && (
             <button
               type="button"
@@ -118,6 +173,46 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?
             </button>
           )}
         </div>
+        {isConfirmingCancel && onCancel && (
+          <div className="mt-1 space-y-2 rounded-md border border-danger-subtle bg-surface-1 p-2.5">
+            <p className="text-12 text-secondary">
+              {budget.status === "PENDING"
+                ? "O cliente não poderá mais aprovar nem recusar este orçamento e recebe um e-mail avisando do cancelamento. Depois você pode enviar um novo."
+                : "O orçamento recusado fica marcado como cancelado e o cliente recebe um e-mail avisando. Depois você pode enviar um novo."}
+            </p>
+            <TextArea
+              className="min-h-16 w-full resize-y text-13"
+              placeholder="Motivo do cancelamento para o cliente (opcional)"
+              value={cancelReason}
+              maxLength={1000}
+              onChange={(e) => setCancelReason(e.target.value)}
+            />
+            {cancelError && <p className="text-12 text-danger-primary">{cancelError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isCancelling}
+                onClick={() => {
+                  setIsConfirmingCancel(false);
+                  setCancelReason("");
+                  setCancelError(null);
+                }}
+              >
+                Voltar
+              </Button>
+              <Button
+                variant="error-fill"
+                size="sm"
+                loading={isCancelling}
+                prependIcon={<Ban />}
+                onClick={() => void handleConfirmCancel()}
+              >
+                Confirmar cancelamento
+              </Button>
+            </div>
+          </div>
+        )}
         {showTimeline && <BudgetTimeline events={events} className="pt-1" />}
       </div>
     </li>
@@ -172,11 +267,18 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
       await mutate();
       void globalMutate(getIssueTimeSWRKey(issueId));
     } catch (error) {
-      const message = (error as { data?: { error?: string } })?.data?.error;
-      setFormError(message || "Não foi possível enviar o orçamento. Tente novamente.");
+      setFormError(readError(error) || "Não foi possível enviar o orçamento. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Throws the API error so the estimate shows it next to its confirmation.
+  const handleCancel = async (budgetId: string, reason: string) => {
+    await intakePortalService.cancelBudget(workspaceSlug, projectId, issueId, { budget_id: budgetId, reason });
+    if (pending?.id === budgetId) setIsFormOpen(false);
+    await mutate();
+    void globalMutate(getIssueTimeSWRKey(issueId));
   };
 
   // Only tickets that came from the portal have a requester who can approve one.
@@ -187,7 +289,7 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
     ? "Editar orçamento pendente"
     : approvedCount > 0
       ? "Orçamento adicional"
-      : last?.status === "REJECTED"
+      : last?.status === "REJECTED" || last?.status === "CANCELLED"
         ? "Novo orçamento"
         : "Enviar orçamento";
   const formHint = pending
@@ -196,7 +298,9 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
       ? `Para escopo novo. As ${formatHours(approvedHours)} já aprovadas não mudam; este orçamento é aprovado à parte e soma ao total.`
       : last?.status === "REJECTED"
         ? "O cliente recusou o orçamento anterior. Envie um novo valor para ele responder."
-        : "O cliente recebe um e-mail e responde pelo portal. A aprovação é definitiva.";
+        : last?.status === "CANCELLED"
+          ? "O orçamento anterior foi cancelado. Envie um novo valor para o cliente responder."
+          : "O cliente recebe um e-mail e responde pelo portal. A aprovação é definitiva.";
 
   return (
     <div className={cn("relative space-y-3", className)}>
@@ -218,6 +322,7 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
               budget={budget}
               index={index}
               onEdit={!disabled && budget.status === "PENDING" ? () => openForm(true) : undefined}
+              onCancel={!disabled && budget.can_cancel ? (reason) => handleCancel(budget.id, reason) : undefined}
             />
           ))}
         </ol>

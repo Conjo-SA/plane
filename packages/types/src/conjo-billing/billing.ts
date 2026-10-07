@@ -25,7 +25,7 @@ export type TIssueTime = {
   total_minutes: number;
   kind: TWorkKind | null;
   budget: {
-    /** Sum of the approved estimates; without one, the pending (or latest) estimate. */
+    /** Sum of the approved estimates; without one, the pending (or latest) estimate. Cancelled ones are ignored. */
     hours: string;
     status: "PENDING" | "APPROVED" | "REJECTED";
     approved_by_email: string | null;
@@ -205,6 +205,7 @@ export type TClientTimelineEvent =
   | { at: string; type: "estimate_sent"; issue: TIssueRef; hours: string }
   | { at: string; type: "estimate_approved"; issue: TIssueRef; hours: string; by: string }
   | { at: string; type: "estimate_rejected"; issue: TIssueRef; hours: string; by: string; reason: string }
+  | { at: string; type: "estimate_cancelled"; issue: TIssueRef; hours: string; by: string; reason: string }
   | {
       at: string;
       type: "delivered";
