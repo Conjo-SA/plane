@@ -228,13 +228,13 @@ class GPTIntegrationEndpoint(BaseAPIView):
 
         if not api_key or not model or not provider:
             return Response(
-                {"error": "LLM provider API key and model are required"},
+                {"error": "A chave de API e o modelo do provedor de LLM são obrigatórios"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         task = request.data.get("task", False)
         if not task:
-            return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "A tarefa é obrigatória"}, status=status.HTTP_400_BAD_REQUEST)
 
         text, error = get_llm_response(
             task,
@@ -252,7 +252,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
         )
         if not text and error:
             return Response(
-                {"error": "An internal error has occurred."},
+                {"error": "Ocorreu um erro interno."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -277,13 +277,13 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
 
         if not api_key or not model or not provider:
             return Response(
-                {"error": "LLM provider API key and model are required"},
+                {"error": "A chave de API e o modelo do provedor de LLM são obrigatórios"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         task = request.data.get("task", False)
         if not task:
-            return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "A tarefa é obrigatória"}, status=status.HTTP_400_BAD_REQUEST)
 
         text, error = get_llm_response(
             task,
@@ -301,7 +301,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         )
         if not text and error:
             return Response(
-                {"error": "An internal error has occurred."},
+                {"error": "Ocorreu um erro interno."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

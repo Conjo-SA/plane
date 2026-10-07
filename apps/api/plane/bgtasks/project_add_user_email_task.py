@@ -55,7 +55,7 @@ def project_add_user_email(current_site, project_member_id, invitor_id):
         ) = get_email_configuration()
 
         # Set the subject
-        subject = "You have been invited to a Tasks project"
+        subject = "Você foi convidado para um projeto do Tasks"
 
         # Render the email template
         html_content = render_to_string("emails/notifications/project_addition.html", context)

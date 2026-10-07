@@ -591,7 +591,7 @@ class CycleArchiveUnarchiveEndpoint(BaseAPIView):
 
         if cycle.end_date >= timezone.now():
             return Response(
-                {"error": "Only completed cycles can be archived"},
+                {"error": "Apenas ciclos concluídos podem ser arquivados"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

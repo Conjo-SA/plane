@@ -74,7 +74,7 @@ class IntakePortalEndpoint(BaseAPIView):
         intake = Intake.objects.filter(workspace__slug=slug, project_id=project_id, is_default=True).first()
         if intake is None:
             return Response(
-                {"error": "Enable Intake for this project before creating a request form."},
+                {"error": "Habilite a Entrada neste projeto antes de criar um formulário de solicitação."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -93,7 +93,7 @@ class IntakePortalEndpoint(BaseAPIView):
     def patch(self, request, slug, project_id):
         portal = IntakePortal.objects.filter(workspace__slug=slug, project_id=project_id).first()
         if portal is None:
-            return Response({"error": "Request form not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Formulário de solicitação não encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
         if request.data.get("regenerate_anchor"):
             portal.anchor = get_intake_portal_anchor()

@@ -536,7 +536,7 @@ def notifications(
                                 entity_identifier=issue_id,
                                 entity_name="issue",
                                 project=project,
-                                message=f"You have been mentioned in the issue {issue.name}",
+                                message=f"Você foi mencionado(a) na tarefa {issue.name}",
                                 data={
                                     "issue": {
                                         "id": str(issue_id),
@@ -612,7 +612,7 @@ def notifications(
                             notification = create_mention_notification(
                                 project=project,
                                 issue=issue,
-                                notification_comment=f"You have been mentioned in the issue {issue.name}",
+                                notification_comment=f"Você foi mencionado(a) na tarefa {issue.name}",
                                 actor_id=actor_id,
                                 mention_id=mention_id,
                                 issue_id=issue_id,

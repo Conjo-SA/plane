@@ -30,7 +30,7 @@ class StateSerializer(BaseSerializer):
 
     def validate(self, attrs):
         if attrs.get("group") == StateGroup.TRIAGE.value:
-            raise serializers.ValidationError("Cannot create triage state")
+            raise serializers.ValidationError("Não é possível criar o estado de triagem")
         return attrs
 
 

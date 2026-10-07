@@ -79,7 +79,7 @@ class ProjectIssuesPublicEndpoint(BaseAPIView):
 
         deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
         project_id = deploy_board.entity_identifier
         slug = deploy_board.workspace.slug
@@ -141,7 +141,7 @@ class ProjectIssuesPublicEndpoint(BaseAPIView):
             if sub_group_by:
                 if group_by == sub_group_by:
                     return Response(
-                        {"error": "Group by and sub group by cannot have same parameters"},
+                        {"error": "Agrupar por e subagrupar por não podem ter os mesmos parâmetros"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 else:
@@ -259,7 +259,7 @@ class IssueCommentPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_comments_enabled:
             return Response(
-                {"error": "Comments are not enabled for this project"},
+                {"error": "Comentários não estão habilitados para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -298,7 +298,7 @@ class IssueCommentPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_comments_enabled:
             return Response(
-                {"error": "Comments are not enabled for this project"},
+                {"error": "Comentários não estão habilitados para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         comment = IssueComment.objects.get(pk=pk, actor=request.user)
@@ -322,7 +322,7 @@ class IssueCommentPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_comments_enabled:
             return Response(
-                {"error": "Comments are not enabled for this project"},
+                {"error": "Comentários não estão habilitados para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         comment = IssueComment.objects.get(pk=pk, actor=request.user)
@@ -368,7 +368,7 @@ class IssueReactionPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_reactions_enabled:
             return Response(
-                {"error": "Reactions are not enabled for this project board"},
+                {"error": "Reações não estão habilitadas neste projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -405,7 +405,7 @@ class IssueReactionPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_reactions_enabled:
             return Response(
-                {"error": "Reactions are not enabled for this project board"},
+                {"error": "Reações não estão habilitadas neste projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         issue_reaction = IssueReaction.objects.get(
@@ -453,7 +453,7 @@ class CommentReactionPublicViewSet(BaseViewSet):
 
         if not project_deploy_board.is_reactions_enabled:
             return Response(
-                {"error": "Reactions are not enabled for this board"},
+                {"error": "Reações não estão habilitadas neste quadro"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -489,7 +489,7 @@ class CommentReactionPublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if not project_deploy_board.is_reactions_enabled:
             return Response(
-                {"error": "Reactions are not enabled for this board"},
+                {"error": "Reações não estão habilitadas neste quadro"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

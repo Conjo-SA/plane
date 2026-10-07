@@ -174,7 +174,7 @@ class IntakePortalVerificationEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -212,7 +212,7 @@ class IntakePortalVerificationConfirmEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -237,7 +237,7 @@ class IntakePortalTicketsEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -312,7 +312,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -366,7 +366,7 @@ class IntakePortalTicketCommentEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -394,7 +394,7 @@ class IntakePortalTicketCommentEndpoint(BaseAPIView):
 
         attachment_ids = request.data.get("attachment_ids") or []
         if not isinstance(attachment_ids, list):
-            return Response({"error": "Invalid attachments"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Anexos inválidos"}, status=status.HTTP_400_BAD_REQUEST)
         if len(attachment_ids) > MAX_ATTACHMENTS:
             return Response(
                 {"error": f"Você pode anexar no máximo {MAX_ATTACHMENTS} arquivos."},
@@ -456,7 +456,7 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None or not portal.is_attachment_enabled:
             return Response(
-                {"error": "Attachments are not available for this request form."},
+                {"error": "Anexos não estão disponíveis para este formulário de solicitação."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -470,7 +470,7 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
 
         attachment_ids = request.data.get("attachment_ids") or []
         if not isinstance(attachment_ids, list) or not attachment_ids:
-            return Response({"error": "Invalid attachments"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Anexos inválidos"}, status=status.HTTP_400_BAD_REQUEST)
         if len(attachment_ids) > MAX_ATTACHMENTS:
             return Response(
                 {"error": f"Você pode anexar no máximo {MAX_ATTACHMENTS} arquivos."},
@@ -488,7 +488,7 @@ class IntakePortalTicketAttachmentEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -553,7 +553,7 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

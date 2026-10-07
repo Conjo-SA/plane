@@ -24,7 +24,7 @@ class InstanceWorkSpaceAvailabilityCheckEndpoint(BaseAPIView):
 
         if not slug or slug == "":
             return Response(
-                {"error": "Workspace Slug is required"},
+                {"error": "O slug do workspace é obrigatório"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -77,13 +77,13 @@ class InstanceWorkSpaceEndpoint(BaseAPIView):
 
             if not name or not slug:
                 return Response(
-                    {"error": "Both name and slug are required"},
+                    {"error": "Nome e slug são obrigatórios"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if len(name) > 80 or len(slug) > 48:
                 return Response(
-                    {"error": "The maximum length for name is 80 and for slug is 48"},
+                    {"error": "O tamanho máximo do nome é 80 caracteres e do slug é 48"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -105,6 +105,6 @@ class InstanceWorkSpaceEndpoint(BaseAPIView):
         except IntegrityError as e:
             if "already exists" in str(e):
                 return Response(
-                    {"slug": "The workspace with the slug already exists"},
+                    {"slug": "Já existe um workspace com este slug"},
                     status=status.HTTP_409_CONFLICT,
                 )

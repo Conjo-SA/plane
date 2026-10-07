@@ -278,7 +278,7 @@ class ComplexFilterBackend(filters.BaseFilterBackend):
             ve = translate_validation(fs.errors)
             raise DRFValidationError(
                 {
-                    "message": "Invalid filter parameters",
+                    "message": "Parâmetros de filtro inválidos",
                     "code": "invalid_filterset",
                     "errors": ve.detail,
                 }

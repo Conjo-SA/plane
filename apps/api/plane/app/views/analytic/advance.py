@@ -116,7 +116,7 @@ class AdvanceAnalyticsEndpoint(AdvanceAnalyticsBaseView):
                 self.get_work_items_stats(),
                 status=status.HTTP_200_OK,
             )
-        return Response({"message": "Invalid tab"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Aba inválida"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
@@ -166,7 +166,7 @@ class AdvanceAnalyticsStatsEndpoint(AdvanceAnalyticsBaseView):
                 status=status.HTTP_200_OK,
             )
 
-        return Response({"message": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Tipo inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
@@ -315,4 +315,4 @@ class AdvanceAnalyticsChartEndpoint(AdvanceAnalyticsBaseView):
                 status=status.HTTP_200_OK,
             )
 
-        return Response({"message": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Tipo inválido"}, status=status.HTTP_400_BAD_REQUEST)

@@ -24,23 +24,23 @@ class WorkspaceSerializer(BaseSerializer):
         # Check if the name contains a URL (kept consistent with the app-level
         # WorkSpaceSerializer so both workspace-create paths validate alike).
         if contains_url(value):
-            raise serializers.ValidationError("Name must not contain URLs")
+            raise serializers.ValidationError("O nome não pode conter URLs")
         # Reject symbol-only names like "-_________-" that have no letter or
         # digit. Mirrors the frontend HAS_ALPHANUMERIC_REGEX check so the rule
         # cannot be bypassed via a direct API call.
         if not has_alphanumeric(value):
             raise serializers.ValidationError(
-                "Name must contain at least one letter or number"
+                "O nome deve conter pelo menos uma letra ou número"
             )
         return value
 
     def validate_slug(self, value):
         # Check if the slug is restricted
         if value in RESTRICTED_WORKSPACE_SLUGS:
-            raise serializers.ValidationError("Slug is not valid")
+            raise serializers.ValidationError("O slug não é válido")
         # Check uniqueness case-insensitively
         if Workspace.objects.filter(slug__iexact=value).exists():
-            raise serializers.ValidationError("Slug is already in use")
+            raise serializers.ValidationError("O slug já está em uso")
         return value
 
     class Meta:

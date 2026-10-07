@@ -44,14 +44,14 @@ class AnalyticsEndpoint(BaseAPIView):
         # Check for x-axis and y-axis as thery are required parameters
         if not x_axis or not y_axis or x_axis not in VALID_ANALYTICS_FIELDS or y_axis not in VALID_YAXIS:
             return Response(
-                {"error": "x-axis and y-axis dimensions are required and the values should be valid"},
+                {"error": "As dimensões dos eixos X e Y são obrigatórias e os valores devem ser válidos"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # If segment is present it cannot be same as x-axis
         if segment and (segment not in VALID_ANALYTICS_FIELDS or x_axis == segment):
             return Response(
-                {"error": "Both segment and x axis cannot be same and segment should be valid"},
+                {"error": "O segmento e o eixo X não podem ser iguais, e o segmento deve ser válido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -200,7 +200,7 @@ class SavedAnalyticEndpoint(BaseAPIView):
 
         if not x_axis or not y_axis or x_axis not in VALID_ANALYTICS_FIELDS or y_axis not in VALID_YAXIS:
             return Response(
-                {"error": "x-axis and y-axis dimensions are required and the values should be valid"},
+                {"error": "As dimensões dos eixos X e Y são obrigatórias e os valores devem ser válidos"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -208,7 +208,7 @@ class SavedAnalyticEndpoint(BaseAPIView):
 
         if segment and (segment not in VALID_ANALYTICS_FIELDS or x_axis == segment):
             return Response(
-                {"error": "Both segment and x axis cannot be same and segment should be valid"},
+                {"error": "O segmento e o eixo X não podem ser iguais, e o segmento deve ser válido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -230,21 +230,21 @@ class ExportAnalyticsEndpoint(BaseAPIView):
         # Check for x-axis and y-axis as thery are required parameters
         if not x_axis or not y_axis or x_axis not in VALID_ANALYTICS_FIELDS or y_axis not in VALID_YAXIS:
             return Response(
-                {"error": "x-axis and y-axis dimensions are required and the values should be valid"},
+                {"error": "As dimensões dos eixos X e Y são obrigatórias e os valores devem ser válidos"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # If segment is present it cannot be same as x-axis
         if segment and (segment not in VALID_ANALYTICS_FIELDS or x_axis == segment):
             return Response(
-                {"error": "Both segment and x axis cannot be same and segment should be valid"},
+                {"error": "O segmento e o eixo X não podem ser iguais, e o segmento deve ser válido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         analytic_export_task.delay(email=request.user.email, data=request.data, slug=slug)
 
         return Response(
-            {"message": f"Once the export is ready it will be emailed to you at {str(request.user.email)}"},
+            {"message": f"Assim que a exportação estiver pronta, ela será enviada para {str(request.user.email)}"},
             status=status.HTTP_200_OK,
         )
 

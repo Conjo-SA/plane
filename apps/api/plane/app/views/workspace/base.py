@@ -93,7 +93,7 @@ class WorkSpaceViewSet(BaseViewSet):
 
             if DISABLE_WORKSPACE_CREATION == "1":
                 return Response(
-                    {"error": "Workspace creation is not allowed"},
+                    {"error": "A criação de workspaces não é permitida"},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
@@ -104,19 +104,19 @@ class WorkSpaceViewSet(BaseViewSet):
 
             if not name or not slug:
                 return Response(
-                    {"error": "Both name and slug are required"},
+                    {"error": "Nome e slug são obrigatórios"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if len(name) > 80 or len(slug) > 48:
                 return Response(
-                    {"error": "The maximum length for name is 80 and for slug is 48"},
+                    {"error": "O tamanho máximo do nome é 80 caracteres e do slug é 48"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if contains_url(name):
                 return Response(
-                    {"error": "Name cannot contain a URL"},
+                    {"error": "O nome não pode conter uma URL"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -161,7 +161,7 @@ class WorkSpaceViewSet(BaseViewSet):
         except IntegrityError as e:
             if "already exists" in str(e):
                 return Response(
-                    {"slug": "The workspace with the slug already exists"},
+                    {"slug": "Já existe um workspace com este slug"},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -246,7 +246,7 @@ class WorkSpaceAvailabilityCheckEndpoint(BaseAPIView):
 
         if not slug or slug == "":
             return Response(
-                {"error": "Workspace Slug is required"},
+                {"error": "O slug do workspace é obrigatório"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -378,7 +378,7 @@ class ExportWorkspaceUserActivityEndpoint(BaseAPIView):
 
     def post(self, request, slug, user_id):
         if not request.data.get("date"):
-            return Response({"error": "Date is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "A data é obrigatória"}, status=status.HTTP_400_BAD_REQUEST)
 
         user_activities = IssueActivity.objects.filter(
             ~Q(field__in=["comment", "vote", "reaction", "draft"]),

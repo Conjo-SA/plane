@@ -55,7 +55,7 @@ class WorkspaceInvitationsViewset(BaseViewSet):
         emails = request.data.get("emails", [])
         # Check if email is provided
         if not emails:
-            return Response({"error": "Emails are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Os e-mails são obrigatórios"}, status=status.HTTP_400_BAD_REQUEST)
 
         # check for role level of the requesting user
         requesting_user = WorkspaceMember.objects.get(workspace__slug=slug, member=request.user, is_active=True)
@@ -63,7 +63,7 @@ class WorkspaceInvitationsViewset(BaseViewSet):
         # Check if any invited user has an higher role
         if len([email for email in emails if int(email.get("role", 5)) > requesting_user.role]):
             return Response(
-                {"error": "You cannot invite a user with higher role"},
+                {"error": "Você não pode convidar um usuário com papel superior"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -80,7 +80,7 @@ class WorkspaceInvitationsViewset(BaseViewSet):
         if workspace_members:
             return Response(
                 {
-                    "error": "Some users are already member of workspace",
+                    "error": "Alguns usuários já são membros do workspace",
                     "workspace_users": WorkSpaceMemberSerializer(workspace_members, many=True).data,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -106,7 +106,7 @@ class WorkspaceInvitationsViewset(BaseViewSet):
             except ValidationError:
                 return Response(
                     {
-                        "error": f"Invalid email - {email} provided a valid email address is required to send the invite"  # noqa: E501
+                        "error": f"E-mail inválido: {email}. É necessário um endereço de e-mail válido para enviar o convite"  # noqa: E501
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -140,7 +140,7 @@ class WorkspaceInvitationsViewset(BaseViewSet):
                 },
             )
 
-        return Response({"message": "Emails sent successfully"}, status=status.HTTP_200_OK)
+        return Response({"message": "E-mails enviados com sucesso"}, status=status.HTTP_200_OK)
 
     def destroy(self, request, slug, pk):
         workspace_member_invite = WorkspaceMemberInvite.objects.get(pk=pk, workspace__slug=slug)
@@ -169,7 +169,7 @@ class WorkspaceJoinEndpoint(BaseAPIView):
         # Validate the token to verify the user received the invitation email
         if not token or workspace_invite.token != token:
             return Response(
-                {"error": "You do not have permission to join the workspace"},
+                {"error": "Você não tem permissão para entrar no workspace"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -179,12 +179,12 @@ class WorkspaceJoinEndpoint(BaseAPIView):
         # GET endpoint can steal the workspace membership (GHSA-4vj8-p63v-8p24).
         if not request.user.is_authenticated:
             return Response(
-                {"error": "Authentication required to accept workspace invitation"},
+                {"error": "É necessário estar autenticado para aceitar o convite do workspace"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         if request.user.email.lower() != workspace_invite.email.lower():
             return Response(
-                {"error": "You do not have permission to accept this invitation"},
+                {"error": "Você não tem permissão para aceitar este convite"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -236,18 +236,18 @@ class WorkspaceJoinEndpoint(BaseAPIView):
                     workspace_invite.delete()
 
                 return Response(
-                    {"message": "Workspace Invitation Accepted"},
+                    {"message": "Convite do workspace aceito"},
                     status=status.HTTP_200_OK,
                 )
 
             # Workspace invitation rejected
             return Response(
-                {"message": "Workspace Invitation was not accepted"},
+                {"message": "O convite do workspace não foi aceito"},
                 status=status.HTTP_200_OK,
             )
 
         return Response(
-            {"error": "You have already responded to the invitation request"},
+            {"error": "Você já respondeu a este convite"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

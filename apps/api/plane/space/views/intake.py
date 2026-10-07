@@ -58,7 +58,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if project_deploy_board.intake is None:
             return Response(
-                {"error": "Intake is not enabled for this Project Board"},
+                {"error": "A Entrada não está habilitada para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -109,12 +109,12 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if project_deploy_board.intake is None:
             return Response(
-                {"error": "Intake is not enabled for this Project Board"},
+                {"error": "A Entrada não está habilitada para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not request.data.get("issue", {}).get("name", False):
-            return Response({"error": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "O nome é obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check for valid priority
         if request.data.get("issue", {}).get("priority", "none") not in [
@@ -124,7 +124,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
             "urgent",
             "none",
         ]:
-            return Response({"error": "Invalid priority"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Prioridade inválida"}, status=status.HTTP_400_BAD_REQUEST)
 
         # get the triage state
         triage_state = State.triage_objects.filter(
@@ -182,7 +182,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if project_deploy_board.intake is None:
             return Response(
-                {"error": "Intake is not enabled for this Project Board"},
+                {"error": "A Entrada não está habilitada para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -195,7 +195,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         # Get the project member
         if str(intake_issue.created_by_id) != str(request.user.id):
             return Response(
-                {"error": "You cannot edit intake issues"},
+                {"error": "Você não pode editar tarefas da Entrada"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -243,7 +243,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if project_deploy_board.intake is None:
             return Response(
-                {"error": "Intake is not enabled for this Project Board"},
+                {"error": "A Entrada não está habilitada para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -265,7 +265,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
         if project_deploy_board.intake is None:
             return Response(
-                {"error": "Intake is not enabled for this Project Board"},
+                {"error": "A Entrada não está habilitada para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -278,7 +278,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
 
         if str(intake_issue.created_by_id) != str(request.user.id):
             return Response(
-                {"error": "You cannot delete intake issue"},
+                {"error": "Você não pode excluir tarefas da Entrada"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
