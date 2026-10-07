@@ -165,7 +165,7 @@ class IntakePortalBudgetEndpoint(BaseAPIView):
             )
 
         budget, error = request_portal_budget(
-            intake_issue, request.data.get("estimated_hours"), request.data.get("note")
+            intake_issue, request.data.get("estimated_hours"), request.data.get("note"), actor_id=request.user.id
         )
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)

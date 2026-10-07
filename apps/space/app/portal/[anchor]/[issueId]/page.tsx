@@ -17,6 +17,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import { reverse } from "lodash-es";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
@@ -31,6 +32,7 @@ import { getAttachmentPreviewKind } from "@plane/utils";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
 import { BudgetNote } from "@/components/portal/budget-note";
+import { BudgetTimeline } from "@/components/portal/budget-timeline";
 import { PortalChip } from "@/components/portal/chip";
 import { PortalBalanceAfterApproval } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
@@ -312,7 +314,7 @@ export default function PortalTicketDetailPage() {
   });
   const budget = ticket.budget ?? null;
   // Earlier estimates of the same ticket (the highlighted one is the pending or the latest).
-  const pastBudgets = (ticket.budgets ?? []).filter((item) => item.id !== budget?.id).toReversed();
+  const pastBudgets = reverse((ticket.budgets ?? []).filter((item) => item.id !== budget?.id));
   const approvedHours = ticket.approved_hours ?? 0;
   const isAdditional = !!budget && !budget.is_approved && !budget.is_rejected && approvedHours > 0;
   const budgetColor = budget?.is_approved ? "#15803D" : budget?.is_rejected ? "#B91C1C" : "#D97706";
@@ -375,11 +377,13 @@ export default function PortalTicketDetailPage() {
                     <div className="mt-3 min-w-0">
                       <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
                         <div>
-                          <p className="text-12 text-tertiary">{isAdditional
+                          <p className="text-12 text-tertiary">
+                            {isAdditional
                               ? "Horas adicionais"
                               : pastBudgets.some((item) => item.is_approved)
                                 ? "Horas deste orçamento"
-                                : "Horas orçadas"}</p>
+                                : "Horas orçadas"}
+                          </p>
                           <p className="text-20 leading-tight font-semibold text-primary">
                             {formatBudgetHours(budget.estimated_hours)}
                           </p>
@@ -402,6 +406,17 @@ export default function PortalTicketDetailPage() {
                         <div className="mt-3 rounded-md border border-subtle bg-surface-1 px-4 py-3">
                           <p className="mb-1.5 text-12 font-medium text-tertiary">Justificativa da equipe</p>
                           <BudgetNote text={budget.note} className="text-13" />
+                        </div>
+                      )}
+
+                      {(budget.events?.length ?? 0) > 1 && (
+                        <div className="mt-3">
+                          <p className="mb-1.5 text-12 font-medium text-tertiary">
+                            Histórico deste orçamento
+                            {(budget.revision_count ?? 0) > 0 &&
+                              ` · revisado ${budget.revision_count} ${budget.revision_count === 1 ? "vez" : "vezes"}`}
+                          </p>
+                          <BudgetTimeline events={budget.events ?? []} />
                         </div>
                       )}
 
@@ -544,6 +559,9 @@ export default function PortalTicketDetailPage() {
                           </span>
                         </p>
                         {item.note && <BudgetNote text={item.note} />}
+                        {(item.events?.length ?? 0) > 1 && (
+                          <BudgetTimeline events={item.events ?? []} className="pt-1" />
+                        )}
                         {item.is_rejected && item.rejection_reason && (
                           <p className="text-12 text-secondary">Motivo: {item.rejection_reason}</p>
                         )}

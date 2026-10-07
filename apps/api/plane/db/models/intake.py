@@ -207,3 +207,38 @@ class IntakePortalBudget(ProjectBaseModel):
 
     def __str__(self):
         return f"{self.estimated_hours}h <{self.status}>"
+
+
+class IntakePortalBudgetEvent(ProjectBaseModel):
+    """Timeline of an estimate (Conjo): sent, edited by the team, approved or rejected by the client.
+
+    Editing a pending estimate changes it in place; the event keeps what it was before, so the history
+    of values and notes is never lost.
+    """
+
+    SENT = "sent"
+    REVISED = "revised"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    KIND_CHOICES = ((SENT, "Enviado"), (REVISED, "Alterado"), (APPROVED, "Aprovado"), (REJECTED, "Recusado"))
+
+    budget = models.ForeignKey("db.IntakePortalBudget", related_name="events", on_delete=models.CASCADE)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    hours = models.DecimalField(max_digits=7, decimal_places=2)
+    note = models.TextField(blank=True)
+    previous_hours = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    previous_note = models.TextField(blank=True)
+    # The team member (sent/revised) or the client's e-mail (approved/rejected).
+    actor = models.ForeignKey("db.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    actor_email = models.EmailField(blank=True)
+    reason = models.TextField(blank=True)
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "IntakePortalBudgetEvent"
+        verbose_name_plural = "IntakePortalBudgetEvents"
+        db_table = "intake_portal_budget_events"
+        ordering = ("occurred_at", "created_at")
+
+    def __str__(self):
+        return f"{self.kind} {self.hours}h <{self.budget_id}>"

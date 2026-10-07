@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, Clock, Eye, Pencil, Plus, Send, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Eye, History, Pencil, Plus, Send, XCircle } from "lucide-react";
 import { observer } from "mobx-react";
 import { useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
@@ -18,6 +18,7 @@ import { cn } from "@plane/utils";
 import { getIssueTimeSWRKey } from "@/components/issues/issue-detail-widgets/time";
 // local imports
 import { BudgetNote } from "./budget-note";
+import { BudgetTimeline } from "./budget-timeline";
 
 const intakePortalService = new IntakePortalService();
 
@@ -57,8 +58,10 @@ const STATUS = {
   },
 } as const;
 
-function BudgetItem(props: { budget: TIntakePortalBudget; index: number }) {
-  const { budget, index } = props;
+function BudgetItem(props: { budget: TIntakePortalBudget; index: number; onEdit?: () => void }) {
+  const { budget, index, onEdit } = props;
+  const [showTimeline, setShowTimeline] = useState(budget.status === "PENDING" && (budget.revision_count ?? 0) > 0);
+  const events = budget.events ?? [];
   const status = STATUS[budget.status];
   const Icon = status.icon;
   const when =
@@ -67,7 +70,7 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number }) {
       : budget.status === "REJECTED" && budget.rejected_at
         ? `por ${budget.rejected_by_email} em ${formatDateTime(budget.rejected_at)}`
         : budget.requested_at
-          ? `enviado em ${formatDateTime(budget.requested_at)}`
+          ? `${(budget.revision_count ?? 0) > 0 ? "atualizado" : "enviado"} em ${formatDateTime(budget.requested_at)}`
           : "";
 
   return (
@@ -81,6 +84,11 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number }) {
             {status.label}
           </span>
           {when && <span className="text-11 text-tertiary">{when}</span>}
+          {(budget.revision_count ?? 0) > 0 && (
+            <span className="text-11 text-tertiary">
+              · alterado {budget.revision_count} {budget.revision_count === 1 ? "vez" : "vezes"}
+            </span>
+          )}
         </p>
         {budget.note && <BudgetNote text={budget.note} />}
         {budget.status === "REJECTED" && budget.rejection_reason && (
@@ -88,6 +96,29 @@ function BudgetItem(props: { budget: TIntakePortalBudget; index: number }) {
             <span className="font-medium text-primary">Motivo da recusa:</span> {budget.rejection_reason}
           </p>
         )}
+        <div className="flex flex-wrap items-center gap-3 pt-0.5">
+          {onEdit && budget.can_edit !== false && (
+            <button
+              type="button"
+              className="flex items-center gap-1 text-12 font-medium text-accent-primary hover:underline"
+              onClick={onEdit}
+            >
+              <Pencil className="size-3" />
+              Editar
+            </button>
+          )}
+          {events.length > 1 && (
+            <button
+              type="button"
+              className="flex items-center gap-1 text-12 text-secondary hover:text-primary"
+              onClick={() => setShowTimeline((value) => !value)}
+            >
+              <History className="size-3" />
+              {showTimeline ? "Esconder histórico" : "Ver histórico"}
+            </button>
+          )}
+        </div>
+        {showTimeline && <BudgetTimeline events={events} className="pt-1" />}
       </div>
     </li>
   );
@@ -153,14 +184,14 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
   if (!data?.is_portal_ticket) return null;
 
   const formTitle = pending
-    ? "Revisar o orçamento pendente"
+    ? "Editar orçamento pendente"
     : approvedCount > 0
       ? "Orçamento adicional"
       : last?.status === "REJECTED"
         ? "Novo orçamento"
         : "Enviar orçamento";
   const formHint = pending
-    ? "O cliente recebe o valor revisado por e-mail. O orçamento continua aguardando a resposta dele."
+    ? "A alteração fica no histórico do orçamento (com o valor e a justificativa anteriores) e o cliente recebe o orçamento revisado por e-mail."
     : approvedCount > 0
       ? `Para escopo novo. As ${formatHours(approvedHours)} já aprovadas não mudam; este orçamento é aprovado à parte e soma ao total.`
       : last?.status === "REJECTED"
@@ -182,18 +213,19 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
       {budgets.length > 0 && (
         <ol className="space-y-2">
           {budgets.map((budget, index) => (
-            <BudgetItem key={budget.id} budget={budget} index={index} />
+            <BudgetItem
+              key={budget.id}
+              budget={budget}
+              index={index}
+              onEdit={!disabled && budget.status === "PENDING" ? () => openForm(true) : undefined}
+            />
           ))}
         </ol>
       )}
 
       {!disabled && !isFormOpen && (
         <div className="flex flex-wrap gap-2">
-          {pending ? (
-            <Button variant="secondary" size="sm" prependIcon={<Pencil />} onClick={() => openForm(true)}>
-              Revisar orçamento pendente
-            </Button>
-          ) : budgets.length === 0 ? (
+          {pending ? null : budgets.length === 0 ? (
             <Button variant="primary" size="sm" prependIcon={<Send />} onClick={() => openForm(false)}>
               Enviar orçamento
             </Button>
@@ -265,7 +297,7 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
               prependIcon={<Send />}
               onClick={() => void handleSubmit()}
             >
-              {pending ? "Enviar revisão" : "Enviar ao cliente"}
+              {pending ? "Salvar e reenviar" : "Enviar ao cliente"}
             </Button>
           </div>
         </div>

@@ -8,6 +8,7 @@ from decimal import Decimal
 from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from rest_framework.test import APIClient
 
@@ -34,6 +35,13 @@ from plane.utils.intake_portal import note_blocks, note_to_html, request_portal_
 
 D = Decimal
 EMAIL = "maria@cliente.com.br"
+
+
+@pytest.fixture(autouse=True)
+def fresh_throttle():
+    # the portal endpoints are rate limited per client; each test starts clean
+    cache.clear()
+    yield
 
 
 @pytest.fixture(autouse=True)
@@ -187,6 +195,49 @@ class TestSeveralEstimates:
             f"/api/workspaces/{workspace.slug}/projects/{setup['project'].id}/issues/{setup['issue'].id}/time/"
         ).json()
         assert time["budget"]["hours"] == "8.00" and time["budget"]["pending_hours"] == "3.00"
+
+
+@pytest.mark.contract
+class TestEstimateTimeline:
+    def test_editing_keeps_the_previous_values_in_the_timeline(self, setup, create_user):
+        budget, _ = request_portal_budget(setup["ticket"], "8", "- tela A", actor_id=create_user.id)
+        request_portal_budget(setup["ticket"], "6", "- tela A\n- sem relatório", actor_id=create_user.id)
+        events = list(budget.events.order_by("occurred_at"))
+        assert [e.kind for e in events] == ["sent", "revised"]
+        assert events[1].previous_hours == D("8") and events[1].hours == D("6")
+        assert events[1].previous_note == "- tela A" and events[1].actor_id == create_user.id
+
+    def test_resending_without_changes_is_refused(self, setup):
+        send(setup, "8", "x")
+        budget, error = request_portal_budget(setup["ticket"], "8", "x")
+        assert budget is None and "Nada mudou" in error
+
+    def test_client_answer_closes_the_timeline_and_hides_team_names(self, setup, create_user):
+        request_portal_budget(setup["ticket"], "8", "", actor_id=create_user.id)
+        request_portal_budget(setup["ticket"], "7", "", actor_id=create_user.id)
+        assert answer(setup, "approve").status_code == 200
+        portal = setup["portal"]
+        token = create_session(EMAIL, portal.workspace_id, portal.project_id)
+        detail = (
+            APIClient()
+            .get(f"/api/public/intake-portal/{portal.anchor}/tickets/{setup['issue'].id}/", HTTP_X_PORTAL_TOKEN=token)
+            .json()
+        )
+        events = detail["budget"]["events"]
+        assert [e["kind"] for e in events] == ["sent", "revised", "approved"]
+        assert events[0]["actor"] == "Equipe" and events[2]["actor"] == EMAIL
+        assert events[1]["previous_hours"] == 8.0 and detail["budget"]["can_edit"] is False
+
+    def test_team_sees_who_edited(self, setup, create_user, session_client, workspace):
+        request_portal_budget(setup["ticket"], "8", "", actor_id=create_user.id)
+        url = (
+            f"/api/workspaces/{workspace.slug}/projects/{setup['project'].id}/issues/{setup['issue'].id}/portal-budget/"
+        )
+        response = session_client.post(url, {"estimated_hours": 5, "note": "menos"}, format="json")
+        assert response.status_code == 200
+        events = session_client.get(url).json()["budget"]["events"]
+        assert events[-1]["kind"] == "revised" and events[-1]["actor"] != "Equipe"
+        assert events[-1]["note_changed"] is True
 
 
 @pytest.mark.unit

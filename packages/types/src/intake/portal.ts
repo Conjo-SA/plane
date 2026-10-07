@@ -184,6 +184,25 @@ export type TIntakePortalBudget = {
   rejected_at: string | null;
   rejected_by_email: string | null;
   rejection_reason: string;
+  /** Conjo: sent, edited by the team (with the previous values), approved or rejected. */
+  events?: TIntakePortalBudgetEvent[];
+  revision_count?: number;
+  /** Only a pending estimate can be edited; an approved one is final. */
+  can_edit?: boolean;
+};
+
+export type TIntakePortalBudgetEvent = {
+  id: string;
+  kind: "sent" | "revised" | "approved" | "rejected";
+  hours: number;
+  note: string;
+  previous_hours: number | null;
+  previous_note: string;
+  note_changed: boolean;
+  /** Team member name (team view), "Equipe" (client view) or the client's e-mail. */
+  actor: string;
+  reason: string;
+  occurred_at: string;
 };
 
 /**

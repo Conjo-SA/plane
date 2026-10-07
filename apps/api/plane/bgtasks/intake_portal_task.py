@@ -175,6 +175,10 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
         log_exception(e)
 
 
+def _hours_label(value):
+    return f"{value:.2f}".rstrip("0").rstrip(".")
+
+
 @shared_task
 def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
     """Ask the requester to approve the hourly estimate of their ticket."""
@@ -196,6 +200,8 @@ def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
         if budget is None or budget.status != IntakePortalBudgetStatus.PENDING:
             return
         already_approved = approved_hours(list(budgets))
+        last_event = budget.events.order_by("-occurred_at").first()
+        revised_from = last_event.previous_hours if last_event and last_event.kind == "revised" else None
 
         portal_anchor = ""
         if isinstance(intake_issue.extra, dict):
@@ -219,8 +225,14 @@ def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
         link_html = (
             _portal_cta_html(effective_portal_url, "Revisar e aprovar no portal") if effective_portal_url else ""
         )
+        intro_html = (
+            f"<p>Revisamos o orçamento da sua solicitação <strong>{escape(issue.name)}</strong>"
+            f" (antes: {escape(_hours_label(revised_from))} horas).</p>"
+            if revised_from is not None
+            else f"<p>Preparamos um orçamento para a sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
+        )
         body = (
-            f"<p>Preparamos um orçamento para a sua solicitação <strong>{escape(issue.name)}</strong>.</p>"
+            f"{intro_html}"
             f"{additional_html}"
             '<p style="font-size:28px;font-weight:700;background:#f3f4f6;padding:16px 24px;'
             'border-radius:8px;text-align:center;margin:24px 0;">'
@@ -232,8 +244,8 @@ def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
         )
         send_transactional_email(
             intake_issue.source_email,
-            f"Aprovação de orçamento: {issue.name}",
-            _wrap("Orçamento aguardando sua aprovação", body),
+            f"{'Orçamento revisado' if revised_from is not None else 'Aprovação de orçamento'}: {issue.name}",
+            _wrap("Orçamento revisado" if revised_from is not None else "Orçamento aguardando sua aprovação", body),
         )
     except Exception as e:
         log_exception(e)

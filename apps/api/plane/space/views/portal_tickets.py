@@ -28,7 +28,12 @@ from plane.settings.storage import S3Storage
 from plane.utils.conjo_billing import can_approve_estimate
 from plane.utils.content_validator import validate_html_content
 from plane.utils.exception_logger import log_exception
-from plane.utils.intake_portal import current_budget, serialize_budget_context, serialize_portal_budget
+from plane.utils.intake_portal import (
+    current_budget,
+    record_budget_event,
+    serialize_budget_context,
+    serialize_portal_budget,
+)
 from plane.utils.mailjet import is_email_provider_configured
 from plane.utils.uuid import is_valid_uuid
 
@@ -336,7 +341,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
                 "is_attachment_enabled": portal.is_attachment_enabled,
                 "labels": serialize_ticket_labels(issue.id),
                 "assignees": serialize_ticket_assignees(issue.id),
-                **serialize_budget_context(issue.id),
+                **serialize_budget_context(issue.id, for_client=True),
                 "can_approve_budget": can_approve_estimate(intake_issue.issue, session.email),
                 "comments": serialize_ticket_comments(issue.id),
                 "attachments": serialize_ticket_attachments(anchor, issue.id),
@@ -608,6 +613,14 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
                     pk=budget.pk, status=IntakePortalBudgetStatus.PENDING
                 ).update(**decision_fields)
                 debit = None
+                if decided_count:
+                    budget.refresh_from_db()
+                    record_budget_event(
+                        budget,
+                        "approved" if is_approval else "rejected",
+                        actor_email=session.email,
+                        reason=reason,
+                    )
                 if decided_count and is_approval:
                     debit = debit_for_estimate(intake_issue.issue, budget.estimated_hours, session.email, budget=budget)
         except Exception as e:
@@ -658,4 +671,4 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             epoch=int(timezone.now().timestamp()),
         )
 
-        return Response(serialize_portal_budget(budget), status=status.HTTP_200_OK)
+        return Response(serialize_portal_budget(budget, for_client=True), status=status.HTTP_200_OK)

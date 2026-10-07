@@ -23,6 +23,7 @@ from .intake import (
     IntakeIssue,
     IntakePortal,
     IntakePortalBudget,
+    IntakePortalBudgetEvent,
     IntakePortalSession,
     IntakePortalVerification,
 )
