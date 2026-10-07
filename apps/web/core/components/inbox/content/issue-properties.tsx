@@ -18,6 +18,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import type { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
 import { ControlLink } from "@plane/ui";
 import { generateWorkItemLink, getDate, renderFormattedPayloadDate } from "@plane/utils";
+import { Building2 } from "lucide-react";
 import { observer } from "mobx-react";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
@@ -26,6 +27,7 @@ import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import type { TIssueOperations } from "@/components/issues/issue-detail";
+import { IssueClientSelect } from "@/components/issues/issue-detail/client";
 import { IssueLabel } from "@/components/issues/issue-detail/label";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
@@ -102,7 +104,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
               {issue?.state_id && (
                 <DropdownComponent
                   value={issue?.state_id}
-                  onChange={() => { }}
+                  onChange={() => {}}
                   projectId={projectId?.toString() ?? ""}
                   disabled
                   buttonVariant="transparent-with-text"
@@ -134,8 +136,9 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
                 }
                 className="group w-3/5 flex-grow"
                 buttonContainerClassName="w-full text-left"
-                buttonClassName={`text-13 justify-between ${(issue?.assignee_ids || [])?.length > 0 ? "" : "text-placeholder"
-                  }`}
+                buttonClassName={`text-13 justify-between ${
+                  (issue?.assignee_ids || [])?.length > 0 ? "" : "text-placeholder"
+                }`}
                 hideIcon={issue.assignee_ids?.length === 0}
                 dropdownArrow
                 dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
@@ -205,6 +208,26 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
                     onLabelUpdate={(val: string[]) =>
                       issue?.id && issueOperations.update(workspaceSlug, projectId, issue?.id, { label_ids: val })
                     }
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Conjo: client of the request, checked or fixed during triage */}
+            <div className="flex min-h-8 items-center gap-2">
+              <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                <Building2 className="h-4 w-4 flex-shrink-0" />
+                <span>Cliente</span>
+              </div>
+              <div className="flex h-full min-h-8 w-3/5 flex-grow items-center">
+                {issue?.id && (
+                  <IssueClientSelect
+                    className="w-full grow"
+                    workspaceSlug={workspaceSlug}
+                    projectId={projectId}
+                    issueId={issue.id}
+                    issueOperations={issueOperations}
+                    disabled={!isEditable}
                   />
                 )}
               </div>
