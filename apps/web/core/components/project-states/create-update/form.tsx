@@ -50,7 +50,7 @@ export function StateForm(props: TStateForm) {
     const name = formData?.name || undefined;
     if (!formData || !name) {
       let currentErrors: Partial<Record<keyof IState, string>> = {};
-      if (!name) currentErrors = { ...currentErrors, name: "Name is required" };
+      if (!name) currentErrors = { ...currentErrors, name: "O nome é obrigatório" };
       setErrors(currentErrors);
       return;
     }
@@ -77,7 +77,7 @@ export function StateForm(props: TStateForm) {
           id="name"
           type="text"
           name="name"
-          placeholder="Name"
+          placeholder="Nome"
           value={formData?.name}
           onChange={(e) => handleFormData("name", e.target.value)}
           hasError={(errors && Boolean(errors.name)) || false}
@@ -90,7 +90,7 @@ export function StateForm(props: TStateForm) {
         <TextArea
           id="description"
           name="description"
-          placeholder="Describe this state for your members."
+          placeholder="Descreva este estado para os membros."
           value={formData?.description}
           onChange={(e) => handleFormData("description", e.target.value)}
           hasError={(errors && Boolean(errors.description)) || false}
@@ -102,7 +102,7 @@ export function StateForm(props: TStateForm) {
             {buttonTitle}
           </Button>
           <Button type="button" variant="secondary" size="lg" disabled={buttonDisabled} onClick={onCancel}>
-            Cancel
+            Cancelar
           </Button>
         </div>
       </div>

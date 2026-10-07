@@ -69,7 +69,7 @@ export class InstanceStore implements IInstanceStore {
         this.isLoading = false;
         this.error = {
           status: "error",
-          message: "Failed to fetch instance info",
+          message: "Não foi possível carregar as informações da instância",
         };
       });
       throw error;

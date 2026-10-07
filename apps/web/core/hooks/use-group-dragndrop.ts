@@ -63,8 +63,8 @@ export const useGroupIssuesDragNDrop = (
   ) => {
     const errorToastProps = {
       type: TOAST_TYPE.ERROR,
-      title: "Error!",
-      message: "Error while updating work item",
+      title: "Erro!",
+      message: "Erro ao atualizar a tarefa",
     };
     const moduleKey = ISSUE_FILTER_DEFAULT_DATA["module"];
     const cycleKey = ISSUE_FILTER_DEFAULT_DATA["cycle"];
@@ -117,9 +117,9 @@ export const useGroupIssuesDragNDrop = (
       orderBy !== "sort_order"
     ).catch((err) => {
       setToast({
-        title: "Error!",
+        title: "Erro!",
         type: TOAST_TYPE.ERROR,
-        message: err?.detail ?? "Failed to perform this action",
+        message: err?.detail ?? "Não foi possível realizar esta ação",
       });
     });
   };

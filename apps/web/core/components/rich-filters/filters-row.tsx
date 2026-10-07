@@ -53,7 +53,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
   };
 
   const modalButtonConfig: Partial<TAddFilterButtonProps<K, E>["buttonConfig"]> = {
-    label: !hasAnyConditions ? "Filters" : null,
+    label: !hasAnyConditions ? "Filtros" : null,
   };
 
   const handleUpdate = useCallback(async () => {
@@ -96,7 +96,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           onClick={filter.clearFilters}
           data-ph-element={trackerElements?.clearFilter}
         >
-          {filter.clearFilterOptions?.label ?? "Clear all"}
+          {filter.clearFilterOptions?.label ?? "Limpar tudo"}
         </Button>
       </ElementTransition>
       <ElementTransition show={filter.canSaveView}>
@@ -106,7 +106,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           onClick={filter.saveView}
           data-ph-element={trackerElements?.saveView}
         >
-          {filter.saveViewOptions?.label ?? "Save view"}
+          {filter.saveViewOptions?.label ?? "Salvar visualização"}
         </Button>
       </ElementTransition>
       <ElementTransition show={filter.canUpdateView}>
@@ -118,7 +118,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           disabled={isUpdating}
           data-ph-element={trackerElements?.updateView}
         >
-          {isUpdating ? "Confirming" : (filter.updateViewOptions?.label ?? "Update view")}
+          {isUpdating ? "Confirmando" : (filter.updateViewOptions?.label ?? "Atualizar visualização")}
         </Button>
       </ElementTransition>
     </>

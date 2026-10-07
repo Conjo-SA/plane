@@ -85,7 +85,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
           onChange={(assigneeIds) => handleData("assignee_ids", assigneeIds)}
           buttonVariant={(data?.assignee_ids || [])?.length > 0 ? "transparent-without-text" : "border-with-text"}
           buttonClassName={(data?.assignee_ids || [])?.length > 0 ? "hover:bg-transparent" : ""}
-          placeholder="Assignees"
+          placeholder="Responsáveis"
           multiple
           tabIndex={getIndex("assignee_ids")}
         />
@@ -109,7 +109,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
             onChange={(date) => handleData("start_date", date ? renderFormattedPayloadDate(date) : "")}
             buttonVariant="border-with-text"
             minDate={minDate ?? undefined}
-            placeholder="Start date"
+            placeholder="Data de início"
             tabIndex={getIndex("start_date")}
           />
         </div>
@@ -122,7 +122,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
           onChange={(date) => handleData("target_date", date ? renderFormattedPayloadDate(date) : "")}
           buttonVariant="border-with-text"
           minDate={minDate ?? undefined}
-          placeholder="Due date"
+          placeholder="Prazo"
           tabIndex={getIndex("target_date")}
         />
       </div>
@@ -134,7 +134,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
             value={data?.cycle_id || ""}
             onChange={(cycleId) => handleData("cycle_id", cycleId)}
             projectId={projectId}
-            placeholder="Cycle"
+            placeholder="Ciclo"
             buttonVariant="border-with-text"
             tabIndex={getIndex("cycle_id")}
           />
@@ -148,7 +148,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
             value={data?.module_ids || []}
             onChange={(moduleIds) => handleData("module_ids", moduleIds)}
             projectId={projectId}
-            placeholder="Modules"
+            placeholder="Módulos"
             buttonVariant="border-with-text"
             multiple
             showCount
@@ -165,7 +165,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
             onChange={(estimatePoint) => handleData("estimate_point", estimatePoint)}
             projectId={projectId}
             buttonVariant="border-with-text"
-            placeholder="Estimate"
+            placeholder="Estimativa"
             tabIndex={getIndex("estimate_point")}
           />
         </div>
@@ -185,7 +185,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
                   <span className="whitespace-nowrap">
                     {selectedParentIssue
                       ? `${selectedParentIssue.project__identifier}-${selectedParentIssue.sequence_id}`
-                      : `Add parent`}
+                      : `Adicionar tarefa pai`}
                   </span>
                 </button>
               }
@@ -196,7 +196,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
             >
               <>
                 <CustomMenu.MenuItem className="!p-1" onClick={() => setParentIssueModalOpen(true)}>
-                  Change parent work item
+                  Alterar tarefa pai
                 </CustomMenu.MenuItem>
                 <CustomMenu.MenuItem
                   className="!p-1"
@@ -205,7 +205,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
                     setSelectedParentIssue(undefined);
                   }}
                 >
-                  Remove parent work item
+                  Remover tarefa pai
                 </CustomMenu.MenuItem>
               </>
             </CustomMenu>
@@ -216,7 +216,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
               onClick={() => setParentIssueModalOpen(true)}
             >
               <ParentPropertyIcon className="h-3 w-3 flex-shrink-0" />
-              <span className="whitespace-nowrap">Add parent</span>
+              <span className="whitespace-nowrap">Adicionar tarefa pai</span>
             </button>
           )}
 

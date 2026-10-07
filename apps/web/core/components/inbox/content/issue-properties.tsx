@@ -238,7 +238,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
               <div className="flex min-h-8 gap-2">
                 <div className="flex w-2/5 flex-shrink-0 gap-1 pt-2 text-13 text-tertiary">
                   <DuplicatePropertyIcon className="h-4 w-4 flex-shrink-0" />
-                  <span>Duplicate of</span>
+                  <span>Duplicada de</span>
                 </div>
 
                 <ControlLink

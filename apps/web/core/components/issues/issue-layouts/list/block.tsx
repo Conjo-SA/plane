@@ -195,10 +195,10 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           if (!isDraggingAllowed) {
             setToast({
               type: TOAST_TYPE.WARNING,
-              title: "Cannot move work item",
+              title: "Não é possível mover a tarefa",
               message: !canEditIssueProperties
-                ? "You are not allowed to move this work item"
-                : "Drag and drop is disabled for the current grouping",
+                ? "Você não tem permissão para mover esta tarefa"
+                : "Arrastar e soltar está desativado para o agrupamento atual",
             });
           }
         }}
@@ -211,9 +211,9 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 <Tooltip
                   tooltipContent={
                     <>
-                      Only work items within the current
+                      Somente tarefas do projeto
                       <br />
-                      project can be selected.
+                      atual podem ser selecionadas.
                     </>
                   }
                   disabled={issue.project_id === projectId}

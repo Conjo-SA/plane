@@ -44,8 +44,8 @@ export function handleOptionalAction<T>(
   } else {
     setToast({
       type: TOAST_TYPE.ERROR,
-      title: "Action not available",
-      message: `${actionName} action is not implemented.`,
+      title: "Ação indisponível",
+      message: `A ação "${actionName}" não está implementada.`,
     });
   }
 }
@@ -99,8 +99,8 @@ export const useIssueActionHandlers = (props: MenuItemFactoryProps) => {
     copyUrlToClipboard(workItemLink).then(() =>
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Link copied",
-        message: "Work item link copied to clipboard",
+        title: "Link copiado",
+        message: "Link da tarefa copiado para a área de transferência",
       })
     );
 
@@ -108,7 +108,7 @@ export const useIssueActionHandlers = (props: MenuItemFactoryProps) => {
 
   const handleIssueRestore = async () => {
     if (!handleRestore) {
-      handleOptionalAction(handleRestore, "Restore");
+      handleOptionalAction(handleRestore, "Restaurar");
       return;
     }
     await handleRestore()
@@ -116,15 +116,15 @@ export const useIssueActionHandlers = (props: MenuItemFactoryProps) => {
       .then(() => {
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Restore success",
-          message: "Your work item can be found in project work items.",
+          title: "Restaurada com sucesso",
+          message: "A tarefa está de volta às tarefas do projeto.",
         });
       })
       .catch(() => {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Work item could not be restored. Please try again.",
+          title: "Erro!",
+          message: "Não foi possível restaurar a tarefa. Tente novamente.",
         });
       });
   };
@@ -207,17 +207,17 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
 
   const createRemoveFromCycleMenuItem = (): TContextMenuItem => ({
     key: "remove-from-cycle",
-    title: "Remove from cycle",
+    title: "Remover do ciclo",
     icon: XCircle,
-    action: () => handleOptionalAction(handleRemoveFromView, "Remove from cycle"),
+    action: () => handleOptionalAction(handleRemoveFromView, "Remover do ciclo"),
     shouldRender: isEditingAllowed,
   });
 
   const createRemoveFromModuleMenuItem = (): TContextMenuItem => ({
     key: "remove-from-module",
-    title: "Remove from module",
+    title: "Remover do módulo",
     icon: XCircle,
-    action: () => handleOptionalAction(handleRemoveFromView, "Remove from module"),
+    action: () => handleOptionalAction(handleRemoveFromView, "Remover do módulo"),
     shouldRender: isEditingAllowed,
   });
 
@@ -228,14 +228,14 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
     icon: ArchiveIcon,
     className: "items-start",
     iconClassName: "mt-1",
-    action: () => handleOptionalAction(setArchiveIssueModal, "Archive", true),
+    action: () => handleOptionalAction(setArchiveIssueModal, "Arquivar", true),
     disabled: !isInArchivableGroup,
     shouldRender: isArchivingAllowed,
   });
 
   const createRestoreMenuItem = (): TContextMenuItem => ({
     key: "restore",
-    title: "Restore",
+    title: "Restaurar",
     icon: ArchiveRestoreIcon,
     action: actionHandlers.handleIssueRestore,
     shouldRender: isRestoringAllowed,

@@ -77,7 +77,7 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
   const handleSubmit = (selectedItem: string) => {
     if (!selectedItem || selectedItem.length === 0)
       return setToast({
-        title: "Error",
+        title: "Erro",
         type: TOAST_TYPE.ERROR,
       });
     onSubmit(selectedItem);
@@ -141,7 +141,7 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
           <input
             type="text"
             className="h-12 w-full border-0 bg-transparent pr-4 pl-11 text-primary outline-none focus:ring-0 sm:text-13"
-            placeholder="Search..."
+            placeholder="Buscar..."
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>

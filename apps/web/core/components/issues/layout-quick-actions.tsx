@@ -28,8 +28,8 @@ export const LayoutQuickActions = observer(function LayoutQuickActions(props: Pr
     copyUrlToClipboard(layoutLink).then(() => {
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Link copied",
-        message: `${storeType === "EPIC" ? "Epics" : "Work items"} link copied to clipboard.`,
+        title: "Link copiado",
+        message: `Link ${storeType === "EPIC" ? "dos epics" : "das tarefas"} copiado para a área de transferência.`,
       });
     });
 

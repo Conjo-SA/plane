@@ -70,14 +70,14 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
     );
 
     setPromiseToast(addToFavoritePromise, {
-      loading: "Adding module to favorites...",
+      loading: "Adicionando módulo aos favoritos...",
       success: {
-        title: "Success!",
-        message: () => "Module added to favorites.",
+        title: "Sucesso!",
+        message: () => "Módulo adicionado aos favoritos.",
       },
       error: {
-        title: "Error!",
-        message: () => "Couldn't add the module to favorites. Please try again.",
+        title: "Erro!",
+        message: () => "Não foi possível adicionar o módulo aos favoritos. Tente novamente.",
       },
     });
   };
@@ -94,14 +94,14 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
     );
 
     setPromiseToast(removeFromFavoritePromise, {
-      loading: "Removing module from favorites...",
+      loading: "Removendo módulo dos favoritos...",
       success: {
-        title: "Success!",
-        message: () => "Module removed from favorites.",
+        title: "Sucesso!",
+        message: () => "Módulo removido dos favoritos.",
       },
       error: {
-        title: "Error!",
-        message: () => "Couldn't remove the module from favorites. Please try again.",
+        title: "Erro!",
+        message: () => "Não foi possível remover o módulo dos favoritos. Tente novamente.",
       },
     });
   };
@@ -113,15 +113,15 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
       .then(() => {
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module updated successfully.",
+          title: "Sucesso!",
+          message: "Módulo atualizado com sucesso.",
         });
       })
       .catch((err) => {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.detail ?? "Module could not be updated. Please try again.",
+          title: "Erro!",
+          message: err?.detail ?? "Não foi possível atualizar o módulo. Tente novamente.",
         });
       });
   };
@@ -166,7 +166,7 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
           <ButtonAvatars showTooltip={false} userIds={moduleLeadDetails?.id} />
         </span>
       ) : (
-        <Tooltip tooltipContent="No lead">
+        <Tooltip tooltipContent="Sem líder">
           <SquareUser className="h-4 w-4 text-tertiary" />
         </Tooltip>
       )}

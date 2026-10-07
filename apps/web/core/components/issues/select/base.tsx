@@ -299,7 +299,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                     {/* TODO: translate here */}
                     {query.length ? (
                       <>
-                        + Add <span className="text-primary">&quot;{query}&quot;</span> to labels
+                        + Adicionar <span className="text-primary">&quot;{query}&quot;</span> às etiquetas
                       </>
                     ) : (
                       t("label.create.type")

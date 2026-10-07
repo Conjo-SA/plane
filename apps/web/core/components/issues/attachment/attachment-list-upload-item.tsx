@@ -43,7 +43,7 @@ export const IssueAttachmentsUploadItem = observer(function IssueAttachmentsUplo
         <span className="flex-shrink-0">
           <CircularProgressIndicator size={20} strokeWidth={3} percentage={uploadStatus.progress} />
         </span>
-        <div className="flex-shrink-0 text-13 font-medium">{uploadStatus.progress}% done</div>
+        <div className="flex-shrink-0 text-13 font-medium">{uploadStatus.progress}% concluído</div>
       </div>
     </div>
   );

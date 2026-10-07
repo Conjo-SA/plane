@@ -62,8 +62,8 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
           .catch(() => {
             setToast({
               type: TOAST_TYPE.ERROR,
-              title: "Error!",
-              message: "File could not be attached. Try uploading again.",
+              title: "Erro!",
+              message: "Não foi possível anexar o arquivo. Tente enviar novamente.",
             });
           })
           .finally(() => {
@@ -76,11 +76,11 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
 
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
+        title: "Erro!",
         message:
           totalAttachedFiles > 1
-            ? "Only one file can be uploaded at a time."
-            : `File must be of ${maxFileSize / 1024 / 1024}MB or less in size.`,
+            ? "Só é possível enviar um arquivo por vez."
+            : `O arquivo deve ter no máximo ${maxFileSize / 1024 / 1024}MB.`,
       });
       return;
     },

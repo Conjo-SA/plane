@@ -29,7 +29,7 @@ export const IssueNameActivity = observer(function IssueNameActivity(props: TIss
       activityId={activityId}
       ends={ends}
     >
-      <>set the name to {activity.new_value}.</>
+      <>definiu o nome como {activity.new_value}.</>
     </IssueActivityBlockComponent>
   );
 });
