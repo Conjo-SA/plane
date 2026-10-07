@@ -26,6 +26,7 @@ from plane.db.models import (
     Client,
     ClientContact,
     ClientContract,
+    ClientLabel,
     ClientProject,
     ClientTimelineNote,
     HourLedgerEntry,
@@ -33,6 +34,7 @@ from plane.db.models import (
     Issue,
     IssueWorkKind,
     IssueWorkLog,
+    Label,
     Project,
     ProjectMember,
     Workspace,
@@ -105,7 +107,7 @@ def _work_log(entry):
 def _issue_time_payload(issue):
     entries = IssueWorkLog.objects.filter(issue=issue).select_related("member")
     budget = IntakePortalBudget.objects.filter(issue_id=issue.id).first()
-    client = billing.client_for_project(issue.project_id)
+    client, via, label, ambiguous = billing.client_resolution(issue)
     debit = billing.open_debit(issue)
     return {
         "entries": [_work_log(entry) for entry in entries],
@@ -122,7 +124,8 @@ def _issue_time_payload(issue):
             else None
         ),
         "debited_hours": str(-debit.hours) if debit else None,
-        "client": {"id": str(client.id), "name": client.name} if client else None,
+        "client": {"id": str(client.id), "name": client.name, "via": via, "label": label} if client else None,
+        "client_ambiguous": ambiguous,
     }
 
 
@@ -290,13 +293,23 @@ def _client(client, detail=False):
         "is_active": client.is_active,
         "package": billing.package_summary(contract) if contract else None,
         "project_ids": [str(p) for p in client.client_projects.values_list("project_id", flat=True)],
+        "labels": [
+            {
+                "id": str(link.label_id),
+                "name": link.label.name,
+                "color": link.label.color,
+                "project_id": str(link.label.project_id),
+                "project_identifier": link.label.project.identifier,
+            }
+            for link in client.client_labels.select_related("label__project").order_by("label__name")
+        ],
     }
     if detail:
         month = billing.month_start(billing.today())
         project_ids = data["project_ids"]
         maintenance = (
             IssueWorkLog.objects.filter(
-                project_id__in=project_ids,
+                issue__in=billing.client_issues(client),
                 logged_on__gte=month,
                 issue__work_kind__kind__in=[IssueWorkKind.MAINTENANCE, IssueWorkKind.INTERNAL],
             ).aggregate(total=Sum("minutes"))["total"]
@@ -413,6 +426,57 @@ class ClientContactDetailEndpoint(BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ClientLabelOptionsEndpoint(BaseAPIView):
+    """Every label of the workspace's projects with the client it identifies (for the label picker)."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug):
+        owners = {
+            link.label_id: {"id": str(link.client_id), "name": link.client.name}
+            for link in ClientLabel.objects.filter(workspace__slug=slug).select_related("client")
+        }
+        labels = (
+            Label.objects.filter(
+                workspace__slug=slug,
+                project__isnull=False,
+                project__archived_at__isnull=True,
+                parent__isnull=True,
+            )
+            .select_related("project")
+            .order_by("project__name", "name")
+        )
+        return Response(
+            {
+                "labels": [
+                    {
+                        "id": str(label.id),
+                        "name": label.name,
+                        "color": label.color,
+                        "project_id": str(label.project_id),
+                        "project_identifier": label.project.identifier,
+                        "project_name": label.project.name,
+                        "client": owners.get(label.id),
+                    }
+                    for label in labels
+                ]
+            }
+        )
+
+
+class ClientLabelsEndpoint(BaseAPIView):
+    """Replace the labels that identify the client on boards shared by several clients."""
+
+    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
+    def put(self, request, slug, client_id):
+        client = _get_client(slug, client_id)
+        if client is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        error = set_client_labels(client, request.data.get("label_ids") or [])
+        if error:
+            return _error(error)
+        return Response(_client(client, detail=True))
+
+
 class ClientProjectsEndpoint(BaseAPIView):
     """Replace the projects covered by the client (a project belongs to one client)."""
 
@@ -442,6 +506,30 @@ def set_client_projects(client, raw_ids):
         for project in projects:
             if project.id not in existing:
                 ClientProject.objects.create(client=client, project=project, workspace_id=client.workspace_id)
+    return None
+
+
+def set_client_labels(client, raw_ids):
+    """Replace the labels that identify the client on shared boards. Returns an error or None."""
+    if not isinstance(raw_ids, list) or not all(is_valid_uuid(str(p)) for p in raw_ids):
+        return "Lista de etiquetas inválida."
+    labels = list(
+        Label.objects.filter(workspace_id=client.workspace_id, pk__in=[str(p) for p in raw_ids]).select_related(
+            "project"
+        )
+    )
+    if len(labels) != len(set(str(p) for p in raw_ids)):
+        return "Etiqueta não encontrada neste workspace."
+    taken = ClientLabel.objects.filter(label__in=labels).exclude(client=client).select_related("client", "label")
+    if taken:
+        names = ", ".join(f"{link.label.name} ({link.client.name})" for link in taken)
+        return f"Etiqueta já ligada a outro cliente: {names}."
+    with transaction.atomic():
+        ClientLabel.objects.filter(client=client).exclude(label__in=labels).delete()
+        existing = set(ClientLabel.objects.filter(client=client).values_list("label_id", flat=True))
+        for label in labels:
+            if label.id not in existing:
+                ClientLabel.objects.create(client=client, label=label, workspace_id=client.workspace_id)
     return None
 
 
@@ -620,7 +708,7 @@ class ClientLedgerEndpoint(BaseAPIView):
             for lot in HourLedgerEntry.objects.filter(contract=contract, period__isnull=False)
         }
         client = contract.client
-        visible = _visible_project_ids(request.user, slug, client.client_projects.values_list("project_id", flat=True))
+        visible = _visible_project_ids(request.user, slug, billing.client_project_ids(client))
         entries = []
         for entry, running in rows:
             data = _ledger_entry(entry, running, visible)
@@ -781,7 +869,7 @@ class ClientTimelineEndpoint(BaseAPIView):
             limit = max(5, min(100, int(request.query_params.get("limit") or 40)))
         except ValueError:
             limit = 40
-        visible = _visible_project_ids(request.user, slug, client.client_projects.values_list("project_id", flat=True))
+        visible = _visible_project_ids(request.user, slug, billing.client_project_ids(client))
         try:
             return Response(
                 build_timeline(client, types, request.query_params.get("before"), limit, visible_project_ids=visible)

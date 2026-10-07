@@ -32,7 +32,10 @@ export type TIssueTime = {
   } | null;
   /** Hours debited from the client's package for this work item (open debit), if any. */
   debited_hours: string | null;
-  client: { id: string; name: string } | null;
+  /** Client the work item counts for: by its label first, otherwise by its project. */
+  client: { id: string; name: string; via: "label" | "project"; label: string | null } | null;
+  /** True when the work item has labels of two different clients, so no client is applied. */
+  client_ambiguous: boolean;
 };
 
 export type TIssueTimeCreate = { duration: string; logged_on?: string; description?: string };
@@ -89,6 +92,21 @@ export type TClientContractCreate = Omit<TClientContract, "id" | "is_active"> & 
   opening_balance?: string;
 };
 
+/** A label (of a shared board, e.g. MAN) whose work items count for the client. */
+export type TClientLabel = {
+  id: string;
+  name: string;
+  color: string;
+  project_id: string;
+  project_identifier: string;
+};
+
+/** A workspace label offered in the picker, with the client it already belongs to (a label has one client). */
+export type TClientLabelOption = TClientLabel & {
+  project_name: string;
+  client: { id: string; name: string } | null;
+};
+
 export type TClientListItem = {
   id: string;
   name: string;
@@ -97,6 +115,7 @@ export type TClientListItem = {
   is_active: boolean;
   package: TPackageSummary | null;
   project_ids: string[];
+  labels: TClientLabel[];
 };
 
 export type TClient = TClientListItem & {

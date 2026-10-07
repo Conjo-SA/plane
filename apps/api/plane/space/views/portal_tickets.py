@@ -332,7 +332,7 @@ class IntakePortalTicketDetailEndpoint(BaseAPIView):
                 "labels": serialize_ticket_labels(issue.id),
                 "assignees": serialize_ticket_assignees(issue.id),
                 "budget": serialize_portal_budget(IntakePortalBudget.objects.filter(issue_id=issue.id).first()),
-                "can_approve_budget": can_approve_estimate(intake_issue.project_id, session.email),
+                "can_approve_budget": can_approve_estimate(intake_issue.issue, session.email),
                 "comments": serialize_ticket_comments(issue.id),
                 "attachments": serialize_ticket_attachments(anchor, issue.id),
             },
@@ -558,7 +558,7 @@ class IntakePortalTicketBudgetEndpoint(BaseAPIView):
             )
 
         is_approval = action == "approve"
-        if is_approval and not can_approve_estimate(intake_issue.project_id, session.email):
+        if is_approval and not can_approve_estimate(intake_issue.issue, session.email):
             return Response(
                 {
                     "error": "Seu e-mail não está autorizado a aprovar orçamentos. "

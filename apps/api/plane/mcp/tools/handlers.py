@@ -478,6 +478,7 @@ def _filtered_issues(
     state_group=None,
     parent=None,
     archived=False,
+    client=None,
 ):
     # The board: no requests still in triage, no drafts; archived items only when asked for.
     if archived:
@@ -509,6 +510,11 @@ def _filtered_issues(
         queryset = queryset.filter(state__group=state_group)
     if parent:
         queryset = queryset.filter(parent=_get_issue(workspace_slug, parent))
+    if client:
+        from plane.mcp.tools.clients import _get_client
+        from plane.utils.conjo_billing import client_issues
+
+        queryset = queryset.filter(id__in=client_issues(_get_client(workspace_slug, client)).values("id"))
     return queryset.order_by("-created_at").distinct()
 
 
@@ -539,6 +545,10 @@ def _filtered_issues(
                 "description": "Filter by state group (e.g. 'started' for everything in progress)",
             },
             "parent": {"type": "string", "description": "Only sub-work items of this work item"},
+            "client": {
+                "type": "string",
+                "description": "Only work items of this client (UUID, name or CNPJ), by label on shared boards",
+            },
             "archived": {"type": "boolean", "description": "List archived work items instead", "default": False},
             "limit": {
                 "type": "integer",
@@ -563,6 +573,7 @@ def list_work_items(
     module_id=None,
     state_group=None,
     parent=None,
+    client=None,
     archived=False,
     limit=50,
     offset=0,
@@ -593,6 +604,7 @@ def list_work_items(
         state_group=state_group,
         parent=parent,
         archived=bool(archived),
+        client=client,
     )
     total = queryset.count()
     issues = queryset[offset : offset + limit]

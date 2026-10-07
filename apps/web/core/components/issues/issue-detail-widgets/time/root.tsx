@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Clock, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Clock, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
@@ -106,6 +106,7 @@ function TimeContent(props: ContentProps) {
     <div className="flex flex-col gap-4 py-3">
       {budgetMinutes > 0 && <Progress total={data.total_minutes} budget={budgetMinutes} />}
       <WorkKindChips {...props} />
+      <ClientLine {...props} />
       <BudgetBox {...props} />
       {!props.disabled && <LogForm {...props} />}
       <EntryList {...props} />
@@ -179,6 +180,38 @@ function WorkKindChips(props: ContentProps) {
   );
 }
 
+/** Which client the work item counts for (by its label first, otherwise by its project). */
+function ClientLine(props: ContentProps) {
+  const { workspaceSlug, data } = props;
+  const { client } = data;
+
+  if (!client) {
+    if (!data.client_ambiguous) return null;
+    return (
+      <span className="flex items-start gap-1.5 text-12 text-warning-primary">
+        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+        Etiquetas de clientes diferentes: este card não desconta de nenhum pacote.
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-baseline gap-2 text-13 text-tertiary">
+      <span className="w-14 shrink-0">Cliente</span>
+      <span className="min-w-0">
+        <Link to={`/${workspaceSlug}/clients/${client.id}`} className="font-medium text-primary hover:underline">
+          {client.name}
+        </Link>
+        {client.via === "label" && client.label ? (
+          <span className="text-12"> · pela etiqueta {client.label}</span>
+        ) : client.via === "project" ? (
+          <span className="text-12"> · pelo projeto</span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
 function BudgetBox(props: ContentProps) {
   const { workspaceSlug, data } = props;
   const { budget, client, kind } = data;
@@ -204,7 +237,6 @@ function BudgetBox(props: ContentProps) {
       <div className="flex flex-col gap-1 rounded-md bg-layer-1 px-3.5 py-3 text-13 text-secondary">
         <span className="font-semibold text-primary">Orçamento</span>
         <span>Sem orçamento enviado para esta tarefa.</span>
-        {clientLink && <span>Cliente: {clientLink}</span>}
       </div>
     );
 

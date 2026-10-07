@@ -104,6 +104,7 @@ from .conjo_billing import (
     Client,
     ClientContact,
     ClientContract,
+    ClientLabel,
     ClientProject,
     ClientTimelineNote,
     HourLedgerEntry,

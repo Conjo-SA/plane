@@ -7,7 +7,8 @@
 - ``IssueWorkLog``: time spent on a work item.
 - ``IssueWorkKind``: whether a work item is an evolution (debits the client's package), maintenance
   or internal work (counted, never debited).
-- ``Client`` / ``ClientContact`` / ``ClientProject``: who the work is for.
+- ``Client`` / ``ClientContact`` / ``ClientProject`` / ``ClientLabel``: who the work is for (a whole
+  project, or a label on a board shared by several clients).
 - ``ClientContract``: a monthly hour package; each monthly credit is valid for ``accumulation_months``.
 - ``HourLedgerEntry``: the package statement (credits, debits, expirations, reversals, adjustments and
   excess hours). Credits are lots: debits consume the lot that expires first.
@@ -126,6 +127,31 @@ class ClientProject(ClientBaseModel):
 
     def __str__(self):
         return f"{self.project_id} <{self.client_id}>"
+
+
+class ClientLabel(ClientBaseModel):
+    """A label that identifies the client on a board shared by several clients (e.g. "RastroPOP" on MAN).
+
+    Work items with the label belong to the client; the label wins over the project's client.
+    """
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="client_labels")
+    label = models.ForeignKey("db.Label", on_delete=models.CASCADE, related_name="+")
+
+    class Meta:
+        verbose_name = "ClientLabel"
+        verbose_name_plural = "ClientLabels"
+        db_table = "conjo_client_labels"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["label"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="conjo_client_label_unique_label",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.label_id} <{self.client_id}>"
 
 
 class ClientContract(ClientBaseModel):

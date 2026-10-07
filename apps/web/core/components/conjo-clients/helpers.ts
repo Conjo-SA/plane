@@ -13,6 +13,7 @@ export const conjoBillingService = new ConjoBillingService();
 // SWR keys, shared by the pages and the header breadcrumbs.
 export const clientsKey = (workspaceSlug: string) => `CONJO_CLIENTS_${workspaceSlug}`;
 export const clientKey = (workspaceSlug: string, clientId: string) => `CONJO_CLIENT_${workspaceSlug}_${clientId}`;
+export const clientLabelOptionsKey = (workspaceSlug: string) => `CONJO_CLIENT_LABEL_OPTIONS_${workspaceSlug}`;
 
 /** The API answers errors as `{ error: "<mensagem pt-BR>" }`; the service rethrows the axios response. */
 export const getErrorMessage = (err: unknown, fallback: string): string =>

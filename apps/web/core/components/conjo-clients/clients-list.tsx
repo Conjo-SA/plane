@@ -137,12 +137,19 @@ export const ClientsList = observer(function ClientsList({ workspaceSlug }: Prop
 function ClientRow({ client, href }: { client: TClientListItem; href: string }) {
   const pkg = client.package;
   const projectsCount = client.project_ids.length;
+  const labelsCount = client.labels.length;
+  const scope = [
+    projectsCount === 0 ? null : projectsCount === 1 ? "1 projeto" : `${projectsCount} projetos`,
+    labelsCount === 0 ? null : labelsCount === 1 ? "1 etiqueta" : `${labelsCount} etiquetas`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <li className="border-b border-subtle last:border-b-0">
       <Link
         href={href}
         className={cn(
-          "grid grid-cols-1 items-center gap-x-6 gap-y-2 px-4 py-3 hover:bg-layer-1-hover sm:grid-cols-[minmax(0,1fr)_220px_110px]",
+          "grid grid-cols-1 items-center gap-x-6 gap-y-2 px-4 py-3 hover:bg-layer-1-hover sm:grid-cols-[minmax(0,1fr)_220px_160px]",
           { "opacity-60": !client.is_active }
         )}
       >
@@ -183,9 +190,7 @@ function ClientRow({ client, href }: { client: TClientListItem; href: string }) 
           )}
         </div>
 
-        <span className="text-12 text-secondary sm:text-right">
-          {projectsCount === 0 ? "Nenhum projeto" : projectsCount === 1 ? "1 projeto" : `${projectsCount} projetos`}
-        </span>
+        <span className="text-12 text-secondary sm:text-right">{scope || "Nenhum projeto"}</span>
       </Link>
     </li>
   );

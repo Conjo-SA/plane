@@ -13,6 +13,7 @@ import type {
   TClientContract,
   TClientContractCreate,
   TClientCreate,
+  TClientLabelOption,
   TClientLedger,
   TClientListItem,
   TClientTimeline,
@@ -133,6 +134,15 @@ export class ConjoBillingService extends APIService {
 
   async setClientProjects(workspaceSlug: string, clientId: string, projectIds: string[]): Promise<TClient> {
     return this.call(this.put(`${this.clientUrl(workspaceSlug, clientId)}/projects/`, { project_ids: projectIds }));
+  }
+
+  /** All top-level labels of the workspace's projects, with the client each one is linked to. */
+  async getClientLabelOptions(workspaceSlug: string): Promise<{ labels: TClientLabelOption[] }> {
+    return this.call(this.get(`/api/workspaces/${workspaceSlug}/clients/label-options/`));
+  }
+
+  async setClientLabels(workspaceSlug: string, clientId: string, labelIds: string[]): Promise<TClient> {
+    return this.call(this.put(`${this.clientUrl(workspaceSlug, clientId)}/labels/`, { label_ids: labelIds }));
   }
 
   async createContract(workspaceSlug: string, clientId: string, data: TClientContractCreate): Promise<TClientContract> {

@@ -52,7 +52,6 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
         HourLedgerEntry,
         IntakeIssue,
         IntakePortalBudget,
-        Issue,
         IssueDevelopmentLink,
         IssueWorkKind,
         IssueWorkLog,
@@ -63,10 +62,14 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
     cursor = datetime.datetime.fromisoformat(before) if before else None
     if cursor is not None and timezone.is_naive(cursor):
         cursor = _aware(cursor)
-    project_ids = list(client.client_projects.values_list("project_id", flat=True))
+    from plane.utils.conjo_billing import client_issues, client_project_ids
+
+    # The client's work items: by label on shared boards, by project otherwise.
+    project_ids = [p for p in client_project_ids(client)]
     if visible_project_ids is not None:
         project_ids = [p for p in project_ids if str(p) in visible_project_ids]
     visible = {str(p) for p in project_ids}
+    issues = client_issues(client).filter(project_id__in=project_ids)
     events = []
 
     def add(at, kind, data):
@@ -114,7 +117,7 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
 
     if project_ids and TYPE_REQUESTS in wanted:
         requests = (
-            IntakeIssue.objects.filter(project_id__in=project_ids, source=SourceType.PORTAL)
+            IntakeIssue.objects.filter(issue__in=issues, source=SourceType.PORTAL)
             .select_related("issue__project")
             .order_by("-created_at")[: limit * 2]
         )
@@ -127,7 +130,7 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
                     "requester": (request.extra or {}).get("requester_name") or request.source_email or "",
                 },
             )
-        for budget in IntakePortalBudget.objects.filter(project_id__in=project_ids).select_related("issue__project"):
+        for budget in IntakePortalBudget.objects.filter(issue__in=issues).select_related("issue__project"):
             base = {"issue": _issue_ref(budget.issue), "hours": str(budget.estimated_hours)}
             if budget.requested_at:
                 add(budget.requested_at, "estimate_sent", base)
@@ -142,9 +145,7 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
 
     if project_ids and TYPE_DELIVERIES in wanted:
         done = (
-            Issue.objects.filter(project_id__in=project_ids, completed_at__isnull=False)
-            .select_related("project")
-            .order_by("-completed_at")[: limit * 2]
+            issues.filter(completed_at__isnull=False).select_related("project").order_by("-completed_at")[: limit * 2]
         )
         done = list(done)
         minutes = dict(
@@ -168,7 +169,7 @@ def build_timeline(client, types=None, before=None, limit=40, visible_project_id
             )
         merged = (
             IssueDevelopmentLink.objects.filter(
-                project_id__in=project_ids,
+                issue__in=issues,
                 kind=IssueDevelopmentLink.KIND_PULL_REQUEST,
                 state="merged",
                 event_at__isnull=False,

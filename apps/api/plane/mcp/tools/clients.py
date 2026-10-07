@@ -92,7 +92,7 @@ def _project_member(issue, member):
 
 
 def _time_payload(issue):
-    data = billing_views._issue_time_payload(issue)
+    data = billing_views._issue_time_payload(issue)  # includes the client (by label or project)
     data["work_item"] = _issue_identifier(issue)
     data["total"] = billing.format_minutes(data["total_minutes"])
     return data
@@ -268,7 +268,7 @@ def time_report(workspace_slug, project=None, client=None, from_date=None, to_da
         scope["project"] = project_instance.identifier
     if client:
         client_instance = _get_client(workspace_slug, client)
-        logs = logs.filter(project_id__in=client_instance.client_projects.values_list("project_id", flat=True))
+        logs = logs.filter(issue__in=billing.client_issues(client_instance))
         scope["client"] = client_instance.name
     fields = {
         "member": ("member__email", "member__display_name"),
@@ -542,6 +542,53 @@ def set_client_projects(workspace_slug, client, projects):
         raise MCPToolError("'projects' must be a list")
     project_ids = [str(_get_project(workspace_slug, project).id) for project in projects]
     error = billing_views.set_client_projects(instance, project_ids)
+    if error:
+        raise MCPToolError(error)
+    return billing_views._client(instance, detail=True)
+
+
+def _resolve_label(workspace_slug, ref):
+    """A label by UUID or as 'PROJECT/Label name' (e.g. 'MAN/RastroPOP')."""
+    from plane.db.models import Label
+
+    labels = Label.objects.filter(workspace__slug=workspace_slug, project__isnull=False)
+    if _is_uuid(ref):
+        label = labels.filter(pk=ref).first()
+    else:
+        project_ref, _, name = str(ref or "").partition("/")
+        if not name:
+            raise MCPToolError(f"Label '{ref}': use 'PROJECT/Label name', e.g. 'MAN/RastroPOP', or the label UUID")
+        project = _get_project(workspace_slug, project_ref)
+        label = labels.filter(project=project, name__iexact=name.strip()).first()
+    if label is None:
+        raise MCPToolError(f"Label '{ref}' does not exist")
+    return label
+
+
+@register_tool(
+    name="set_client_labels",
+    description=(
+        "Set the labels that identify a client on boards shared by several clients (e.g. 'MAN/RastroPOP'). "
+        "Work items with the label belong to the client (the label wins over the project's client); requests "
+        "from the client's registered contacts arrive with the label. Replaces the list; a label belongs to one "
+        "client only."
+    ),
+    input_schema=_schema(
+        {
+            **_WORKSPACE_SLUG_PROPERTY,
+            **_CLIENT_PROPERTY,
+            "labels": {"type": "array", "items": {"type": "string"}, "description": "'PROJECT/Label' or label UUIDs"},
+        },
+        ["workspace_slug", "client", "labels"],
+    ),
+    category="clients",
+)
+def set_client_labels(workspace_slug, client, labels):
+    instance = _get_client(workspace_slug, client)
+    if not isinstance(labels, list):
+        raise MCPToolError("'labels' must be a list")
+    label_ids = [str(_resolve_label(workspace_slug, ref).id) for ref in labels]
+    error = billing_views.set_client_labels(instance, label_ids)
     if error:
         raise MCPToolError(error)
     return billing_views._client(instance, detail=True)

@@ -80,10 +80,12 @@ export const ClientDetail = observer(function ClientDetail({ workspaceSlug, clie
 
   const base = `/${workspaceSlug}/clients/${client.id}`;
   const projectsCount = client.projects.length;
+  const labelsCount = client.labels.length;
   const subtitle = [
     client.document ? `CNPJ ${client.document}` : null,
     client.created_at ? `cliente desde ${formatMonthYear(client.created_at)}` : null,
     projectsCount === 1 ? "1 projeto" : `${projectsCount} projetos`,
+    labelsCount === 0 ? null : labelsCount === 1 ? "1 etiqueta" : `${labelsCount} etiquetas`,
   ]
     .filter(Boolean)
     .join(" · ");

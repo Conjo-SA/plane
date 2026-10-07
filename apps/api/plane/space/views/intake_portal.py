@@ -186,6 +186,12 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         label = resolve_portal_label(portal, tag)
         if tag and label is None:
             return Response({"error": "Invalid tag"}, status=status.HTTP_400_BAD_REQUEST)
+        if label is None:
+            # Conjo: on a board shared by several clients, a registered contact's request arrives with
+            # their client's label even when they used the generic link.
+            from plane.utils.conjo_billing import label_for_requester
+
+            label = label_for_requester(portal.project_id, requester_email)
 
         attachment_ids = request.data.get("attachment_ids") or []
         if not isinstance(attachment_ids, list):

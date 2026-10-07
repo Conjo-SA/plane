@@ -22,7 +22,7 @@ from zoneinfo import ZoneInfo
 # Django imports
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 ZERO = Decimal("0")
@@ -136,14 +136,74 @@ def active_contract(client, on=None):
 
 
 def client_for_project(project_id):
+    """The client a whole project belongs to (projects dedicated to one client)."""
     from plane.db.models import ClientProject
 
     link = ClientProject.objects.filter(project_id=project_id).select_related("client").first()
     return link.client if link else None
 
 
-def contract_for_issue(issue, on=None):
+def clients_for_project(project_id):
+    """Clients with work in a project: the project's own client and the clients of its labels (shared boards)."""
+    from plane.db.models import Client
+
+    return Client.objects.filter(
+        Q(client_projects__project_id=project_id, client_projects__deleted_at__isnull=True)
+        | Q(client_labels__label__project_id=project_id, client_labels__deleted_at__isnull=True)
+    ).distinct()
+
+
+def client_resolution(issue):
+    """Who a work item is for: ``(client, via, label_name, ambiguous)``.
+
+    A label linked to a client wins (a board shared by several clients, like MAN, tells them apart by
+    label); otherwise the client of the whole project. Labels of two different clients are ambiguous:
+    no client is applied, so nothing is debited by guesswork.
+    """
+    from plane.db.models import ClientLabel, IssueLabel
+
+    label_ids = IssueLabel.objects.filter(issue_id=issue.id).values("label_id")
+    links = {}
+    for link in ClientLabel.objects.filter(label_id__in=label_ids).select_related("client", "label"):
+        links.setdefault(link.client_id, link)
+    if len(links) > 1:
+        return None, None, None, True
+    if links:
+        link = next(iter(links.values()))
+        return link.client, "label", link.label.name, False
     client = client_for_project(issue.project_id)
+    if client is not None:
+        return client, "project", None, False
+    return None, None, None, False
+
+
+def client_for_issue(issue):
+    return client_resolution(issue)[0]
+
+
+def client_issues(client):
+    """Work items of a client (same rule as ``client_resolution``), as a queryset usable in subqueries."""
+    from plane.db.models import ClientLabel, Issue, IssueLabel
+
+    own_labels = ClientLabel.objects.filter(client=client).values("label_id")
+    other_labels = ClientLabel.objects.exclude(client=client).values("label_id")
+    with_own = IssueLabel.objects.filter(label_id__in=own_labels).values("issue_id")
+    with_other = IssueLabel.objects.filter(label_id__in=other_labels).values("issue_id")
+    projects = client.client_projects.values("project_id")
+    return Issue.objects.filter((Q(id__in=with_own) | Q(project_id__in=projects)) & ~Q(id__in=with_other))
+
+
+def client_project_ids(client):
+    """Projects where the client has work: its own projects and the projects of its labels."""
+    from plane.db.models import ClientLabel
+
+    own = set(client.client_projects.values_list("project_id", flat=True))
+    shared = set(ClientLabel.objects.filter(client=client).values_list("label__project_id", flat=True))
+    return own | shared
+
+
+def contract_for_issue(issue, on=None):
+    client = client_for_issue(issue)
     return active_contract(client, on) if client else None
 
 
@@ -610,27 +670,80 @@ def statement(contract, start=None, end=None):
     return rows
 
 
-def can_approve_estimate(project_id, email):
+def can_approve_estimate(issue, email):
     """Approving debits the client's package, so only contacts marked "can approve" may do it.
 
-    Projects without a client keep the original rule (whoever opened the ticket decides).
+    Work items without a client keep the original rule (whoever opened the ticket decides).
     """
     from plane.db.models import ClientContact
 
-    client = client_for_project(project_id)
+    client = client_for_issue(issue)
     if client is None:
         return True
     return bool(email) and ClientContact.objects.filter(client=client, email__iexact=email, can_approve=True).exists()
 
 
-def portal_package(project_id, email):
-    """Package numbers for the public portal, only for a contact registered on the client."""
+def client_for_contact(project_id, email):
+    """The client of a requester in a project, by their registered e-mail (None when unknown or ambiguous)."""
     from plane.db.models import ClientContact
 
-    client = client_for_project(project_id)
-    if client is None or not email:
+    if not email:
         return None
-    if not ClientContact.objects.filter(client=client, email__iexact=email).exists():
+    client_ids = set(
+        ClientContact.objects.filter(email__iexact=email, client__in=clients_for_project(project_id)).values_list(
+            "client_id", flat=True
+        )
+    )
+    if len(client_ids) != 1:
+        return None
+    from plane.db.models import Client
+
+    return Client.objects.filter(pk=client_ids.pop()).first()
+
+
+def label_for_requester(project_id, email):
+    """The label that identifies a requester's client on a shared board, so the ticket arrives tagged.
+
+    Only when the requester is a registered contact and their client has exactly one label there.
+    """
+    from plane.db.models import ClientLabel
+
+    client = client_for_contact(project_id, email)
+    if client is None:
+        return None
+    labels = list(ClientLabel.objects.filter(client=client, label__project_id=project_id).select_related("label")[:2])
+    return labels[0].label if len(labels) == 1 else None
+
+
+@transaction.atomic
+def resync_issue_client(issue, on=None):
+    """After a work item changes client (its labels changed): the debit follows it.
+
+    The open debit goes back to the old package and the approved estimate is debited from the new one.
+    """
+    from plane.db.models import IntakePortalBudget, IssueWorkKind
+
+    if work_kind(issue) in (IssueWorkKind.MAINTENANCE, IssueWorkKind.INTERNAL):
+        return None
+    budget = IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").first()
+    debit = open_debit(issue)
+    target = contract_for_issue(issue, on)
+    if debit is not None and target is not None and debit.contract_id == target.id:
+        return debit
+    if debit is not None:
+        reverse_debit(debit, note="O cliente da tarefa mudou: horas devolvidas a este pacote", on=on)
+    if target is not None and budget is not None:
+        return debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "", on=on)
+    return None
+
+
+def portal_package(project_id, email):
+    """Package numbers for the public portal, only for a contact registered on the client.
+
+    On a board shared by several clients the requester's e-mail tells which client (and package) is theirs.
+    """
+    client = client_for_contact(project_id, email)
+    if client is None:
         return None
     contract = active_contract(client)
     if contract is None:

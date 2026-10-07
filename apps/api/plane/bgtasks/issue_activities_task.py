@@ -1504,6 +1504,18 @@ def create_intake_activity(
         )
 
 
+def resync_client_after_label_change(issue_id):
+    """Move the open debit to the package of the work item's (new) client. Never breaks the activity log."""
+    from plane.utils.conjo_billing import resync_issue_client
+
+    try:
+        issue = Issue.objects.filter(pk=issue_id).first()
+        if issue is not None:
+            resync_issue_client(issue)
+    except Exception as e:
+        log_exception(e)
+
+
 def notify_intake_portal_requester(issue_id, actor_id, activities):
     """Email the external requester when their portal ticket changes.
 
@@ -1653,6 +1665,10 @@ def issue_activity(
             project_id=project_id,
             activities=issue_activities_created,
         )
+
+        # Conjo: labels tell the client on shared boards; when they change, the hour debit follows.
+        if any(activity.field == "labels" for activity in issue_activities_created):
+            resync_client_after_label_change(issue_id)
 
         if notification:
             notifications.delay(
