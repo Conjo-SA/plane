@@ -109,7 +109,7 @@ export function IssueCommentToolbar(props: Props) {
               disabled={isCommentEmpty}
               loading={isSubmitting}
             >
-              Comment
+              Comentar
             </Button>
           </div>
         )}

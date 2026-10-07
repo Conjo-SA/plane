@@ -206,13 +206,13 @@ export const formatTextList = (TextArray: string[]): string => {
     case 1:
       return TextArray[0];
     case 2:
-      return `${TextArray[0]} and ${TextArray[1]}`;
+      return `${TextArray[0]} e ${TextArray[1]}`;
     case 3:
-      return `${TextArray.slice(0, 2).join(", ")}, and ${TextArray[2]}`;
+      return `${TextArray.slice(0, 2).join(", ")} e ${TextArray[2]}`;
     case 4:
-      return `${TextArray.slice(0, 3).join(", ")}, and ${TextArray[3]}`;
+      return `${TextArray.slice(0, 3).join(", ")} e ${TextArray[3]}`;
     default:
-      return `${TextArray.slice(0, 3).join(", ")}, and +${count - 3} more`;
+      return `${TextArray.slice(0, 3).join(", ")} e mais ${count - 3}`;
   }
 };
 

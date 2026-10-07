@@ -63,7 +63,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
             member = self.get_queryset().get(pk=pk)
         except WorkspaceMember.DoesNotExist:
             return Response(
-                {"error": "Workspace member not found"},
+                {"error": "Membro do workspace não encontrado"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -80,7 +80,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         )
         if request.user.id == workspace_member.member_id:
             return Response(
-                {"error": "You cannot update your own role"},
+                {"error": "Você não pode alterar seu próprio papel"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -109,13 +109,13 @@ class WorkSpaceMemberViewSet(BaseViewSet):
 
         if str(workspace_member.id) == str(requesting_workspace_member.id):
             return Response(
-                {"error": "You cannot remove yourself from the workspace. Please use leave workspace"},
+                {"error": "Você não pode remover a si mesmo do workspace. Use a opção sair do workspace"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if requesting_workspace_member.role < workspace_member.role:
             return Response(
-                {"error": "You cannot remove a user having role higher than you"},
+                {"error": "Você não pode remover um usuário com papel superior ao seu"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -135,7 +135,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         ):
             return Response(
                 {
-                    "error": "User is a part of some projects where they are the only admin, they should either leave that project or promote another user to admin."  # noqa: E501
+                    "error": "O usuário participa de projetos nos quais é o único administrador; ele deve sair desses projetos ou promover outro usuário a administrador."  # noqa: E501
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -168,7 +168,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         ):
             return Response(
                 {
-                    "error": "You cannot leave the workspace as you are the only admin of the workspace you will have to either delete the workspace or promote another user to admin."  # noqa: E501
+                    "error": "Você não pode sair do workspace porque é o único administrador; exclua o workspace ou promova outro usuário a administrador."  # noqa: E501
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -189,7 +189,7 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         ):
             return Response(
                 {
-                    "error": "You are a part of some projects where you are the only admin, you should either leave the project or promote another user to admin."  # noqa: E501
+                    "error": "Você participa de projetos nos quais é o único administrador; saia desses projetos ou promova outro usuário a administrador."  # noqa: E501
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

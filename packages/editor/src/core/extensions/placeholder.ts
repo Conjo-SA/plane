@@ -22,7 +22,7 @@ export const CustomPlaceholderExtension = (args: TArgs) => {
     placeholder: ({ editor, node }) => {
       if (!editor.isEditable) return "";
 
-      if (node.type.name === CORE_EXTENSIONS.HEADING) return `Heading ${node.attrs.level}`;
+      if (node.type.name === CORE_EXTENSIONS.HEADING) return `Título ${node.attrs.level}`;
 
       const isUploadInProgress = editor.storage.utility?.uploadInProgress;
 
@@ -48,7 +48,7 @@ export const CustomPlaceholderExtension = (args: TArgs) => {
         else return placeholder(editor.isFocused, editor.getHTML());
       }
 
-      return "Press '/' for commands...";
+      return "Pressione '/' para ver os comandos...";
     },
     includeChildren: true,
   });

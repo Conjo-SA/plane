@@ -24,6 +24,15 @@ from plane.utils.email import generate_plain_text_from_html
 from plane.utils.exception_logger import log_exception
 
 
+PRIORITY_LABELS = {
+    "urgent": "Urgente",
+    "high": "Alta",
+    "medium": "Média",
+    "low": "Baixa",
+    "none": "Nenhuma",
+}
+
+
 def remove_unwanted_characters(input_text):
     # Remove only control characters and potentially problematic characters for email subjects
     processed_text = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", input_text)
@@ -218,7 +227,14 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                     )
                 activity_time = changes.pop("activity_time")
                 # Parse the input string into a datetime object
-                formatted_time = datetime.strptime(activity_time, "%Y-%m-%d %H:%M:%S").strftime("%H:%M %p")
+                formatted_time = datetime.strptime(activity_time, "%Y-%m-%d %H:%M:%S").strftime("%H:%M")
+
+                # Translate priority values for display (pt-BR)
+                if changes.get("priority"):
+                    for key in ("old_value", "new_value"):
+                        changes["priority"][key] = [
+                            PRIORITY_LABELS.get(value, value) for value in changes["priority"].get(key, [])
+                        ]
 
                 if changes:
                     template_data.append(
@@ -237,7 +253,7 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                         }
                     )
 
-            summary = "Updates were made to the issue by"
+            summary = "Atualizações foram feitas na tarefa por"
 
             # Send the mail
             subject = f"{issue.project.identifier}-{issue.sequence_id} {remove_unwanted_characters(issue.name)}"
@@ -257,7 +273,7 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                 "project": str(issue.project.name),
                 "user_preference": f"{base_api}/{str(issue.project.workspace.slug)}/settings/account/notifications/",
                 "comments": comments,
-                "entity_type": "issue",
+                "entity_type": "tarefa",
             }
             html_content = render_to_string("emails/notifications/issue-updates.html", context)
             text_content = generate_plain_text_from_html(html_content)

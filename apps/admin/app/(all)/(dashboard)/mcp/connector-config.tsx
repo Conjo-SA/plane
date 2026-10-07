@@ -52,16 +52,16 @@ export function MCPConnectorConfig(props: Props) {
       mutateConfig();
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: value ? "MCP server enabled" : "MCP server disabled",
+        title: value ? "Servidor MCP ativado" : "Servidor MCP desativado",
         message: value
-          ? "MCP clients can now connect to this instance."
-          : "MCP clients can no longer connect to this instance.",
+          ? "Clientes MCP agora podem se conectar a esta instância."
+          : "Clientes MCP não podem mais se conectar a esta instância.",
       });
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Could not update the MCP server configuration. Please try again.",
+        title: "Erro!",
+        message: "Não foi possível atualizar a configuração do servidor MCP. Tente novamente.",
       });
     } finally {
       setIsToggling(false);
@@ -75,14 +75,14 @@ export function MCPConnectorConfig(props: Props) {
       mutateConfig();
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Token regenerated",
-        message: "Update every connected MCP client with the new token.",
+        title: "Token regenerado",
+        message: "Atualize todos os clientes MCP conectados com o novo token.",
       });
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Could not regenerate the token. Please try again.",
+        title: "Erro!",
+        message: "Não foi possível regenerar o token. Tente novamente.",
       });
     } finally {
       setIsRegenerating(false);
@@ -93,8 +93,8 @@ export function MCPConnectorConfig(props: Props) {
     navigator.clipboard.writeText(clientConfigSnippet);
     setToast({
       type: TOAST_TYPE.INFO,
-      title: "Copied to clipboard",
-      message: "The MCP client configuration has been copied to your clipboard",
+      title: "Copiado para a área de transferência",
+      message: "A configuração do cliente MCP foi copiada para a área de transferência",
     });
   };
 
@@ -102,9 +102,9 @@ export function MCPConnectorConfig(props: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-16 font-medium text-primary">Connector configuration</div>
+          <div className="text-16 font-medium text-primary">Configuração do conector</div>
           <div className="text-13 text-tertiary">
-            Enable the MCP server and connect any MCP-compatible client (Claude, Cursor, VS Code, etc.).
+            Ative o servidor MCP e conecte qualquer cliente compatível com MCP (Claude, Cursor, VS Code etc.).
           </div>
         </div>
         <ToggleSwitch value={config.is_enabled} onChange={handleToggle} size="sm" disabled={isToggling} />
@@ -112,37 +112,37 @@ export function MCPConnectorConfig(props: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CopyField
-          label="Server URL"
+          label="URL do servidor"
           url={serverUrl}
-          description="The MCP endpoint exposed by this instance. Clients send JSON-RPC requests to this URL."
+          description="O endpoint MCP exposto por esta instância. Os clientes enviam requisições JSON-RPC para esta URL."
         />
         <div className="flex items-end gap-2">
           <div className="flex-grow">
             <CopyField
               label="Bearer token"
               url={config.token}
-              description="Authenticate clients with the Authorization: Bearer header. Keep this token secret."
+              description="Autentique os clientes com o cabeçalho Authorization: Bearer. Mantenha este token em segredo."
             />
           </div>
           <Button variant="secondary" size="lg" onClick={handleRegenerateToken} disabled={isRegenerating}>
             <RefreshCw className={`h-3.5 w-3.5 ${isRegenerating ? "animate-spin" : ""}`} />
-            Rotate
+            Regenerar
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <h4 className="text-13 text-secondary">Client configuration</h4>
+          <h4 className="text-13 text-secondary">Configuração do cliente</h4>
           <Button variant="secondary" size="sm" onClick={handleCopySnippet}>
-            Copy
+            Copiar
           </Button>
         </div>
         <pre className="overflow-x-auto rounded-md border border-subtle bg-surface-2 p-4 text-12 text-secondary">
           {clientConfigSnippet}
         </pre>
         <div className="text-11 text-tertiary">
-          Paste this snippet into your MCP client configuration (e.g. mcp.json or claude_desktop_config.json).
+          Cole este trecho na configuração do seu cliente MCP (ex.: mcp.json ou claude_desktop_config.json).
         </div>
       </div>
     </div>

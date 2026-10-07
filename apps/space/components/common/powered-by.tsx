@@ -25,8 +25,8 @@ export function PoweredBy(props: TPoweredBy) {
       target="_blank"
       rel="noreferrer noopener"
     >
-      <div className="text-11">Powered by</div>
-      <PlaneLogo className="h-3.5 w-auto text-primary" />
+      <div className="text-11">Desenvolvido por</div>
+      <PlaneLogo className="h-3.5 w-auto text-primary" aria-label="Conjo SA" />
     </a>
   );
 }

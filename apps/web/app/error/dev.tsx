@@ -20,11 +20,11 @@ function ErrorActions({ onGoHome, onReload }: ErrorActionsProps) {
   return (
     <div className="flex gap-3 pt-2">
       <Button variant="primary" size="lg" onClick={onGoHome}>
-        Go to home
+        Ir para o início
       </Button>
       {onReload && (
         <Button variant="secondary" size="lg" onClick={onReload}>
-          Reload page
+          Recarregar página
         </Button>
       )}
     </div>
@@ -45,7 +45,7 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
           <Banner
             variant="error"
             icon={<InfoFillIcon className="size-5" />}
-            title="Route Error Response"
+            title="Erro de rota"
             animationDuration={0}
           />
 
@@ -59,7 +59,7 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Error Data</h3>
+                <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Dados do erro</h3>
                 <div className="rounded-md bg-layer-1 p-4">
                   <p className="font-code text-13 text-secondary">{error.data}</p>
                 </div>
@@ -80,18 +80,18 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
           <Banner
             variant="error"
             icon={<InfoFillIcon className="size-5" />}
-            title="Runtime Error"
+            title="Erro de execução"
             animationDuration={0}
           />
           <Card variant={ECardVariant.WITH_SHADOW} className="!p-6 transition-none">
             <div className="space-y-4">
               <div>
-                <h2 className="mb-2 text-20 font-semibold text-danger-primary">Error</h2>
+                <h2 className="mb-2 text-20 font-semibold text-danger-primary">Erro</h2>
                 <div className="bg-subtle-1 h-px w-full" />
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Message</h3>
+                <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Mensagem</h3>
                 <div className="rounded-md bg-layer-1 p-4">
                   <p className="text-13 font-medium text-primary">{error.message}</p>
                 </div>
@@ -99,7 +99,7 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
 
               {error.stack && (
                 <div className="space-y-2">
-                  <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Stack Trace</h3>
+                  <h3 className="text-13 font-medium tracking-wide text-tertiary uppercase">Stack trace</h3>
                   <div className="max-h-96 overflow-auto rounded-md border border-subtle bg-layer-1">
                     <pre className="p-4 font-code text-11 break-words whitespace-pre-wrap text-secondary">
                       {error.stack}
@@ -116,10 +116,10 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
             <div className="flex items-start gap-3">
               <InfoFillIcon className="mt-0.5 size-5 flex-shrink-0 text-tertiary" />
               <div className="space-y-1">
-                <p className="text-13 font-medium text-secondary">Development Mode</p>
+                <p className="text-13 font-medium text-secondary">Modo de desenvolvimento</p>
                 <p className="text-11 text-tertiary">
-                  This detailed error view is only visible in development. In production, users will see a friendly
-                  error page.
+                  Esta visualização detalhada do erro só aparece em desenvolvimento. Em produção, os usuários verão uma
+                  página de erro amigável.
                 </p>
               </div>
             </div>
@@ -135,20 +135,20 @@ export function DevErrorComponent({ error, onGoHome, onReload }: DevErrorCompone
         <Banner
           variant="error"
           icon={<InfoFillIcon className="size-5" />}
-          title="Unknown Error"
+          title="Erro desconhecido"
           animationDuration={0}
         />
 
         <Card variant={ECardVariant.WITH_SHADOW} className="!p-6">
           <div className="space-y-4">
             <div>
-              <h2 className="mb-2 text-20 font-semibold text-primary">Unknown Error</h2>
+              <h2 className="mb-2 text-20 font-semibold text-primary">Erro desconhecido</h2>
               <div className="bg-subtle-1 h-px w-full" />
             </div>
 
             <div className="rounded-md bg-layer-1 p-4">
               <p className="text-13 text-secondary">
-                An unknown error occurred. Please try refreshing the page or contact support if the problem persists.
+                Ocorreu um erro desconhecido. Tente recarregar a página ou fale com o suporte se o problema persistir.
               </p>
             </div>
 

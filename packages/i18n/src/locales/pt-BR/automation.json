@@ -245,18 +245,18 @@
         "label": "Selecione os projetos nos quais esta automação será executada",
         "all_projects": {
           "label": "Todos os projetos",
-          "description": "A automação será executada para todos os projetos do espaço de trabalho."
+          "description": "A automação será executada para todos os projetos do workspace."
         },
         "select_projects": {
           "label": "Selecionar projetos",
-          "description": "A automação será executada para os projetos selecionados do espaço de trabalho.",
+          "description": "A automação será executada para os projetos selecionados do workspace.",
           "placeholder": "Selecionar projetos"
         }
       },
       "settings": {
         "sidebar_label": "Automações",
         "title": "Automações",
-        "description": "Padronize processos em todo o seu espaço de trabalho com automações globais."
+        "description": "Padronize processos em todo o seu workspace com automações globais."
       },
       "table": {
         "scope": {

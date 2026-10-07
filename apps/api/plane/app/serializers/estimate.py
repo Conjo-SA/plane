@@ -20,10 +20,10 @@ class EstimateSerializer(BaseSerializer):
 class EstimatePointSerializer(BaseSerializer):
     def validate(self, data):
         if not data:
-            raise serializers.ValidationError("Estimate points are required")
+            raise serializers.ValidationError("Os pontos de estimativa são obrigatórios")
         value = data.get("value")
         if value and len(value) > 20:
-            raise serializers.ValidationError("Value can't be more than 20 characters")
+            raise serializers.ValidationError("O valor não pode ter mais de 20 caracteres")
         return data
 
     class Meta:

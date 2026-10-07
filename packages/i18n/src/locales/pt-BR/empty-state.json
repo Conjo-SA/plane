@@ -2,7 +2,7 @@
   "common_empty_state": {
     "progress": {
       "title": "Ainda não há métricas de progresso para mostrar.",
-      "description": "Comece definindo valores de propriedades em itens de trabalho para ver as métricas de progresso aqui."
+      "description": "Comece definindo valores de propriedades em tarefas para ver as métricas de progresso aqui."
     },
     "updates": {
       "title": "Ainda não há atualizações.",
@@ -36,9 +36,9 @@
       "description": "O projeto que você está procurando não existe."
     },
     "work_items": {
-      "title": "Comece com seu primeiro item de trabalho.",
-      "description": "Os itens de trabalho são os blocos de construção do seu projeto — atribua proprietários, defina prioridades e acompanhe o progresso facilmente.",
-      "cta_primary": "Criar seu primeiro item de trabalho"
+      "title": "Comece com sua primeira tarefa.",
+      "description": "As tarefas são os blocos de construção do seu projeto — atribua proprietários, defina prioridades e acompanhe o progresso facilmente.",
+      "cta_primary": "Criar sua primeira tarefa"
     },
     "cycles": {
       "title": "Agrupe e defina prazos para seu trabalho em Ciclos.",
@@ -46,21 +46,21 @@
       "cta_primary": "Definir seu primeiro ciclo"
     },
     "cycle_work_items": {
-      "title": "Nenhum item de trabalho para mostrar neste ciclo",
-      "description": "Crie itens de trabalho para começar a monitorar o progresso da sua equipe neste ciclo e atingir seus objetivos no prazo.",
-      "cta_primary": "Criar item de trabalho",
-      "cta_secondary": "Adicionar item de trabalho existente"
+      "title": "Nenhuma tarefa para mostrar neste ciclo",
+      "description": "Crie tarefas para começar a monitorar o progresso da sua equipe neste ciclo e atingir seus objetivos no prazo.",
+      "cta_primary": "Criar tarefa",
+      "cta_secondary": "Adicionar tarefa existente"
     },
     "modules": {
       "title": "Mapeie as metas do seu projeto para Módulos e acompanhe facilmente.",
-      "description": "Os módulos são compostos por itens de trabalho interconectados. Eles auxiliam no monitoramento do progresso através das fases do projeto, cada uma com prazos e análises específicas para indicar o quão perto você está de alcançar essas fases.",
+      "description": "Os módulos são compostos por tarefas interconectadas. Eles auxiliam no monitoramento do progresso através das fases do projeto, cada uma com prazos e análises específicas para indicar o quão perto você está de alcançar essas fases.",
       "cta_primary": "Definir seu primeiro módulo"
     },
     "module_work_items": {
-      "title": "Nenhum item de trabalho para mostrar neste Módulo",
-      "description": "Crie itens de trabalho para começar a monitorar este módulo.",
-      "cta_primary": "Criar item de trabalho",
-      "cta_secondary": "Adicionar item de trabalho existente"
+      "title": "Nenhuma tarefa para mostrar neste Módulo",
+      "description": "Crie tarefas para começar a monitorar este módulo.",
+      "cta_primary": "Criar tarefa",
+      "cta_secondary": "Adicionar tarefa existente"
     },
     "views": {
       "title": "Salve visualizações personalizadas para seu projeto",
@@ -68,18 +68,18 @@
       "cta_primary": "Criar visualização"
     },
     "no_work_items_in_project": {
-      "title": "Ainda não há itens de trabalho no projeto",
-      "description": "Adicione itens de trabalho ao seu projeto e divida seu trabalho em partes rastreáveis com visualizações.",
-      "cta_primary": "Adicionar item de trabalho"
+      "title": "Ainda não há tarefas no projeto",
+      "description": "Adicione tarefas ao seu projeto e divida seu trabalho em partes rastreáveis com visualizações.",
+      "cta_primary": "Adicionar tarefa"
     },
     "work_item_filter": {
-      "title": "Nenhum item de trabalho encontrado",
+      "title": "Nenhuma tarefa encontrada",
       "description": "Seu filtro atual não retornou nenhum resultado. Tente alterar os filtros.",
-      "cta_primary": "Adicionar item de trabalho"
+      "cta_primary": "Adicionar tarefa"
     },
     "pages": {
       "title": "Documente tudo — de notas a PRDs",
-      "description": "As páginas permitem que você capture e organize informações em um só lugar. Escreva notas de reuniões, documentação de projetos e PRDs, incorpore itens de trabalho e estruture-os com componentes prontos para uso.",
+      "description": "As páginas permitem que você capture e organize informações em um só lugar. Escreva notas de reuniões, documentação de projetos e PRDs, incorpore tarefas e estruture-as com componentes prontos para uso.",
       "cta_primary": "Criar sua primeira Página"
     },
     "archive_pages": {
@@ -92,7 +92,7 @@
       "cta_primary": "Criar solicitação de Entrada"
     },
     "intake_main": {
-      "title": "Selecione um item de trabalho de Entrada para ver seus detalhes"
+      "title": "Selecione uma tarefa da Entrada para ver seus detalhes"
     },
     "epics": {
       "title": "Transforme projetos complexos em épicos estruturados.",
@@ -101,9 +101,9 @@
       "cta_secondary": "Documentação"
     },
     "epic_work_items": {
-      "title": "Você ainda não adicionou itens de trabalho a este épico.",
-      "description": "Comece adicionando alguns itens de trabalho a este épico e acompanhe-os aqui.",
-      "cta_secondary": "Adicionar itens de trabalho"
+      "title": "Você ainda não adicionou tarefas a este épico.",
+      "description": "Comece adicionando algumas tarefas a este épico e acompanhe-as aqui.",
+      "cta_secondary": "Adicionar tarefas"
     }
   },
   "workspace_empty_state": {
@@ -112,42 +112,42 @@
       "description": "Você pode arquivar épicos concluídos ou cancelados. Encontre-os aqui após o arquivamento."
     },
     "archive_work_items": {
-      "title": "Ainda não há itens de trabalho arquivados",
-      "description": "Manualmente ou por meio de automação, você pode arquivar itens de trabalho concluídos ou cancelados. Encontre-os aqui uma vez arquivados.",
+      "title": "Ainda não há tarefas arquivadas",
+      "description": "Manualmente ou por meio de automação, você pode arquivar tarefas concluídas ou canceladas. Encontre-as aqui depois de arquivadas.",
       "cta_primary": "Configurar automação"
     },
     "archive_cycles": {
       "title": "Ainda não há ciclos arquivados",
-      "description": "Para organizar seu projeto, arquive ciclos concluídos. Encontre-os aqui uma vez arquivados."
+      "description": "Para organizar seu projeto, arquive ciclos concluídos. Encontre-as aqui depois de arquivadas."
     },
     "archive_modules": {
       "title": "Ainda não há Módulos arquivados",
-      "description": "Para organizar seu projeto, arquive módulos concluídos ou cancelados. Encontre-os aqui uma vez arquivados."
+      "description": "Para organizar seu projeto, arquive módulos concluídos ou cancelados. Encontre-as aqui depois de arquivadas."
     },
     "home_widget_quick_links": {
       "title": "Mantenha referências, recursos ou documentos importantes à mão para o seu trabalho"
     },
     "inbox_sidebar_all": {
-      "title": "As atualizações dos seus itens de trabalho inscritos aparecerão aqui"
+      "title": "As atualizações das tarefas que você acompanha aparecerão aqui"
     },
     "inbox_sidebar_mentions": {
-      "title": "As menções aos seus itens de trabalho aparecerão aqui"
+      "title": "As menções às suas tarefas aparecerão aqui"
     },
     "your_work_by_priority": {
-      "title": "Ainda não há item de trabalho atribuído"
+      "title": "Ainda não há tarefa atribuída"
     },
     "your_work_by_state": {
-      "title": "Ainda não há item de trabalho atribuído"
+      "title": "Ainda não há tarefa atribuída"
     },
     "views": {
       "title": "Ainda não há Visualizações",
-      "description": "Adicione itens de trabalho ao seu projeto e use visualizações para filtrar, classificar e monitorar o progresso sem esforço.",
-      "cta_primary": "Adicionar item de trabalho"
+      "description": "Adicione tarefas ao seu projeto e use visualizações para filtrar, classificar e monitorar o progresso sem esforço.",
+      "cta_primary": "Adicionar tarefa"
     },
     "drafts": {
-      "title": "Itens de trabalho semi-escritos",
-      "description": "Para experimentar isso, comece a adicionar um item de trabalho e deixe-o no meio do caminho ou crie seu primeiro rascunho abaixo. 😉",
-      "cta_primary": "Criar item de trabalho de rascunho"
+      "title": "Tarefas semiescritas",
+      "description": "Para experimentar isso, comece a adicionar uma tarefa e deixe-a no meio do caminho ou crie seu primeiro rascunho abaixo. 😉",
+      "cta_primary": "Criar tarefa de rascunho"
     },
     "projects_archived": {
       "title": "Nenhum projeto arquivado",
@@ -157,7 +157,7 @@
       "title": "Crie projetos para visualizar as métricas do projeto aqui."
     },
     "analytics_work_items": {
-      "title": "Crie projetos com itens de trabalho e responsáveis para começar a rastrear desempenho, progresso e impacto da equipe aqui."
+      "title": "Crie projetos com tarefas e responsáveis para começar a rastrear desempenho, progresso e impacto da equipe aqui."
     },
     "analytics_no_cycle": {
       "title": "Crie ciclos para organizar o trabalho em fases com prazo definido e acompanhar o progresso em sprints."
@@ -188,7 +188,7 @@
     },
     "wiki": {
       "title": "Escreva uma nota, um documento ou uma base de conhecimento completa.",
-      "description": "As páginas são espaço para capturar pensamentos no Tasks. Anote notas de reuniões, formate-as facilmente, incorpore itens de trabalho, organize-as usando uma biblioteca de componentes e mantenha todas no contexto do seu projeto.",
+      "description": "As páginas são espaço para capturar pensamentos no Tasks. Anote notas de reuniões, formate-as facilmente, incorpore tarefas, organize-as usando uma biblioteca de componentes e mantenha todas no contexto do seu projeto.",
       "cta_primary": "Criar sua página"
     },
     "project_overview_state_sidebar": {
@@ -199,12 +199,12 @@
   "settings_empty_state": {
     "estimates": {
       "title": "Ainda não há estimativas",
-      "description": "Defina como sua equipe mede o esforço e acompanhe-o consistentemente em todos os itens de trabalho.",
+      "description": "Defina como sua equipe mede o esforço e acompanhe-o consistentemente em todas as tarefas.",
       "cta_primary": "Adicionar sistema de estimativas"
     },
     "labels": {
       "title": "Ainda não há etiquetas",
-      "description": "Crie etiquetas personalizadas para categorizar e gerenciar efetivamente seus itens de trabalho.",
+      "description": "Crie etiquetas personalizadas para categorizar e gerenciar efetivamente suas tarefas.",
       "cta_primary": "Criar sua primeira etiqueta"
     },
     "exports": {
@@ -213,12 +213,12 @@
     },
     "tokens": {
       "title": "Ainda não há token Pessoal",
-      "description": "Gere tokens de API seguros para conectar seu espaço de trabalho com sistemas e aplicativos externos.",
+      "description": "Gere tokens de API seguros para conectar seu workspace com sistemas e aplicativos externos.",
       "cta_primary": "Adicionar token de API"
     },
     "workspace_tokens": {
       "title": "Ainda não há tokens de acesso",
-      "description": "Gere tokens de API seguros para conectar seu espaço de trabalho com sistemas e aplicativos externos.",
+      "description": "Gere tokens de API seguros para conectar seu workspace com sistemas e aplicativos externos.",
       "cta_primary": "Adicionar token de acesso"
     },
     "webhooks": {
@@ -227,43 +227,43 @@
       "cta_primary": "Adicionar webhook"
     },
     "work_item_types": {
-      "title": "Crie e personalize tipos de itens de trabalho",
-      "description": "Defina tipos de itens de trabalho exclusivos para seu projeto. Cada tipo pode ter suas próprias propriedades, fluxos de trabalho e campos - adaptados às necessidades do seu projeto e equipe.",
+      "title": "Crie e personalize tipos de tarefas",
+      "description": "Defina tipos de tarefas exclusivos para seu projeto. Cada tipo pode ter suas próprias propriedades, fluxos de trabalho e campos - adaptados às necessidades do seu projeto e equipe.",
       "cta_primary": "Ativar"
     },
     "work_item_type_properties": {
-      "title": "Defina a propriedade e os detalhes que você deseja capturar para este tipo de item de trabalho. Personalize-o para corresponder ao fluxo de trabalho do seu projeto.",
+      "title": "Defina a propriedade e os detalhes que você deseja capturar para este tipo de tarefa. Personalize-o para corresponder ao fluxo de trabalho do seu projeto.",
       "cta_secondary": "Adicionar propriedade"
     },
     "templates": {
       "title": "Ainda não há modelos",
-      "description": "Reduza o tempo de configuração criando modelos para itens de trabalho e páginas — e comece novo trabalho em segundos.",
+      "description": "Reduza o tempo de configuração criando modelos para tarefas e páginas — e comece novo trabalho em segundos.",
       "cta_primary": "Criar seu primeiro modelo"
     },
     "recurring_work_items": {
-      "title": "Ainda não há item de trabalho recorrente",
-      "description": "Configure itens de trabalho recorrentes para automatizar tarefas repetidas e manter-se no cronograma sem esforço.",
-      "cta_primary": "Criar item de trabalho recorrente"
+      "title": "Ainda não há tarefa recorrente",
+      "description": "Configure tarefas recorrentes para automatizar tarefas repetidas e manter-se no cronograma sem esforço.",
+      "cta_primary": "Criar tarefa recorrente"
     },
     "worklogs": {
       "title": "Acompanhe folhas de ponto para todos os membros",
-      "description": "Registre tempo em itens de trabalho para ver folhas de ponto detalhadas para qualquer membro da equipe em projetos."
+      "description": "Registre tempo em tarefas para ver folhas de ponto detalhadas para qualquer membro da equipe em projetos."
     },
     "group_syncing": {
       "title": "Ainda não há mapeamentos de grupos"
     },
     "template_setting": {
       "title": "Ainda não há modelos",
-      "description": "Reduza o tempo de configuração criando modelos para projetos, itens de trabalho e páginas — e comece novo trabalho em segundos.",
+      "description": "Reduza o tempo de configuração criando modelos para projetos, tarefas e páginas — e comece novo trabalho em segundos.",
       "cta_primary": "Criar modelo"
     },
     "workflows": {
       "title": "Ainda não há fluxos de trabalho",
-      "description": "Crie fluxos de trabalho para gerenciar o progresso dos seus itens de trabalho.",
+      "description": "Crie fluxos de trabalho para gerenciar o progresso das suas tarefas.",
       "cta_primary": "Adicionar novo fluxo de trabalho",
       "states": {
         "title": "Adicionar estados",
-        "description": "Selecione os estados pelos quais o item de trabalho progride."
+        "description": "Selecione os estados pelos quais a tarefa progride."
       }
     }
   }

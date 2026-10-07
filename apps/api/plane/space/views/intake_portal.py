@@ -107,7 +107,7 @@ class IntakePortalMetaEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -115,7 +115,7 @@ class IntakePortalMetaEndpoint(BaseAPIView):
         label = resolve_portal_label(portal, tag)
         if tag and label is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -147,30 +147,30 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None:
             return Response(
-                {"error": "This request form is not available."},
+                {"error": "Este formulário de solicitação não está disponível."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         name = (request.data.get("name") or "").strip()
         if not name:
-            return Response({"error": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "O nome é obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
         if len(name) > MAX_NAME_LENGTH:
             return Response(
-                {"error": f"Name cannot exceed {MAX_NAME_LENGTH} characters"},
+                {"error": f"O nome não pode exceder {MAX_NAME_LENGTH} caracteres"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         priority = request.data.get("priority") or "none"
         if priority not in VALID_PRIORITIES:
-            return Response({"error": "Invalid priority"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Prioridade inválida"}, status=status.HTTP_400_BAD_REQUEST)
 
         requester_email = (request.data.get("requester_email") or "").strip()
         if not requester_email:
-            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "O e-mail é obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             validate_email(requester_email)
         except ValidationError:
-            return Response({"error": "Enter a valid email address"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Informe um endereço de e-mail válido"}, status=status.HTTP_400_BAD_REQUEST)
 
         # The submission is only accepted for an address the requester has proven to own.
         session = resolve_session(request, portal.workspace_id)
@@ -185,7 +185,7 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         tag = request.data.get("tag")
         label = resolve_portal_label(portal, tag)
         if tag and label is None:
-            return Response({"error": "Invalid tag"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Tag inválida"}, status=status.HTTP_400_BAD_REQUEST)
         # Conjo: the request's client comes from the link's tag or from the requester's registered e-mail;
         # the client's label (the board's habit) comes along even when the generic link was used.
         from plane.utils import conjo_billing
@@ -196,10 +196,10 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
 
         attachment_ids = request.data.get("attachment_ids") or []
         if not isinstance(attachment_ids, list):
-            return Response({"error": "Invalid attachments"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Anexos inválidos"}, status=status.HTTP_400_BAD_REQUEST)
         if len(attachment_ids) > MAX_ATTACHMENTS:
             return Response(
-                {"error": f"You can attach at most {MAX_ATTACHMENTS} files"},
+                {"error": f"Você pode anexar no máximo {MAX_ATTACHMENTS} arquivos"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         attachment_ids = [asset_id for asset_id in attachment_ids if is_valid_uuid(str(asset_id))]
@@ -214,7 +214,7 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         ).first()
         if not triage_state:
             triage_state = State.objects.create(
-                name="Triage",
+                name="Triagem",
                 group=StateGroup.TRIAGE.value,
                 project_id=portal.project_id,
                 workspace_id=portal.workspace_id,
@@ -303,7 +303,7 @@ class IntakePortalAssetEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None or not portal.is_attachment_enabled:
             return Response(
-                {"error": "Attachments are not available for this request form."},
+                {"error": "Anexos não estão disponíveis para este formulário de solicitação."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -312,18 +312,18 @@ class IntakePortalAssetEndpoint(BaseAPIView):
 
         if file_type not in ALLOWED_ATTACHMENT_TYPES:
             return Response(
-                {"error": "This file type is not supported."},
+                {"error": "Este tipo de arquivo não é suportado."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             size = int(request.data.get("size", 0))
         except (TypeError, ValueError):
-            return Response({"error": "Invalid file size"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Tamanho de arquivo inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
         if size <= 0 or size > int(settings.FILE_SIZE_LIMIT):
             return Response(
-                {"error": "File exceeds the maximum allowed size."},
+                {"error": "O arquivo excede o tamanho máximo permitido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -342,7 +342,7 @@ class IntakePortalAssetEndpoint(BaseAPIView):
         if presigned_url is None:
             asset.delete()
             return Response(
-                {"error": "Could not prepare the upload. Please try again."},
+                {"error": "Não foi possível preparar o envio. Tente novamente."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -355,7 +355,7 @@ class IntakePortalAssetEndpoint(BaseAPIView):
         portal = get_enabled_portal(anchor)
         if portal is None or not portal.is_attachment_enabled:
             return Response(
-                {"error": "Attachments are not available for this request form."},
+                {"error": "Anexos não estão disponíveis para este formulário de solicitação."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -367,7 +367,7 @@ class IntakePortalAssetEndpoint(BaseAPIView):
             issue__isnull=True,
         ).first()
         if asset is None:
-            return Response({"error": "Asset not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Arquivo não encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
         asset.is_uploaded = True
         if not asset.storage_metadata:

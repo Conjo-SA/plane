@@ -14,9 +14,9 @@
         "cta": "Convidar"
       },
       "configure_workspace": {
-        "title": "Configure seu espaço de trabalho.",
+        "title": "Configure seu workspace.",
         "description": "Ative ou desative recursos ou vá além disso.",
-        "cta": "Configurar este espaço de trabalho"
+        "cta": "Configurar este workspace"
       },
       "personalize_account": {
         "title": "Personalize o Tasks.",
@@ -32,7 +32,7 @@
       }
     },
     "quick_links": {
-      "empty": "Salve links para os itens de trabalho que você gostaria de ter à mão.",
+      "empty": "Salve links para as tarefas que você gostaria de ter à mão.",
       "add": "Adicionar link rápido",
       "title": "Link rápido",
       "title_plural": "Links rápidos"
@@ -40,16 +40,16 @@
     "recents": {
       "title": "Recentes",
       "empty": {
-        "project": "Seus projetos recentes aparecerão aqui quando você visitar um.",
+        "project": "Seus projetos recentes aparecerão aqui quando você visitar uma.",
         "page": "Suas páginas recentes aparecerão aqui quando você visitar uma.",
-        "issue": "Seus itens de trabalho recentes aparecerão aqui quando você visitar um.",
+        "issue": "Suas tarefas recentes aparecerão aqui quando você visitar uma.",
         "default": "Você não tem nenhum item recente ainda."
       },
       "filters": {
         "all": "Todos",
         "projects": "Projetos",
         "pages": "Páginas",
-        "issues": "Itens de trabalho"
+        "issues": "Tarefas"
       }
     },
     "new_at_plane": {

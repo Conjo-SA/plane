@@ -175,7 +175,7 @@ class WorkspaceUserProfileIssuesEndpoint(BaseAPIView):
                 if group_by == sub_group_by:
                     return Response(
                         {
-                            "error": "Group by and sub group by cannot have same parameters"  # noqa: E501
+                            "error": "Agrupar por e subagrupar por não podem ter os mesmos parâmetros"  # noqa: E501
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )

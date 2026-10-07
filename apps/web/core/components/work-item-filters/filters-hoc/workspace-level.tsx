@@ -123,8 +123,8 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
       if (!viewDetails) {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "We couldn't find the view",
-          message: "The view you're trying to update doesn't exist.",
+          title: "Não encontramos a visualização",
+          message: "A visualização que você está tentando atualizar não existe.",
         });
 
         return;
@@ -142,15 +142,15 @@ export const WorkspaceLevelWorkItemFiltersHOC = observer(function WorkspaceLevel
         .then(() => {
           setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Success!",
-            message: "Your view has been updated successfully.",
+            title: "Sucesso!",
+            message: "Sua visualização foi atualizada com sucesso.",
           });
         })
         .catch(() => {
           setToast({
             type: TOAST_TYPE.ERROR,
-            title: "Error!",
-            message: "Your view could not be updated. Please try again.",
+            title: "Erro!",
+            message: "Não foi possível atualizar sua visualização. Tente novamente.",
           });
         });
     },

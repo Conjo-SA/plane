@@ -65,7 +65,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
       url: serverUrl,
       onAuthenticationFailed: () => {
         if (isDisposedRef.current) return;
-        const error: CollaborationError = { type: "auth-failed", message: "Authentication failed" };
+        const error: CollaborationError = { type: "auth-failed", message: "Falha na autenticação" };
         const newStage = { kind: "disconnected" as const, error };
         stageRef.current = newStage;
         setStage(newStage);
@@ -153,7 +153,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         const error: CollaborationError = {
           type: "forced-close",
           code: closeCode || 0,
-          message: isManualDisconnect ? "Manually disconnected" : "Server forced connection close",
+          message: isManualDisconnect ? "Desconectado manualmente" : "O servidor encerrou a conexão",
         };
         const newStage = { kind: "disconnected" as const, error };
         stageRef.current = newStage;
@@ -175,7 +175,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
           // Exceeded max retry attempts
           const error: CollaborationError = {
             type: "max-retries",
-            message: `Failed to connect after ${DEFAULT_MAX_RETRIES} attempts`,
+            message: `Falha ao conectar após ${DEFAULT_MAX_RETRIES} tentativas`,
           };
           const newStage = { kind: "disconnected" as const, error };
           stageRef.current = newStage;

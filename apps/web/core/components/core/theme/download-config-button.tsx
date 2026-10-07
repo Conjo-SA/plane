@@ -26,7 +26,7 @@ export const CustomThemeDownloadConfigButton = observer(function CustomThemeDown
       const currentValues = getValues();
       const config = {
         version: "1.0",
-        themeName: "Custom Theme",
+        themeName: "Tema personalizado",
         primary: currentValues.primary,
         background: currentValues.background,
         darkPalette: currentValues.darkPalette,
@@ -45,21 +45,21 @@ export const CustomThemeDownloadConfigButton = observer(function CustomThemeDown
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("success"),
-        message: "Theme configuration downloaded successfully.",
+        message: "Configuração do tema baixada com sucesso.",
       });
     } catch (error) {
       console.error("Failed to download config:", error);
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("error"),
-        message: "Failed to download theme configuration.",
+        message: "Falha ao baixar a configuração do tema.",
       });
     }
   };
 
   return (
     <Button variant="secondary" size="lg" type="button" onClick={handleDownloadConfig}>
-      Download config
+      Baixar configuração
     </Button>
   );
 });

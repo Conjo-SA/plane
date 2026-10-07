@@ -271,7 +271,7 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
       {/* created by */}
       {createdByDetails && !isActive && <ButtonAvatars showTooltip={false} userIds={createdByDetails?.id} />}
       {!isActive && (
-        <Tooltip tooltipContent={`${cycleDetails.assignee_ids?.length} Members`} isMobile={isMobile}>
+        <Tooltip tooltipContent={`${cycleDetails.assignee_ids?.length} membros`} isMobile={isMobile}>
           <div className="flex w-min cursor-default items-center justify-center">
             {cycleDetails.assignee_ids && cycleDetails.assignee_ids?.length > 0 ? (
               <AvatarGroup showTooltip={false}>

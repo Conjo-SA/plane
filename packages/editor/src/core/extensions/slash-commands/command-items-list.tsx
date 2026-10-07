@@ -54,6 +54,13 @@ export type TSlashCommandSection = {
   items: ISlashCommandItem[];
 };
 
+// normaliza acentos para que "titulo" encontre "Título"
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 export const getSlashCommandFilteredSections =
   (args: TExtensionProps) =>
   ({ query }: { query: string }): TSlashCommandSection[] => {
@@ -65,63 +72,63 @@ export const getSlashCommandFilteredSections =
           {
             commandKey: "text",
             key: "text",
-            title: "Text",
-            description: "Just start typing with plain text.",
-            searchTerms: ["p", "paragraph"],
+            title: "Texto",
+            description: "Comece a digitar com texto simples.",
+            searchTerms: ["text", "p", "paragraph"],
             icon: <CaseSensitive className="size-3.5" />,
             command: ({ editor, range }) => setText(editor, range),
           },
           {
             commandKey: "h1",
             key: "h1",
-            title: "Heading 1",
-            description: "Big section heading.",
-            searchTerms: ["title", "big", "large"],
+            title: "Título 1",
+            description: "Título de seção grande.",
+            searchTerms: ["heading 1", "title", "big", "large"],
             icon: <Heading1 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 1, range),
           },
           {
             commandKey: "h2",
             key: "h2",
-            title: "Heading 2",
-            description: "Medium section heading.",
-            searchTerms: ["subtitle", "medium"],
+            title: "Título 2",
+            description: "Título de seção médio.",
+            searchTerms: ["heading 2", "subtitle", "medium"],
             icon: <Heading2 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 2, range),
           },
           {
             commandKey: "h3",
             key: "h3",
-            title: "Heading 3",
-            description: "Small section heading.",
-            searchTerms: ["subtitle", "small"],
+            title: "Título 3",
+            description: "Título de seção pequeno.",
+            searchTerms: ["heading 3", "subtitle", "small"],
             icon: <Heading3 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 3, range),
           },
           {
             commandKey: "h4",
             key: "h4",
-            title: "Heading 4",
-            description: "Small section heading.",
-            searchTerms: ["subtitle", "small"],
+            title: "Título 4",
+            description: "Título de seção pequeno.",
+            searchTerms: ["heading 4", "subtitle", "small"],
             icon: <Heading4 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 4, range),
           },
           {
             commandKey: "h5",
             key: "h5",
-            title: "Heading 5",
-            description: "Small section heading.",
-            searchTerms: ["subtitle", "small"],
+            title: "Título 5",
+            description: "Título de seção pequeno.",
+            searchTerms: ["heading 5", "subtitle", "small"],
             icon: <Heading5 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 5, range),
           },
           {
             commandKey: "h6",
             key: "h6",
-            title: "Heading 6",
-            description: "Small section heading.",
-            searchTerms: ["subtitle", "small"],
+            title: "Título 6",
+            description: "Título de seção pequeno.",
+            searchTerms: ["heading 6", "subtitle", "small"],
             icon: <Heading6 className="size-3.5" />,
             command: ({ editor, range }) => toggleHeading(editor, 6, range),
           },
@@ -129,72 +136,72 @@ export const getSlashCommandFilteredSections =
           {
             commandKey: "numbered-list",
             key: "numbered-list",
-            title: "Numbered list",
-            description: "Create a numbered list.",
-            searchTerms: ["ordered"],
+            title: "Lista numerada",
+            description: "Crie uma lista numerada.",
+            searchTerms: ["numbered list", "ordered"],
             icon: <ListOrdered className="size-3.5" />,
             command: ({ editor, range }) => toggleOrderedList(editor, range),
           },
           {
             commandKey: "bulleted-list",
             key: "bulleted-list",
-            title: "Bulleted list",
-            description: "Create a bulleted list.",
-            searchTerms: ["unordered", "point"],
+            title: "Lista com marcadores",
+            description: "Crie uma lista com marcadores.",
+            searchTerms: ["bulleted list", "unordered", "point"],
             icon: <List className="size-3.5" />,
             command: ({ editor, range }) => toggleBulletList(editor, range),
           },
           {
             commandKey: "to-do-list",
             key: "to-do-list",
-            title: "To-do list",
-            description: "Create a to-do list.",
-            searchTerms: ["todo", "task", "list", "check", "checkbox"],
+            title: "Lista de tarefas",
+            description: "Crie uma lista de tarefas.",
+            searchTerms: ["to-do list", "todo", "task", "list", "check", "checkbox"],
             icon: <ListTodo className="size-3.5" />,
             command: ({ editor, range }) => toggleTaskList(editor, range),
           },
           {
             commandKey: "table",
             key: "table",
-            title: "Table",
-            description: "Create a table",
-            searchTerms: ["table", "cell", "db", "data", "tabular"],
+            title: "Tabela",
+            description: "Crie uma tabela",
+            searchTerms: ["table", "table", "cell", "db", "data", "tabular"],
             icon: <Table className="size-3.5" />,
             command: ({ editor, range }) => insertTableCommand(editor, range),
           },
           {
             commandKey: "quote",
             key: "quote",
-            title: "Quote",
-            description: "Capture a quote.",
-            searchTerms: ["blockquote"],
+            title: "Citação",
+            description: "Registre uma citação.",
+            searchTerms: ["quote", "blockquote"],
             icon: <TextQuote className="size-3.5" />,
             command: ({ editor, range }) => toggleBlockquote(editor, range),
           },
           {
             commandKey: "code",
             key: "code",
-            title: "Code",
-            description: "Capture a code snippet.",
-            searchTerms: ["codeblock"],
+            title: "Código",
+            description: "Registre um trecho de código.",
+            searchTerms: ["code", "codeblock"],
             icon: <Code2 className="size-3.5" />,
             command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
           },
           {
             commandKey: "callout",
             key: "callout",
-            title: "Callout",
+            title: "Destaque",
             icon: <MessageSquareText className="size-3.5" />,
-            description: "Insert callout",
-            searchTerms: ["callout", "comment", "message", "info", "alert"],
+            description: "Insira um bloco de destaque",
+            searchTerms: ["callout", "callout", "comment", "message", "info", "alert"],
             command: ({ editor, range }: CommandProps) => insertCallout(editor, range),
           },
           {
             commandKey: "divider",
             key: "divider",
-            title: "Divider",
-            description: "Visually divide blocks.",
-            searchTerms: ["line", "divider", "horizontal", "rule", "separate"],
+            title: "Divisor",
+            description: "Divida os blocos visualmente.",
+            searchTerms: ["divider", "line", "divider", "horizontal", "rule", "separate"],
             icon: <MinusSquare className="size-3.5" />,
             command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
           },
@@ -202,7 +209,7 @@ export const getSlashCommandFilteredSections =
             commandKey: "emoji",
             key: "emoji",
             title: "Emoji",
-            description: "Insert an emoji",
+            description: "Insira um emoji",
             searchTerms: ["emoji", "icons", "reaction", "emoticon", "emotags"],
             icon: <Smile className="size-3.5" />,
             command: ({ editor, range }) => {
@@ -213,14 +220,14 @@ export const getSlashCommandFilteredSections =
       },
       {
         key: "text-colors",
-        title: "Colors",
+        title: "Cores",
         items: [
           {
             commandKey: "text-color",
             key: "text-color-default",
-            title: "Default",
-            description: "Change text color",
-            searchTerms: ["color", "text", "default"],
+            title: "Padrão",
+            description: "Alterar a cor do texto",
+            searchTerms: ["default", "color", "text", "default"],
             icon: <ALargeSmall className="size-3.5 text-primary" />,
             command: ({ editor, range }) => toggleTextColor(undefined, editor, range),
           },
@@ -230,7 +237,7 @@ export const getSlashCommandFilteredSections =
                 commandKey: "text-color",
                 key: `text-color-${color.key}`,
                 title: color.label,
-                description: "Change text color",
+                description: "Alterar a cor do texto",
                 searchTerms: ["color", "text", color.label],
 
                 icon: (
@@ -249,14 +256,14 @@ export const getSlashCommandFilteredSections =
       },
       {
         key: "background-colors",
-        title: "Background colors",
+        title: "Cores de fundo",
         items: [
           {
             commandKey: "background-color",
             key: "background-color-default",
-            title: "Default background",
-            description: "Change background color",
-            searchTerms: ["color", "bg", "background", "default"],
+            title: "Fundo padrão",
+            description: "Alterar a cor de fundo",
+            searchTerms: ["default background", "color", "bg", "background", "default"],
             icon: <ALargeSmall className="size-3.5" />,
             iconContainerStyle: {
               borderRadius: "4px",
@@ -271,7 +278,7 @@ export const getSlashCommandFilteredSections =
                 commandKey: "background-color",
                 key: `background-color-${color.key}`,
                 title: color.label,
-                description: "Change background color",
+                description: "Alterar a cor de fundo",
                 searchTerms: ["color", "bg", "background", color.label],
                 icon: <ALargeSmall className="size-3.5" />,
 
@@ -292,10 +299,10 @@ export const getSlashCommandFilteredSections =
       internalAdditionalOptions.push({
         commandKey: "image",
         key: "image",
-        title: "Image",
+        title: "Imagem",
         icon: <ImageIcon className="size-3.5" />,
-        description: "Insert an image",
-        searchTerms: ["img", "photo", "picture", "media", "upload"],
+        description: "Insira uma imagem",
+        searchTerms: ["image", "img", "photo", "picture", "media", "upload"],
         command: ({ editor, range }: CommandProps) => insertImage({ editor, event: "insert", range }),
         section: "general",
         pushAfter: "code",
@@ -324,11 +331,11 @@ export const getSlashCommandFilteredSections =
       items: section.items.filter((item) => {
         if (typeof query !== "string") return;
 
-        const lowercaseQuery = query.toLowerCase();
+        const lowercaseQuery = normalize(query);
         return (
-          item.title.toLowerCase().includes(lowercaseQuery) ||
-          item.description.toLowerCase().includes(lowercaseQuery) ||
-          item.searchTerms.some((t) => t.includes(lowercaseQuery))
+          normalize(item.title).includes(lowercaseQuery) ||
+          normalize(item.description).includes(lowercaseQuery) ||
+          item.searchTerms.some((t) => normalize(t).includes(lowercaseQuery))
         );
       }),
     }));

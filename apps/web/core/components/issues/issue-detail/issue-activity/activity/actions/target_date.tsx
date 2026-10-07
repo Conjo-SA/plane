@@ -32,13 +32,13 @@ export const IssueTargetDateActivity = observer(function IssueTargetDateActivity
       ends={ends}
     >
       <>
-        {activity.new_value ? `set the due date to ` : `removed the due date `}
+        {activity.new_value ? `definiu o prazo como ` : `removeu o prazo `}
         {activity.new_value && (
           <>
             <span className="font-medium text-primary">{renderFormattedDate(activity.new_value)}</span>
           </>
         )}
-        {showIssue && (activity.new_value ? ` for ` : ` from `)}
+        {showIssue && (activity.new_value ? ` em ` : ` de `)}
         {showIssue && <IssueLink activityId={activityId} />}.
       </>
     </IssueActivityBlockComponent>

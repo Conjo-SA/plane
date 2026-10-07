@@ -85,7 +85,7 @@ export function WorkItemSelectionPage(props: Props) {
       {/* {searchTerm === "" ? (
         recentIssues.length > 0 ? (
           <CommandPaletteEntityList
-            heading="Issues"
+            heading="Tarefas"
             items={recentIssues}
             getKey={(issue) => issue.id}
             getLabel={(issue) => `${issue.project_identifier}-${issue.sequence_id} ${issue.name}`}
@@ -116,14 +116,14 @@ export function WorkItemSelectionPage(props: Props) {
                 })
               );
             }}
-            emptyText="Search for issue id or issue title"
+            emptyText="Busque pelo ID ou título da tarefa"
           />
         ) : (
-          <div className="px-3 py-8 text-center text-13 text-tertiary">Search for issue id or issue title</div>
+          <div className="px-3 py-8 text-center text-13 text-tertiary">Busque pelo ID ou título da tarefa</div>
         )
       ) : issueResults.length > 0 ? (
         <CommandPaletteEntityList
-          heading="Issues"
+          heading="Tarefas"
           items={issueResults}
           getKey={(issue) => issue.id}
           getLabel={(issue) => `${issue.project__identifier}-${issue.sequence_id} ${issue.name}`}

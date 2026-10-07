@@ -17,7 +17,7 @@ import {
 //
 
 const getDateGroupingName = (date: string, dateGrouping: ChartXAxisDateGrouping): string => {
-  if (!date || ["none", "null"].includes(date.toLowerCase())) return "None";
+  if (!date || ["none", "null"].includes(date.toLowerCase())) return "Nenhum";
 
   const formattedData = new Date(date);
   const isValidDate = isValid(formattedData);

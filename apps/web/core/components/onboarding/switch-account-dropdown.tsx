@@ -71,7 +71,7 @@ export const SwitchAccountDropdown = observer(function SwitchAccountDropdown(pro
               }
               onClick={() => setShowSwitchAccountModal(true)}
             >
-              Wrong e-mail address?
+              E-mail errado?
             </Menu.Item>
           </Menu.Items>
         </Transition>

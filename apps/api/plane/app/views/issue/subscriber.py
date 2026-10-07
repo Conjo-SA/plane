@@ -74,7 +74,7 @@ class IssueSubscriberViewSet(BaseViewSet):
             project=project_id,
         ).exists():
             return Response(
-                {"message": "User already subscribed to the issue."},
+                {"message": "O usuário já está inscrito na tarefa."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

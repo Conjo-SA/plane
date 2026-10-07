@@ -72,10 +72,10 @@ export const PlanUpgradeCard = observer(function PlanUpgradeCard(props: PlanUpgr
 
   const renderPriceContent = (price: TSubscriptionPrice) => (
     <>
-      {price.recurring === "month" && "Monthly"}
+      {price.recurring === "month" && "Mensal"}
       {price.recurring === "year" && (
         <>
-          Yearly
+          Anual
           {yearlyDiscount > 0 && (
             <span className="text-caption-sm ml-1 rounded-full bg-accent-primary px-1.5 py-0.5 text-on-color">
               -{yearlyDiscount}%

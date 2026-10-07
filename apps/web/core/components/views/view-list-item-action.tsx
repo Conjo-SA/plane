@@ -103,7 +103,7 @@ export const ViewListItemAction = observer(function ViewListItemAction(props: Pr
           onClick={() => setPublishModalOpen(true)}
         >
           <span className="size-1.5 flex-shrink-0 rounded-full bg-success-primary" />
-          Live
+          Publicada
         </div>
       ) : (
         <></>

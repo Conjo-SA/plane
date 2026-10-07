@@ -207,7 +207,7 @@ class SubIssuesEndpoint(BaseAPIView):
 
         if not len(sub_issue_ids):
             return Response(
-                {"error": "Sub Issue IDs are required"},
+                {"error": "Os IDs das subtarefas são obrigatórios"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

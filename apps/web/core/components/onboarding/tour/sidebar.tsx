@@ -17,27 +17,27 @@ const sidebarOptions: {
 }[] = [
   {
     key: "work-items",
-    label: "Work items",
+    label: "Tarefas",
     Icon: WorkItemsIcon,
   },
   {
     key: "cycles",
-    label: "Cycles",
+    label: "Ciclos",
     Icon: CycleIcon,
   },
   {
     key: "modules",
-    label: "Modules",
+    label: "Módulos",
     Icon: ModuleIcon,
   },
   {
     key: "views",
-    label: "Views",
+    label: "Visualizações",
     Icon: ViewsIcon,
   },
   {
     key: "pages",
-    label: "Pages",
+    label: "Páginas",
     Icon: PageIcon,
   },
 ];
@@ -51,9 +51,9 @@ export function TourSidebar({ step, setStep }: Props) {
   return (
     <div className="col-span-3 hidden bg-surface-2 p-8 lg:block">
       <h3 className="text-16 font-medium">
-        Let{"'"}s get started!
+        Vamos começar!
         <br />
-        Get more out of Tasks.
+        Aproveite mais o Tasks.
       </h3>
       <div className="mt-8 space-y-5">
         {sidebarOptions.map((option) => (

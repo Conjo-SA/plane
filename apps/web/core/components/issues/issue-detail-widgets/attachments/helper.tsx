@@ -45,12 +45,12 @@ export const useAttachmentOperations = (
         setPromiseToast<any>(attachmentUploadPromise, {
           loading: "Uploading attachment...",
           success: {
-            title: "Attachment uploaded",
-            message: () => "The attachment has been successfully uploaded",
+            title: "Anexo enviado",
+            message: () => "O anexo foi enviado com sucesso",
           },
           error: {
-            title: "Attachment not uploaded",
-            message: (err) => err?.error || "The attachment could not be uploaded",
+            title: "Anexo não enviado",
+            message: (err) => err?.error || "Não foi possível enviar o anexo",
           },
         });
 
@@ -61,15 +61,15 @@ export const useAttachmentOperations = (
           if (!workspaceSlug || !projectId || !issueId) throw new Error("Missing required fields");
           await removeAttachment(workspaceSlug, projectId, issueId, attachmentId);
           setToast({
-            message: "The attachment has been successfully removed",
+            message: "O anexo foi removido com sucesso",
             type: TOAST_TYPE.SUCCESS,
-            title: "Attachment removed",
+            title: "Anexo removido",
           });
         } catch (_error) {
           setToast({
-            message: "The Attachment could not be removed",
+            message: "Não foi possível remover o anexo",
             type: TOAST_TYPE.ERROR,
-            title: "Attachment not removed",
+            title: "Anexo não removido",
           });
         }
       },

@@ -35,7 +35,7 @@ export const PlanFrequencyToggle = observer(function PlanFrequencyToggle(props: 
               : "text-tertiary hover:text-secondary"
           )}
         >
-          Monthly
+          Mensal
         </button>
         <button
           type="button"
@@ -47,7 +47,7 @@ export const PlanFrequencyToggle = observer(function PlanFrequencyToggle(props: 
               : "text-tertiary hover:text-secondary"
           )}
         >
-          Yearly
+          Anual
           {yearlyDiscount > 0 && (
             <span className="ml-1.5 rounded-full bg-accent-primary px-1 py-0.5 text-caption-xs-regular text-on-color">
               -{yearlyDiscount}%

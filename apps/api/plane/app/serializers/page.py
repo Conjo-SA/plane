@@ -189,13 +189,13 @@ class PageBinaryUpdateSerializer(serializers.Serializer):
             # Validate the binary data
             is_valid, error_message = validate_binary_data(binary_data)
             if not is_valid:
-                raise serializers.ValidationError(f"Invalid binary data: {error_message}")
+                raise serializers.ValidationError(f"Dados binários inválidos: {error_message}")
 
             return binary_data
         except Exception as e:
             if isinstance(e, serializers.ValidationError):
                 raise
-            raise serializers.ValidationError("Failed to decode base64 data")
+            raise serializers.ValidationError("Falha ao decodificar os dados base64")
 
     def validate_description_html(self, value):
         """Validate the HTML content"""

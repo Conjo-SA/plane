@@ -28,7 +28,7 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
     onChange,
     placement = "bottom-start",
     searchDisabled = false,
-    searchPlaceholder = "Search",
+    searchPlaceholder = "Buscar",
     iconType = "lucide",
     side = "bottom",
     align = "start",
@@ -81,7 +81,7 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
         },
         {
           key: "icon",
-          label: "Icon",
+          label: "Ícone",
           content: (
             <IconRoot
               defaultColor={defaultIconColor}

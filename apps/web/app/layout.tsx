@@ -30,7 +30,7 @@ export const meta = () => [
   {
     name: "keywords",
     content:
-      "software development, plan, ship, software, accelerate, code management, release management, project management, work item tracking, agile, scrum, kanban, collaboration",
+      "desenvolvimento de software, planejamento, entregas, software, gestão de código, gestão de releases, gestão de projetos, acompanhamento de tarefas, ágil, scrum, kanban, colaboração",
   },
   {
     name: "viewport",
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isSessionRecorderEnabled = parseInt(process.env.VITE_ENABLE_SESSION_RECORDER || "0");
 
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <meta name="theme-color" content="#fff" />
         <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />

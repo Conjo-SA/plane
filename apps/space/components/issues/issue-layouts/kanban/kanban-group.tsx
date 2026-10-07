@@ -101,7 +101,7 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
       role="button"
     >
       {" "}
-      Load More &darr;
+      Carregar mais &darr;
     </div>
   );
 

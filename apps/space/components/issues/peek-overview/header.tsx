@@ -29,7 +29,7 @@ const PEEK_MODES: {
   icon: any;
   label: string;
 }[] = [
-  { key: "side", icon: SidePanelIcon, label: "Side Peek" },
+  { key: "side", icon: SidePanelIcon, label: "Painel lateral" },
   {
     key: "modal",
     icon: CenterPanelIcon,
@@ -38,7 +38,7 @@ const PEEK_MODES: {
   {
     key: "full",
     icon: FullScreenPanelIcon,
-    label: "Full Screen",
+    label: "Tela cheia",
   },
 ];
 
@@ -54,8 +54,8 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
     copyTextToClipboard(urlToCopy).then(() => {
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Link copied!",
-        message: "Work item link copied to clipboard.",
+        title: "Link copiado!",
+        message: "Link da tarefa copiado para a área de transferência.",
       });
     });
   };

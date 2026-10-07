@@ -82,7 +82,7 @@ export function NameColumn(props: NameProps) {
                     onClick={() => setRemoveMemberModal(rowData)}
                   >
                     <CircleMinus className="size-3.5 flex-shrink-0" />
-                    {rowData.member?.id === currentUser?.id ? "Leave " : "Remove "}
+                    {rowData.member?.id === currentUser?.id ? "Sair " : "Remover "}
                   </div>
                 </CustomMenu.MenuItem>
               </CustomMenu>
@@ -162,8 +162,8 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
 
                     setToast({
                       type: TOAST_TYPE.ERROR,
-                      title: "You can’t change this role yet.",
-                      message: errorString ?? "An error occurred while updating member role. Please try again.",
+                      title: "Você ainda não pode alterar esta função.",
+                      message: errorString ?? "Ocorreu um erro ao atualizar a função do membro. Tente novamente.",
                     });
                   }
                 );

@@ -26,11 +26,11 @@ type Props = {
 const integrationDetails: { [key: string]: any } = {
   github: {
     logo: GithubLogo,
-    description: "Select GitHub repository to enable sync.",
+    description: "Selecione um repositório do GitHub para ativar a sincronização.",
   },
   slack: {
     logo: SlackLogo,
-    description: "Get regular updates and control which notification you want to receive.",
+    description: "Receba atualizações regulares e escolha quais notificações deseja receber.",
   },
 };
 
@@ -68,16 +68,16 @@ export function IntegrationCard({ integration }: Props) {
 
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: `${login}/${name} repository synced with the project successfully.`,
+          title: "Sucesso!",
+          message: `Repositório ${login}/${name} sincronizado com o projeto com sucesso.`,
         });
       })
       .catch((err) => {
         console.error(err);
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Repository could not be synced with the project. Please try again.",
+          title: "Erro!",
+          message: "Não foi possível sincronizar o repositório com o projeto. Tente novamente.",
         });
       });
   };
@@ -112,7 +112,7 @@ export function IntegrationCard({ integration }: Props) {
               label={
                 syncedGithubRepository && syncedGithubRepository.length > 0
                   ? `${syncedGithubRepository[0].repo_detail.owner}/${syncedGithubRepository[0].repo_detail.name}`
-                  : "Select Repository"
+                  : "Selecionar repositório"
               }
               onChange={handleChange}
             />

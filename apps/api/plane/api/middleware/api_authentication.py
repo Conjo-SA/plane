@@ -35,7 +35,7 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
                 user__is_active=True,
             )
         except APIToken.DoesNotExist:
-            raise AuthenticationFailed("Given API token is not valid")
+            raise AuthenticationFailed("O token de API informado não é válido")
 
         # save api token last used
         api_token.last_used = timezone.now()

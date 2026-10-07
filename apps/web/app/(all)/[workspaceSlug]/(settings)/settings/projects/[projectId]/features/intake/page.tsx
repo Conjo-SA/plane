@@ -31,7 +31,7 @@ function FeaturesIntakeSettingsPage({ params }: Route.ComponentProps) {
   const { t } = useTranslation();
   // derived values
   const pageTitle = currentProjectDetails?.name
-    ? `${currentProjectDetails?.name} settings - ${t("project_settings.features.intake.short_title")}`
+    ? `${currentProjectDetails?.name} configurações - ${t("project_settings.features.intake.short_title")}`
     : undefined;
   const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
 

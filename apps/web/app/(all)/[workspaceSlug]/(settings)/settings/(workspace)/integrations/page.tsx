@@ -30,7 +30,7 @@ function WorkspaceIntegrationsPage() {
 
   // derived values
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Integrations` : undefined;
+  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Integrações` : undefined;
   const { data: appIntegrations } = useSWR(isAdmin ? APP_INTEGRATIONS : null, () =>
     isAdmin ? integrationService.getAppIntegrationsList() : null
   );
@@ -41,7 +41,7 @@ function WorkspaceIntegrationsPage() {
     <>
       <PageHead title={pageTitle} />
       <section className="w-full overflow-y-auto">
-        <IntegrationAndImportExportBanner bannerName="Integrations" />
+        <IntegrationAndImportExportBanner bannerName="Integrações" />
         <div>
           {appIntegrations ? (
             appIntegrations.map((integration) => (

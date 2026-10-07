@@ -286,10 +286,10 @@ export const checkURLValidity = (url: string): boolean => {
  * Combines array elements with a separator and adds a conjunction before the last element
  * @param array Array of strings to combine
  * @param separator Separator to use between elements (default: ", ")
- * @param conjunction Conjunction to use before last element (default: "and")
+ * @param conjunction Conjunction to use before last element (default: "e")
  * @returns Combined string with conjunction before the last element
  */
-export const joinWithConjunction = (array: string[], separator: string = ", ", conjunction: string = "and"): string => {
+export const joinWithConjunction = (array: string[], separator: string = ", ", conjunction: string = "e"): string => {
   if (!array || array.length === 0) return "";
   if (array.length === 1) return array[0];
   if (array.length === 2) return `${array[0]} ${conjunction} ${array[1]}`;
@@ -297,7 +297,7 @@ export const joinWithConjunction = (array: string[], separator: string = ", ", c
   const lastElement = array[array.length - 1];
   const elementsExceptLast = array.slice(0, -1);
 
-  return `${elementsExceptLast.join(separator)}${separator}${conjunction} ${lastElement}`;
+  return `${elementsExceptLast.join(separator)} ${conjunction} ${lastElement}`;
 };
 
 /**

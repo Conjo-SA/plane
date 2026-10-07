@@ -54,7 +54,7 @@ class StateViewSet(BaseViewSet):
         except IntegrityError as e:
             if "already exists" in str(e):
                 return Response(
-                    {"name": "The state name is already taken"},
+                    {"name": "O nome do estado já está em uso"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -70,7 +70,7 @@ class StateViewSet(BaseViewSet):
         except IntegrityError as e:
             if "already exists" in str(e):
                 return Response(
-                    {"name": "The state name is already taken"},
+                    {"name": "O nome do estado já está em uso"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -116,7 +116,7 @@ class StateViewSet(BaseViewSet):
 
         if state.default:
             return Response(
-                {"error": "Default state cannot be deleted"},
+                {"error": "O estado padrão não pode ser excluído"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -125,7 +125,7 @@ class StateViewSet(BaseViewSet):
 
         if issue_exist:
             return Response(
-                {"error": "The state is not empty, only empty states can be deleted"},
+                {"error": "O estado não está vazio; apenas estados vazios podem ser excluídos"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -139,7 +139,7 @@ class IntakeStateEndpoint(BaseAPIView):
         state = State.triage_objects.filter(workspace__slug=slug, project_id=project_id).first()
         if not state:
             return Response(
-                {"error": "Triage state not found"},
+                {"error": "Estado de triagem não encontrado"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

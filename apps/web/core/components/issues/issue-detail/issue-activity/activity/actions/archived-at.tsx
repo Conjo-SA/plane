@@ -39,7 +39,7 @@ export const IssueArchivedAtActivity = observer(function IssueArchivedAtActivity
       ends={ends}
       customUserName={activity.new_value === "archive" ? "Tasks" : undefined}
     >
-      {activity.new_value === "restore" ? "restored the work item" : "archived the work item"}.
+      {activity.new_value === "restore" ? "restaurou a tarefa" : "arquivou a tarefa"}.
     </IssueActivityBlockComponent>
   );
 });

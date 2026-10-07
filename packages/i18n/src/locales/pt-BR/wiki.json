@@ -42,7 +42,7 @@
       "collection_options": "Opções da coleção"
     },
     "add_existing_page_modal": {
-      "search_placeholder": "Pesquisar páginas",
+      "search_placeholder": "Buscar páginas",
       "success_message": "{count} páginas adicionadas à coleção.",
       "error_message": "Não foi possível mover as páginas. Tente novamente.",
       "no_pages_found": "Nenhuma página encontrada para a sua busca",
@@ -88,7 +88,7 @@
   "wiki": {
     "upgrade_flow": {
       "title": "Faça upgrade para desbloquear o Wiki",
-      "description": "Desbloqueie páginas públicas, histórico de versões, páginas compartilhadas, colaboração em tempo real e páginas do espaço de trabalho para wikis, documentos da empresa e bases de conhecimento com o Tasks Pro.",
+      "description": "Desbloqueie páginas públicas, histórico de versões, páginas compartilhadas, colaboração em tempo real e páginas do workspace para wikis, documentos da empresa e bases de conhecimento com o Tasks Pro.",
       "upgrade_button": {
         "text": "Fazer upgrade"
       },

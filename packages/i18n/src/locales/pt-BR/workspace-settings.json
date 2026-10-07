@@ -1,6 +1,6 @@
 {
   "workspace_settings": {
-    "label": "Configurações do espaço de trabalho",
+    "label": "Configurações do workspace",
     "page_label": "{workspace} - Configurações gerais",
     "key_created": "Chave criada",
     "copy_key": "Copie e salve esta chave secreta nas Páginas do Tasks. Você não pode ver esta chave depois de clicar em Fechar. Um arquivo CSV contendo a chave foi baixado.",
@@ -10,20 +10,20 @@
         "title": "Geral",
         "upload_logo": "Carregar logo",
         "edit_logo": "Editar logo",
-        "name": "Nome do espaço de trabalho",
+        "name": "Nome do workspace",
         "company_size": "Tamanho da empresa",
-        "url": "URL do espaço de trabalho",
-        "workspace_timezone": "Fuso horário do espaço de trabalho",
-        "update_workspace": "Atualizar espaço de trabalho",
-        "delete_workspace": "Excluir este espaço de trabalho",
-        "delete_workspace_description": "Ao excluir um espaço de trabalho, todos os dados e recursos dentro desse espaço de trabalho serão permanentemente removidos e não poderão ser recuperados.",
-        "delete_btn": "Excluir este espaço de trabalho",
+        "url": "URL do workspace",
+        "workspace_timezone": "Fuso horário do workspace",
+        "update_workspace": "Atualizar workspace",
+        "delete_workspace": "Excluir este workspace",
+        "delete_workspace_description": "Ao excluir um workspace, todos os dados e recursos dentro desse workspace serão permanentemente removidos e não poderão ser recuperados.",
+        "delete_btn": "Excluir este workspace",
         "delete_modal": {
-          "title": "Tem certeza de que deseja excluir este espaço de trabalho?",
+          "title": "Tem certeza de que deseja excluir este workspace?",
           "description": "Você tem uma avaliação ativa para um de nossos planos pagos. Cancele-o primeiro para prosseguir.",
           "dismiss": "Dispensar",
           "cancel": "Cancelar avaliação",
-          "success_title": "Espaço de trabalho excluído.",
+          "success_title": "Workspace excluído.",
           "success_message": "Em breve, você irá para a página do seu perfil.",
           "error_title": "Isso não funcionou.",
           "error_message": "Tente novamente, por favor."
@@ -31,7 +31,7 @@
         "errors": {
           "name": {
             "required": "O nome é obrigatório",
-            "max_length": "O nome do espaço de trabalho não deve exceder 80 caracteres"
+            "max_length": "O nome do workspace não deve exceder 80 caracteres"
           },
           "company_size": {
             "required": "O tamanho da empresa é obrigatório",
@@ -44,7 +44,7 @@
         "add_member": "Adicionar membro",
         "pending_invites": "Convites pendentes",
         "invitations_sent_successfully": "Convites enviados com sucesso",
-        "leave_confirmation": "Tem certeza de que deseja sair do espaço de trabalho? Você não terá mais acesso a este espaço de trabalho. Esta ação não pode ser desfeita.",
+        "leave_confirmation": "Tem certeza de que deseja sair do workspace? Você não terá mais acesso a este workspace. Esta ação não pode ser desfeita.",
         "details": {
           "full_name": "Nome completo",
           "display_name": "Nome de exibição",
@@ -55,7 +55,7 @@
         },
         "modal": {
           "title": "Convidar pessoas para colaborar",
-          "description": "Convide pessoas para colaborar em seu espaço de trabalho.",
+          "description": "Convide pessoas para colaborar em seu workspace.",
           "button": "Enviar convites",
           "button_loading": "Enviando convites",
           "placeholder": "nome@empresa.com",
@@ -82,7 +82,7 @@
         "export_separate_files": "Exporte os dados em arquivos separados",
         "exporting_projects": "Exportando projeto",
         "format": "Formato",
-        "filters_info": "Aplique filtros para exportar itens de trabalho específicos com base em seus critérios.",
+        "filters_info": "Aplique filtros para exportar tarefas específicas com base em seus critérios.",
         "modal": {
           "title": "Exportar para",
           "toasts": {
@@ -272,12 +272,12 @@
       "templates": {
         "title": "Modelos",
         "heading": "Modelos",
-        "description": "Economize 80% do tempo gasto na criação de projetos, itens de trabalho e páginas quando você usar modelos."
+        "description": "Economize 80% do tempo gasto na criação de projetos, tarefas e páginas quando você usar modelos."
       },
       "relations": {
         "title": "Relações",
         "heading": "Relações",
-        "description": "Crie e gerencie tipos de relação que conectam itens de trabalho em todo o seu espaço de trabalho."
+        "description": "Crie e gerencie tipos de relação que conectam tarefas em todo o seu workspace."
       },
       "cancel_trial": {
         "title": "Cancele seu período de teste primeiro.",
@@ -375,7 +375,7 @@
         "webhook_url_title": "URL do webhook",
         "webhook_url_error": "URL do webhook é obrigatória",
         "invalid_webhook_url_error": "URL do webhook inválida",
-        "redirect_uris_title": "Redirect URIs",
+        "redirect_uris_title": "URIs de redirecionamento",
         "redirect_uris_error": "Redirect URIs são obrigatórias",
         "invalid_redirect_uris_error": "Redirect URIs inválidas",
         "redirect_uris_description": "Digite URIs separados por espaço onde o aplicativo redirecionará para o usuário após e.g https://example.com https://example.com/",
@@ -451,7 +451,7 @@
         "app_consent_no_access_title": "Solicitação para instalar",
         "app_consent_no_access_description": "Este aplicativo só pode ser instalado depois que um administrador do workspace o instalar. Entre em contato com o administrador do seu workspace para continuar.",
         "app_consent_unapproved_title": "Este aplicativo ainda não foi revisado ou aprovado pelo Tasks.",
-        "app_consent_unapproved_description": "Certifique-se de confiar neste aplicativo antes de conectá-lo ao seu espaço de trabalho.",
+        "app_consent_unapproved_description": "Certifique-se de confiar neste aplicativo antes de conectá-lo ao seu workspace.",
         "go_to_app": "Ir para o aplicativo",
         "enable_app_mentions": "Ativar menções do aplicativo",
         "enable_app_mentions_tooltip": "Quando isso está ativado, os usuários podem mencionar ou atribuir Work Items a este aplicativo.",

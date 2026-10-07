@@ -71,7 +71,7 @@ const EmojiReaction = React.forwardRef(function EmojiReaction(
         <div className="mb-1 font-medium">{stringToEmoji(emoji)}</div>
         <div>
           {displayUsers.join(", ")}
-          {remainingCount > 0 && ` and ${remainingCount} more`}
+          {remainingCount > 0 && ` e mais ${remainingCount}`}
         </div>
       </div>
     );
@@ -107,7 +107,7 @@ const EmojiReactionButton = React.forwardRef(function EmojiReactionButton(
   ref: React.ForwardedRef<HTMLButtonElement>
 ) {
   return (
-    <Tooltip tooltipContent="Add reaction">
+    <Tooltip tooltipContent="Adicionar reação">
       <IconButton
         ref={ref}
         icon={AddReactionIcon}

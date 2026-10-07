@@ -67,12 +67,12 @@ export const CreateIssueToastActionItems = observer(function CreateIssueToastAct
         rel="noopener noreferrer"
         className="rounded-sm px-2 py-1 font-medium text-accent-primary hover:bg-surface-2"
       >
-        {`View ${isEpic ? "epic" : "work item"}`}
+        {`Ver ${isEpic ? "epic" : "tarefa"}`}
       </a>
 
       {copied ? (
         <>
-          <span className="cursor-default px-2 py-1 text-secondary">Copied!</span>
+          <span className="cursor-default px-2 py-1 text-secondary">Copiado!</span>
         </>
       ) : (
         <>
@@ -80,7 +80,7 @@ export const CreateIssueToastActionItems = observer(function CreateIssueToastAct
             className="hidden cursor-pointer rounded-sm px-2 py-1 text-tertiary group-hover:flex hover:bg-surface-2 hover:text-secondary"
             onClick={copyToClipboard}
           >
-            Copy link
+            Copiar link
           </button>
         </>
       )}

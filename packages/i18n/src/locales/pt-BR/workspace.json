@@ -1,52 +1,52 @@
 {
   "workspace_creation": {
-    "heading": "Crie seu espaço de trabalho",
-    "subheading": "Para começar a usar o Tasks, você precisa criar ou entrar em um espaço de trabalho.",
+    "heading": "Crie seu workspace",
+    "subheading": "Para começar a usar o Tasks, você precisa criar ou entrar em um workspace.",
     "form": {
       "name": {
-        "label": "Nomeie seu espaço de trabalho",
+        "label": "Nomeie seu workspace",
         "placeholder": "Algo familiar e reconhecível é sempre melhor."
       },
       "url": {
-        "label": "Defina o URL do seu espaço de trabalho",
+        "label": "Defina o URL do seu workspace",
         "placeholder": "Digite ou cole um URL",
         "edit_slug": "Você só pode editar o slug do URL"
       },
       "organization_size": {
-        "label": "Quantas pessoas usarão este espaço de trabalho?",
+        "label": "Quantas pessoas usarão este workspace?",
         "placeholder": "Selecione um intervalo"
       }
     },
     "errors": {
       "creation_disabled": {
-        "title": "Apenas o administrador da sua instância pode criar espaços de trabalho",
+        "title": "Apenas o administrador da sua instância pode criar workspaces",
         "description": "Se você souber o endereço de e-mail do administrador da sua instância, clique no botão abaixo para entrar em contato com ele.",
         "request_button": "Solicitar administrador da instância"
       },
       "validation": {
-        "name_alphanumeric": "Os nomes dos espaços de trabalho podem conter apenas (' '), ('-'), ('_') e caracteres alfanuméricos.",
+        "name_alphanumeric": "Os nomes dos workspaces podem conter apenas (' '), ('-'), ('_') e caracteres alfanuméricos.",
         "name_length": "Limite seu nome a 80 caracteres.",
         "url_alphanumeric": "Os URLs podem conter apenas ('-') e caracteres alfanuméricos.",
         "url_length": "Limite seu URL a 48 caracteres.",
-        "url_already_taken": "O URL do espaço de trabalho já está em uso!"
+        "url_already_taken": "O URL do workspace já está em uso!"
       }
     },
     "request_email": {
-      "subject": "Solicitando um novo espaço de trabalho",
-      "body": "Olá, administrador(es) da instância,\n\nPor favor, crie um novo espaço de trabalho com o URL [/nome-do-espaço-de-trabalho] para [finalidade de criar o espaço de trabalho].\n\nObrigado,\n{firstName} {lastName}\n{email}"
+      "subject": "Solicitando um novo workspace",
+      "body": "Olá, administrador(es) da instância,\n\nPor favor, crie um novo workspace com o URL [/nome-do-espaço-de-trabalho] para [finalidade de criar o workspace].\n\nObrigado,\n{firstName} {lastName}\n{email}"
     },
     "button": {
-      "default": "Criar espaço de trabalho",
-      "loading": "Criando espaço de trabalho"
+      "default": "Criar workspace",
+      "loading": "Criando workspace"
     },
     "toast": {
       "success": {
         "title": "Sucesso",
-        "message": "Espaço de trabalho criado com sucesso"
+        "message": "Workspace criado com sucesso"
       },
       "error": {
         "title": "Erro",
-        "message": "Não foi possível criar o espaço de trabalho. Por favor, tente novamente."
+        "message": "Não foi possível criar o workspace. Por favor, tente novamente."
       }
     }
   },
@@ -54,7 +54,7 @@
     "empty_state": {
       "general": {
         "title": "Visão geral dos seus projetos, atividades e métricas",
-        "description": "Bem-vindo ao Tasks, estamos animados por tê-lo aqui. Crie seu primeiro projeto e rastreie seus itens de trabalho, e esta página se transformará em um espaço que ajuda você a progredir. Os administradores também verão itens que ajudam sua equipe a progredir.",
+        "description": "Boas-vindas ao Tasks! Crie seu primeiro projeto e acompanhe suas tarefas, e esta página se transformará em um espaço que ajuda você a progredir. Os administradores também verão itens que ajudam sua equipe a progredir.",
         "primary_button": {
           "text": "Construa seu primeiro projeto",
           "comic": {
@@ -70,26 +70,26 @@
     "page_label": "{workspace} - Análises",
     "open_tasks": "Total de tarefas abertas",
     "error": "Ocorreu algum erro ao buscar os dados.",
-    "work_items_closed_in": "Itens de trabalho fechados em",
+    "work_items_closed_in": "Tarefas fechadas em",
     "selected_projects": "Projetos selecionados",
     "total_members": "Total de membros",
     "total_cycles": "Total de ciclos",
     "total_modules": "Total de módulos",
     "pending_work_items": {
-      "title": "Itens de trabalho pendentes",
-      "empty_state": "A análise de itens de trabalho pendentes por colegas de trabalho aparece aqui."
+      "title": "Tarefas pendentes",
+      "empty_state": "A análise de tarefas pendentes por colegas de trabalho aparece aqui."
     },
     "work_items_closed_in_a_year": {
-      "title": "Itens de trabalho fechados em um ano",
-      "empty_state": "Feche os itens de trabalho para visualizar a análise dos mesmos na forma de um gráfico."
+      "title": "Tarefas fechadas em um ano",
+      "empty_state": "Feche tarefas para ver a análise delas em um gráfico."
     },
     "most_work_items_created": {
-      "title": "Itens de trabalho mais criados",
-      "empty_state": "Colegas de trabalho e o número de itens de trabalho criados por eles aparecem aqui."
+      "title": "Tarefas mais criadas",
+      "empty_state": "Colegas de trabalho e o número de tarefas criadas por eles aparecem aqui."
     },
     "most_work_items_closed": {
-      "title": "Itens de trabalho mais fechados",
-      "empty_state": "Colegas de trabalho e o número de itens de trabalho fechados por eles aparecem aqui."
+      "title": "Tarefas mais fechadas",
+      "empty_state": "Colegas de trabalho e o número de tarefas fechadas por eles aparecem aqui."
     },
     "tabs": {
       "scope_and_demand": "Escopo e Demanda",
@@ -110,15 +110,15 @@
     "empty_state": {
       "project_insights": {
         "title": "Ainda não há dados",
-        "description": "Os itens de trabalho atribuídos a você, divididos por estado, aparecerão aqui."
+        "description": "As tarefas atribuídas a você, divididas por estado, aparecerão aqui."
       },
       "created_vs_resolved": {
         "title": "Ainda não há dados",
-        "description": "Os itens de trabalho criados e resolvidos ao longo do tempo aparecerão aqui."
+        "description": "As tarefas criadas e resolvidas ao longo do tempo aparecerão aqui."
       },
       "customized_insights": {
         "title": "Ainda não há dados",
-        "description": "Os itens de trabalho atribuídos a você, divididos por estado, aparecerão aqui."
+        "description": "As tarefas atribuídas a você, divididas por estado, aparecerão aqui."
       },
       "general": {
         "title": "Acompanhe progresso, cargas de trabalho e alocações. Identifique tendências, remova bloqueios e trabalhe mais rápido",
@@ -127,25 +127,25 @@
           "text": "Comece seu primeiro projeto",
           "comic": {
             "title": "Analytics funciona melhor com Ciclos + Módulos",
-            "description": "Primeiro, defina um tempo limite para seus itens de trabalho em Ciclos e, se possível, agrupe itens que abrangem mais de um ciclo em Módulos. Confira ambos na navegação esquerda."
+            "description": "Primeiro, defina um tempo limite para suas tarefas em Ciclos e, se possível, agrupe itens que abrangem mais de um ciclo em Módulos. Confira ambos na navegação esquerda."
           }
         }
       },
       "cycle_progress": {
         "title": "Ainda não há dados",
-        "description": "A análise de progresso do ciclo aparecerá aqui. Adicione itens de trabalho aos ciclos para começar a acompanhar o progresso."
+        "description": "A análise de progresso do ciclo aparecerá aqui. Adicione tarefas aos ciclos para começar a acompanhar o progresso."
       },
       "module_progress": {
         "title": "Ainda não há dados",
-        "description": "A análise de progresso do módulo aparecerá aqui. Adicione itens de trabalho aos módulos para começar a acompanhar o progresso."
+        "description": "A análise de progresso do módulo aparecerá aqui. Adicione tarefas aos módulos para começar a acompanhar o progresso."
       },
       "intake_trends": {
         "title": "Ainda não há dados",
-        "description": "A análise de tendências de intake aparecerá aqui. Adicione itens de trabalho ao intake para começar a acompanhar as tendências."
+        "description": "A análise de tendências da Entrada aparecerá aqui. Adicione tarefas à Entrada para começar a acompanhar as tendências."
       }
     },
     "upgrade_to_plan": "Faça upgrade para {plan} para desbloquear {tab}",
-    "workitem_resolved_vs_pending": "Itens de trabalho resolvidos vs pendentes",
+    "workitem_resolved_vs_pending": "Tarefas resolvidas vs pendentes",
     "projects_by_status": "Projetos por status",
     "active_users": "Usuários ativos",
     "intake_trends": "Tendências de entrada"
@@ -163,14 +163,14 @@
       },
       "public": {
         "title": "Público",
-        "description": "Qualquer pessoa no espaço de trabalho, exceto convidados, pode participar"
+        "description": "Qualquer pessoa no workspace, exceto convidados, pode participar"
       }
     },
     "error": {
       "permission": "Você não tem permissão para realizar esta ação.",
       "cycle_delete": "Falha ao excluir o ciclo",
       "module_delete": "Falha ao excluir o módulo",
-      "issue_delete": "Falha ao excluir o item de trabalho"
+      "issue_delete": "Falha ao excluir a tarefa"
     },
     "state": {
       "backlog": "Backlog",
@@ -207,7 +207,7 @@
       },
       "no_projects": {
         "title": "Nenhum projeto",
-        "description": "Para criar itens de trabalho ou gerenciar seu trabalho, você precisa criar um projeto ou fazer parte de um.",
+        "description": "Para criar tarefas ou gerenciar seu trabalho, você precisa criar um projeto ou fazer parte de um.",
         "primary_button": {
           "text": "Comece seu primeiro projeto",
           "comic": {
@@ -229,33 +229,33 @@
     "add_view": "Adicionar visualização",
     "empty_state": {
       "all-issues": {
-        "title": "Nenhum item de trabalho no projeto",
-        "description": "Primeiro projeto concluído! Agora, divida seu trabalho em partes rastreáveis com itens de trabalho. Vamos lá!",
+        "title": "Nenhuma tarefa no projeto",
+        "description": "Primeiro projeto concluído! Agora, divida seu trabalho em partes rastreáveis com tarefas. Vamos lá!",
         "primary_button": {
-          "text": "Criar novo item de trabalho"
+          "text": "Criar nova tarefa"
         }
       },
       "assigned": {
-        "title": "Nenhum item de trabalho ainda",
-        "description": "Os itens de trabalho atribuídos a você podem ser rastreados aqui.",
+        "title": "Nenhuma tarefa ainda",
+        "description": "As tarefas atribuídas a você podem ser acompanhadas aqui.",
         "primary_button": {
-          "text": "Criar novo item de trabalho"
+          "text": "Criar nova tarefa"
         }
       },
       "created": {
-        "title": "Nenhum item de trabalho ainda",
-        "description": "Todos os itens de trabalho criados por você vêm aqui, rastreie-os aqui diretamente.",
+        "title": "Nenhuma tarefa ainda",
+        "description": "Todas as tarefas criadas por você aparecem aqui.",
         "primary_button": {
-          "text": "Criar novo item de trabalho"
+          "text": "Criar nova tarefa"
         }
       },
       "subscribed": {
-        "title": "Nenhum item de trabalho ainda",
-        "description": "Inscreva-se nos itens de trabalho nos quais você está interessado, rastreie todos eles aqui."
+        "title": "Nenhuma tarefa ainda",
+        "description": "Inscreva-se nas tarefas do seu interesse e acompanhe todas aqui."
       },
       "custom-view": {
-        "title": "Nenhum item de trabalho ainda",
-        "description": "Itens de trabalho que se aplicam aos filtros, rastreie todos eles aqui."
+        "title": "Nenhuma tarefa ainda",
+        "description": "As tarefas que atendem aos filtros aparecem aqui."
       }
     },
     "delete_view": {
@@ -264,10 +264,10 @@
     }
   },
   "workspace_draft_issues": {
-    "draft_an_issue": "Rascunhar um item de trabalho",
+    "draft_an_issue": "Rascunhar uma tarefa",
     "empty_state": {
-      "title": "Itens de trabalho semi-escritos e, em breve, os comentários aparecerão aqui.",
-      "description": "Para experimentar, comece a adicionar um item de trabalho e deixe-o no meio do caminho ou crie seu primeiro rascunho abaixo. 😉",
+      "title": "Tarefas semiescritas e, em breve, os comentários aparecerão aqui.",
+      "description": "Para experimentar, comece a adicionar uma tarefa e deixe-a no meio do caminho ou crie seu primeiro rascunho abaixo. 😉",
       "primary_button": {
         "text": "Criar seu primeiro rascunho"
       }
@@ -279,7 +279,7 @@
     "toasts": {
       "created": {
         "success": "Rascunho criado",
-        "error": "Não foi possível criar o item de trabalho. Por favor, tente novamente."
+        "error": "Não foi possível criar a tarefa. Por favor, tente novamente."
       },
       "deleted": {
         "success": "Rascunho excluído"
@@ -290,7 +290,7 @@
     "empty_state": {
       "general": {
         "title": "Escreva uma nota, um documento ou uma base de conhecimento completa. Obtenha ajuda do Galileo, o assistente de IA do Tasks, para começar",
-        "description": "Páginas são espaços para desenvolver pensamentos no Tasks. Anote notas de reunião, formate-as facilmente, incorpore itens de trabalho, organize-os usando uma biblioteca de componentes e mantenha tudo no contexto do seu projeto. Para facilitar qualquer documento, invoque o Galileo, a IA do Tasks, com um atalho ou clique de um botão.",
+        "description": "Páginas são espaços para desenvolver pensamentos no Tasks. Anote notas de reunião, formate-as facilmente, incorpore tarefas, organize-as usando uma biblioteca de componentes e mantenha tudo no contexto do seu projeto. Para facilitar qualquer documento, invoque o Galileo, a IA do Tasks, com um atalho ou clique de um botão.",
         "primary_button": {
           "text": "Crie sua primeira página"
         }
@@ -303,8 +303,8 @@
         }
       },
       "public": {
-        "title": "Ainda não há páginas do espaço de trabalho",
-        "description": "Veja páginas compartilhadas com todos em seu espaço de trabalho aqui mesmo.",
+        "title": "Ainda não há páginas do workspace",
+        "description": "Veja páginas compartilhadas com todos em seu workspace aqui mesmo.",
         "primary_button": {
           "text": "Crie sua primeira página"
         }
@@ -354,7 +354,7 @@
         },
         "message": {
           "seat_limit": "Não foi possível importar membros devido a restrições de limite de assentos.",
-          "success": "{count} membr{plural} adicionad{plural} com sucesso ao espaço de trabalho.",
+          "success": "{count} membr{plural} adicionad{plural} com sucesso ao workspace.",
           "no_imports": "Nenhum membro foi importado do arquivo CSV."
         },
         "stats": {

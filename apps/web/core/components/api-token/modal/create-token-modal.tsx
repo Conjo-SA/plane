@@ -43,10 +43,10 @@ export function CreateApiTokenModal(props: Props) {
 
   const downloadSecretKey = (data: IApiToken) => {
     const csvData = {
-      Title: data.label,
-      Description: data.description,
-      Expiry: data.expired_at ? (renderFormattedDate(data.expired_at)?.replace(",", " ") ?? "") : "Never expires",
-      "Secret key": data.token ?? "",
+      Título: data.label,
+      Descrição: data.description,
+      Validade: data.expired_at ? (renderFormattedDate(data.expired_at)?.replace(",", " ") ?? "") : "Nunca expira",
+      "Chave secreta": data.token ?? "",
     };
 
     csvDownload(csvData, `secret-key-${Date.now()}`);
@@ -73,7 +73,7 @@ export function CreateApiTokenModal(props: Props) {
       .catch((err) => {
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
+          title: "Erro!",
           message: err.message || err.detail,
         });
 

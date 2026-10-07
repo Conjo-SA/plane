@@ -35,7 +35,7 @@ export function Spinner({ height = "32px", width = "32px", className = "" }: ISp
           fill="currentFill"
         />
       </svg>
-      <span className="sr-only">Loading...</span>
+      <span className="sr-only">Carregando...</span>
     </div>
   );
 }

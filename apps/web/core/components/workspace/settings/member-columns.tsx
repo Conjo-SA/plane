@@ -138,7 +138,7 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
       {isSuspended ? (
         <div className="flex w-32">
           <Pill variant={EPillVariant.DEFAULT} size={EPillSize.SM} className="border-none">
-            Suspended
+            Suspenso
           </Pill>
         </div>
       ) : isRoleNonEditable ? (
@@ -149,7 +149,7 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
         <Controller
           name="role"
           control={control}
-          rules={{ required: "Role is required." }}
+          rules={{ required: "A função é obrigatória." }}
           render={({ field: { value } }) => (
             <CustomSelect
               value={value as EUserPermissions}
@@ -165,8 +165,8 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
 
                   setToast({
                     type: TOAST_TYPE.ERROR,
-                    title: "Error!",
-                    message: errorString ?? "An error occurred while updating member role. Please try again.",
+                    title: "Erro!",
+                    message: errorString ?? "Ocorreu um erro ao atualizar a função do membro. Tente novamente.",
                   });
                 }
               }}

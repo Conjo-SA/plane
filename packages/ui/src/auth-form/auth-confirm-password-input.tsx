@@ -21,7 +21,7 @@ export type TAuthConfirmPasswordInputProps = React.InputHTMLAttributes<HTMLInput
 
 export function AuthConfirmPasswordInput({
   password,
-  label = "Confirm Password",
+  label = "Confirmar senha",
   error,
   showPasswordToggle = true,
   containerClassName = "",
@@ -75,7 +75,7 @@ export function AuthConfirmPasswordInput({
         onBlur={handleBlur}
         autoComplete="off"
       />
-      {confirmPassword && passwordsMatch && <p className="text-13 text-success-primary">Passwords match</p>}
+      {confirmPassword && passwordsMatch && <p className="text-13 text-success-primary">As senhas coincidem</p>}
     </div>
   );
 }

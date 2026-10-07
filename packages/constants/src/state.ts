@@ -27,25 +27,25 @@ export const STATE_GROUPS: {
   },
   unstarted: {
     key: "unstarted",
-    label: "Unstarted",
+    label: "Não iniciado",
     defaultStateName: "Todo",
     color: "#3f76ff",
   },
   started: {
     key: "started",
-    label: "Started",
+    label: "Iniciado",
     defaultStateName: "In Progress",
     color: "#f59e0b",
   },
   completed: {
     key: "completed",
-    label: "Completed",
+    label: "Concluído",
     defaultStateName: "Done",
     color: "#16a34a",
   },
   cancelled: {
     key: "cancelled",
-    label: "Canceled",
+    label: "Cancelado",
     defaultStateName: "Cancelled",
     color: "#dc2626",
   },
@@ -91,17 +91,17 @@ export const STATE_DISTRIBUTION = {
 export const PROGRESS_STATE_GROUPS_DETAILS = [
   {
     key: "completed_issues",
-    title: "Completed",
+    title: "Concluído",
     color: "#16A34A",
   },
   {
     key: "started_issues",
-    title: "Started",
+    title: "Iniciado",
     color: "#F59E0B",
   },
   {
     key: "unstarted_issues",
-    title: "Unstarted",
+    title: "Não iniciado",
     color: "#3A3A3A",
   },
   {

@@ -27,19 +27,19 @@ from plane.utils.issue_filters import issue_filters
 from plane.utils.csv_utils import sanitize_csv_row
 
 row_mapping = {
-    "state__name": "State",
-    "state__group": "State Group",
-    "labels__id": "Label",
-    "assignees__id": "Assignee Name",
-    "start_date": "Start Date",
-    "target_date": "Due Date",
-    "completed_at": "Completed At",
-    "created_at": "Created At",
-    "issue_count": "Issue Count",
-    "priority": "Priority",
-    "estimate": "Estimate",
-    "issue_cycle__cycle_id": "Cycle",
-    "issue_module__module_id": "Module",
+    "state__name": "Estado",
+    "state__group": "Grupo de estado",
+    "labels__id": "Etiqueta",
+    "assignees__id": "Responsável",
+    "start_date": "Data de início",
+    "target_date": "Data de entrega",
+    "completed_at": "Concluída em",
+    "created_at": "Criada em",
+    "issue_count": "Qtd. de tarefas",
+    "priority": "Prioridade",
+    "estimate": "Estimativa",
+    "issue_cycle__cycle_id": "Ciclo",
+    "issue_module__module_id": "Módulo",
 }
 
 ASSIGNEE_ID = "assignees__id"
@@ -51,7 +51,7 @@ MODULE_ID = "issue_module__module_id"
 
 def send_export_email(email, slug, csv_buffer, rows):
     """Helper function to send export email."""
-    subject = "Your Export is ready"
+    subject = "Sua exportação está pronta"
     html_content = render_to_string("emails/exports/analytics.html", {})
     text_content = generate_plain_text_from_html(html_content)
 
@@ -203,8 +203,8 @@ def generate_segmented_rows(
     segmented = segment
 
     row_zero = [
-        row_mapping.get(x_axis, "X-Axis"),
-        row_mapping.get(y_axis, "Y-Axis"),
+        row_mapping.get(x_axis, "Eixo X"),
+        row_mapping.get(y_axis, "Eixo Y"),
     ] + segment_zero
 
     rows = []
@@ -343,7 +343,7 @@ def generate_non_segmented_rows(
 
         rows.append(tuple(row))
 
-    row_zero = [row_mapping.get(x_axis, "X-Axis"), row_mapping.get(y_axis, "Y-Axis")]
+    row_zero = [row_mapping.get(x_axis, "Eixo X"), row_mapping.get(y_axis, "Eixo Y")]
     return [tuple(row_zero)] + rows
 
 

@@ -172,7 +172,7 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
             );
           })
         ) : (
-          <div className="py-2 text-center text-13 text-placeholder">No emojis found</div>
+          <div className="py-2 text-center text-13 text-placeholder">Nenhum emoji encontrado</div>
         )}
       </div>
     </>

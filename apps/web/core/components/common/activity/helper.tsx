@@ -84,12 +84,29 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
   const newValue = activity.new_value;
   const oldValue = activity.old_value;
   const verb = activity.verb;
+  const VERB_PT: Record<string, string> = {
+    created: "criou",
+    updated: "atualizou",
+    removed: "removeu",
+    deleted: "excluiu",
+    added: "adicionou",
+    archived: "arquivou",
+    restored: "restaurou",
+  };
+  const verbText = VERB_PT[verb] ?? verb;
+  const VIEW_FEATURE_PT: Record<string, string> = {
+    module_view: "módulos",
+    cycle_view: "ciclos",
+    issue_views_view: "visualizações",
+    page_view: "páginas",
+    intake_view: "Entrada",
+  };
   const workspaceDetail = store.workspaceRoot.getWorkspaceById(activity.workspace);
 
   const getBooleanActionText = (value: string | undefined) => {
-    if (value === "true") return "enabled";
-    if (value === "false") return "disabled";
-    return verb;
+    if (value === "true") return "ativou";
+    if (value === "false") return "desativou";
+    return verbText;
   };
 
   switch (activityType) {
@@ -97,26 +114,26 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
       return {
         message: (
           <>
-            set the priority to <span className="font-medium text-primary">{newValue || "none"}</span>
+            definiu a prioridade como <span className="font-medium text-primary">{newValue || "nenhuma"}</span>
           </>
         ),
       };
     case "archived_at":
       return {
-        message: newValue === "restore" ? "restored the project" : "archived the project",
+        message: newValue === "restore" ? "restaurou o projeto" : "arquivou o projeto",
         customUserName: newValue === "archive" ? "Tasks" : undefined,
       };
     case "name":
       return {
         message: (
           <>
-            renamed the project to <span className="font-medium text-primary">{newValue}</span>
+            renomeou o projeto para <span className="font-medium text-primary">{newValue}</span>
           </>
         ),
       };
     case "description":
       return {
-        message: newValue ? "updated the project description" : "removed the project description",
+        message: newValue ? "atualizou a descrição do projeto" : "removeu a descrição do projeto",
       };
     case "start_date":
       return {
@@ -124,10 +141,10 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
           <>
             {newValue ? (
               <>
-                set the start date to <span className="font-medium text-primary">{newValue}</span>
+                definiu a data de início como <span className="font-medium text-primary">{newValue}</span>
               </>
             ) : (
-              "removed the start date"
+              "removeu a data de início"
             )}
           </>
         ),
@@ -138,10 +155,10 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
           <>
             {newValue ? (
               <>
-                set the target date to <span className="font-medium text-primary">{newValue}</span>
+                definiu o prazo como <span className="font-medium text-primary">{newValue}</span>
               </>
             ) : (
-              "removed the target date"
+              "removeu o prazo"
             )}
           </>
         ),
@@ -150,7 +167,7 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
       return {
         message: (
           <>
-            set the state to <span className="font-medium text-primary">{newValue || "none"}</span>
+            definiu o estado como <span className="font-medium text-primary">{newValue || "nenhum"}</span>
           </>
         ),
       };
@@ -160,11 +177,11 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
           <>
             {newValue ? (
               <>
-                set the estimate point to <span className="font-medium text-primary">{newValue}</span>
+                definiu a estimativa como <span className="font-medium text-primary">{newValue}</span>
               </>
             ) : (
               <>
-                removed the estimate point
+                removeu a estimativa
                 {oldValue && (
                   <>
                     {" "}
@@ -181,7 +198,7 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
         message: (
           <>
             <span>
-              {verb} this project {verb === "removed" ? "from" : "to"} the cycle{" "}
+              {verbText} este projeto {verb === "removed" ? "do" : "ao"} ciclo{" "}
             </span>
             {verb !== "removed" ? (
               <a
@@ -193,7 +210,7 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
                 {activity.new_value}
               </a>
             ) : (
-              <span className="font-medium text-primary">{activity.old_value || "Unknown cycle"}</span>
+              <span className="font-medium text-primary">{activity.old_value || "Ciclo desconhecido"}</span>
             )}
           </>
         ),
@@ -203,10 +220,10 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
         message: (
           <>
             <span>
-              {verb} this project {verb === "removed" ? "from" : "to"} the module{" "}
+              {verbText} este projeto {verb === "removed" ? "do" : "ao"} módulo{" "}
             </span>
             <span className="font-medium text-primary">
-              {verb === "removed" ? oldValue : newValue || "Unknown module"}
+              {verb === "removed" ? oldValue : newValue || "Módulo desconhecido"}
             </span>
           </>
         ),
@@ -215,33 +232,34 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
       return {
         message: (
           <>
-            {verb} the label{" "}
-            <span className="font-medium text-primary">{newValue || oldValue || "Untitled label"}</span>
+            {verbText} a etiqueta{" "}
+            <span className="font-medium text-primary">{newValue || oldValue || "Etiqueta sem título"}</span>
           </>
         ),
       };
     case "inbox":
       return {
-        message: <>{newValue ? "enabled" : "disabled"} inbox</>,
+        message: <>{newValue ? "ativou" : "desativou"} a Entrada</>,
       };
     case "page":
       return {
         message: (
           <>
-            {newValue ? "created" : "removed"} the project page{" "}
-            <span className="font-medium text-primary">{newValue || oldValue || "Untitled page"}</span>
+            {newValue ? "criou" : "removeu"} a página do projeto{" "}
+            <span className="font-medium text-primary">{newValue || oldValue || "Página sem título"}</span>
           </>
         ),
       };
     case "network":
       return {
-        message: <>{newValue ? "enabled" : "disabled"} network access</>,
+        message: <>{newValue ? "ativou" : "desativou"} o acesso de rede</>,
       };
     case "identifier":
       return {
         message: (
           <>
-            updated project identifier to <span className="font-medium text-primary">{newValue || "none"}</span>
+            atualizou o identificador do projeto para{" "}
+            <span className="font-medium text-primary">{newValue || "nenhum"}</span>
           </>
         ),
       };
@@ -249,7 +267,8 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
       return {
         message: (
           <>
-            changed project timezone to <span className="font-medium text-primary">{newValue || "default"}</span>
+            alterou o fuso horário do projeto para{" "}
+            <span className="font-medium text-primary">{newValue || "padrão"}</span>
           </>
         ),
       };
@@ -261,33 +280,33 @@ export const messages = (activity: TProjectActivity): { message: string | ReactN
       return {
         message: (
           <>
-            {getBooleanActionText(newValue)} {activityType.replace(/_view$/, "").replace(/_/g, " ")} view
+            {getBooleanActionText(newValue)} a visualização de {VIEW_FEATURE_PT[activityType] ?? activityType}
           </>
         ),
       };
     case "is_project_updates_enabled":
       return {
-        message: <>{getBooleanActionText(newValue)} project updates</>,
+        message: <>{getBooleanActionText(newValue)} as atualizações do projeto</>,
       };
     case "is_epic_enabled":
       return {
-        message: <>{getBooleanActionText(newValue)} epics</>,
+        message: <>{getBooleanActionText(newValue)} os épicos</>,
       };
     case "is_workflow_enabled":
       return {
-        message: <>{getBooleanActionText(newValue)} custom workflow</>,
+        message: <>{getBooleanActionText(newValue)} o fluxo de trabalho personalizado</>,
       };
     case "is_time_tracking_enabled":
       return {
-        message: <>{getBooleanActionText(newValue)} time tracking</>,
+        message: <>{getBooleanActionText(newValue)} o controle de tempo</>,
       };
     case "is_issue_type_enabled":
       return {
-        message: <>{getBooleanActionText(newValue)} work item types</>,
+        message: <>{getBooleanActionText(newValue)} os tipos de tarefa</>,
       };
     default:
       return {
-        message: `${verb} ${activityType?.replace(/_/g, " ")} `,
+        message: `${verbText} ${activityType?.replace(/_/g, " ")} `,
       };
   }
 };

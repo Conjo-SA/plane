@@ -11,4 +11,4 @@ export default function ForgotPasswordLayout() {
   return <Outlet />;
 }
 
-export const meta: Route.MetaFunction = () => [{ title: "Forgot Password - Tasks" }];
+export const meta: Route.MetaFunction = () => [{ title: "Esqueci minha senha - Tasks" }];

@@ -25,7 +25,7 @@ function GlobalViewIssuesPage({ params }: Route.ComponentProps) {
 
   // derived values
   const defaultView = DEFAULT_GLOBAL_VIEWS_LIST.find((view) => view.key === globalViewId);
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - All Views` : undefined;
+  const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - Todas as visualizações` : undefined;
 
   // handlers
   const toggleLoading = (value: boolean) => setIsLoading(value);

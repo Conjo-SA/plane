@@ -35,7 +35,7 @@ def forgot_password(first_name, email, uidb64, token, current_site):
             EMAIL_FROM,
         ) = get_email_configuration()
 
-        subject = "A new password to your Tasks account has been requested"
+        subject = "Foi solicitada uma nova senha para sua conta do Tasks"
 
         context = {
             "first_name": first_name,

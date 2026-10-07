@@ -24,8 +24,8 @@ export const PageOfflineBadge = observer(function PageOfflineBadge({ page }: Pro
 
   return (
     <Tooltip
-      tooltipHeading="You are offline."
-      tooltipContent="You can continue making changes. They will be synced when you are back online."
+      tooltipHeading="Você está offline."
+      tooltipContent="Você pode continuar editando. As alterações serão sincronizadas quando você voltar a ficar online."
     >
       <div className="flex h-7 flex-shrink-0 items-center gap-2 rounded-full bg-layer-1 px-3 py-0.5 text-11 font-medium text-tertiary">
         <span className="size-1.5 flex-shrink-0 rounded-full bg-layer-1" />

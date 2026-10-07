@@ -48,24 +48,24 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
     def validate_name(self, value):
         # Check if the name contains a URL
         if contains_url(value):
-            raise serializers.ValidationError("Name must not contain URLs")
+            raise serializers.ValidationError("O nome não pode conter URLs")
         # Reject symbol-only names like "-_________-" that have no letter or
         # digit. Mirrors the frontend HAS_ALPHANUMERIC_REGEX check so the rule
         # cannot be bypassed via a direct API call.
         if not has_alphanumeric(value):
             raise serializers.ValidationError(
-                "Name must contain at least one letter or number"
+                "O nome deve conter pelo menos uma letra ou número"
             )
         return value
 
     def validate_slug(self, value):
         # Check if the slug is restricted
         if value in RESTRICTED_WORKSPACE_SLUGS:
-            raise serializers.ValidationError("Slug is not valid")
+            raise serializers.ValidationError("O slug não é válido")
         # Slug should only contain alphanumeric characters, hyphens, and underscores
         if not re.match(r"^[a-zA-Z0-9_-]+$", value):
             raise serializers.ValidationError(
-                "Slug can only contain letters, numbers, hyphens (-), and underscores (_)"
+                "O slug só pode conter letras, números, hífens (-) e sublinhados (_)"
             )
         return value
 
@@ -196,7 +196,7 @@ class WorkspaceUserLinkSerializer(BaseSerializer):
         try:
             url_validator(value)
         except ValidationError:
-            raise serializers.ValidationError({"error": "Invalid URL format."})
+            raise serializers.ValidationError({"error": "Formato de URL inválido."})
 
         return value
 
@@ -212,7 +212,7 @@ class WorkspaceUserLinkSerializer(BaseSerializer):
         )
 
         if workspace_user_link.exists():
-            raise serializers.ValidationError({"error": "URL already exists for this workspace and owner"})
+            raise serializers.ValidationError({"error": "Esta URL já existe para este workspace e proprietário"})
 
         return super().create(validated_data)
 
@@ -226,7 +226,7 @@ class WorkspaceUserLinkSerializer(BaseSerializer):
         )
 
         if workspace_user_link.exclude(pk=instance.id).exists():
-            raise serializers.ValidationError({"error": "URL already exists for this workspace and owner"})
+            raise serializers.ValidationError({"error": "Esta URL já existe para este workspace e proprietário"})
 
         return super().update(instance, validated_data)
 
@@ -348,7 +348,7 @@ class StickySerializer(BaseSerializer):
         if "description_html" in data and data["description_html"]:
             is_valid, error_msg, sanitized_html = validate_html_content(data["description_html"])
             if not is_valid:
-                raise serializers.ValidationError({"error": "html content is not valid"})
+                raise serializers.ValidationError({"error": "O conteúdo HTML não é válido"})
             # Update the data with sanitized HTML if available
             if sanitized_html is not None:
                 data["description_html"] = sanitized_html
@@ -356,7 +356,7 @@ class StickySerializer(BaseSerializer):
         if "description_binary" in data and data["description_binary"]:
             is_valid, error_msg = validate_binary_data(data["description_binary"])
             if not is_valid:
-                raise serializers.ValidationError({"description_binary": "Invalid binary data"})
+                raise serializers.ValidationError({"description_binary": "Dados binários inválidos"})
 
         return data
 

@@ -22,7 +22,7 @@ export type TAuthPasswordInputProps = React.InputHTMLAttributes<HTMLInputElement
 };
 
 export function AuthPasswordInput({
-  label = "Password",
+  label = "Senha",
   error,
   showPasswordStrength = true,
   showPasswordToggle = true,

@@ -188,8 +188,8 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
           <div>
             <h2 className="text-18 font-semibold text-primary">{t("customize_navigation")}</h2>
             <p className="mt-1 text-13 text-tertiary">
-              Selected items will always stay visible in your sidebar. You can still find the others anytime from the
-              More menu. These changes are personal to you and won&apos;t affect anyone else on your workspace.
+              Os itens selecionados ficam sempre visíveis na barra lateral. Os demais continuam disponíveis no menu
+              Mais. Essas alterações são pessoais e não afetam mais ninguém no seu workspace.
             </p>
           </div>
           <button
@@ -282,7 +282,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <div className="flex-1">
                       <div className="text-13 text-primary">{t("accordion_navigation_control")}</div>
                       <div className="text-11 text-secondary">
-                        Feature tabs will appear as nested items under project and acts as accordion.
+                        As abas de recursos aparecem como itens aninhados sob o projeto, em formato sanfona.
                       </div>
                     </div>
                   </label>
@@ -300,7 +300,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <div className="flex-1">
                       <div className="text-13 text-primary">{t("horizontal_navigation_bar")}</div>
                       <div className="text-11 text-secondary">
-                        Feature tabs will appear as horizontal tabs inside a project.
+                        As abas de recursos aparecem como abas horizontais dentro do projeto.
                       </div>
                     </div>
                   </label>
@@ -339,7 +339,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                           />
                         </div>
                         {parseInt(projectCountInput) < 1 && projectCountInput !== "" && (
-                          <span className="pl-0.5 text-11 text-danger-primary">Minimum value is 1</span>
+                          <span className="pl-0.5 text-11 text-danger-primary">O valor mínimo é 1</span>
                         )}
                       </div>
                     </div>

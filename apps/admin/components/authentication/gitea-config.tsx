@@ -35,7 +35,7 @@ export const GiteaConfiguration = observer(function GiteaConfiguration(props: Pr
       {GiteaConfigured ? (
         <div className="flex items-center gap-4">
           <Link href="/authentication/gitea" className={cn(getButtonStyling("link", "base"), "font-medium")}>
-            Edit
+            Editar
           </Link>
           <ToggleSwitch
             value={Boolean(parseInt(GiteaConfig))}
@@ -51,7 +51,7 @@ export const GiteaConfiguration = observer(function GiteaConfiguration(props: Pr
       ) : (
         <Link href="/authentication/gitea" className={cn(getButtonStyling("secondary", "base"), "text-tertiary")}>
           <Settings2 className="h-4 w-4 p-0.5 text-tertiary" />
-          Configure
+          Configurar
         </Link>
       )}
     </>

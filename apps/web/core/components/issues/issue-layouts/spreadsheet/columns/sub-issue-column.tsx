@@ -35,7 +35,7 @@ export const SpreadsheetSubIssueColumn = observer(function SpreadsheetSubIssueCo
     );
   };
 
-  const label = `${subIssueCount} sub-work item${subIssueCount !== 1 ? "s" : ""}`;
+  const label = `${subIssueCount} subtarefa${subIssueCount !== 1 ? "s" : ""}`;
 
   return (
     <Row

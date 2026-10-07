@@ -61,7 +61,7 @@ def transfer_cycle_issues(
     if new_cycle.end_date is not None and new_cycle.end_date < timezone.now():
         return {
             "success": False,
-            "error": "The cycle where the issues are transferred is already completed",
+            "error": "O ciclo para o qual as tarefas seriam transferidas já foi concluído",
         }
 
     # Get the old cycle with issue counts
@@ -144,7 +144,7 @@ def transfer_cycle_issues(
     if old_cycle is None:
         return {
             "success": False,
-            "error": "Source cycle not found",
+            "error": "Ciclo de origem não encontrado",
         }
 
     # Check if project uses estimates

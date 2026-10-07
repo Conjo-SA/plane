@@ -178,7 +178,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <BaseToast.Title className="text-h6-medium text-primary">
-            {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
+            {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Carregando...") : toastData.title}
           </BaseToast.Title>
           {toastData.type !== TOAST_TYPE.LOADING && toastData.message && (
             <BaseToast.Description className="text-body-xs-regular text-tertiary">
@@ -235,7 +235,7 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="text-h6-medium text-primary">
-              {type === TOAST_TYPE.LOADING ? (title ?? "Loading...") : title}
+              {type === TOAST_TYPE.LOADING ? (title ?? "Carregando...") : title}
             </div>
             {type !== TOAST_TYPE.LOADING && message && (
               <div className="text-body-xs-regular text-tertiary">{message}</div>
@@ -294,7 +294,7 @@ export const setPromiseToast = <ToastData,>(
   toastManager.promise(promise, {
     loading: {
       data: {
-        title: options.loading ?? "Loading...",
+        title: options.loading ?? "Carregando...",
         type: TOAST_TYPE.LOADING,
         message: undefined,
         actionItems: undefined,

@@ -27,8 +27,8 @@
       "project_subscribers": "Assinantes do projeto",
       "project_subscribers_description": "Selecione os membros que receberão notificações deste projeto.",
       "guest_super_permissions": {
-        "title": "Conceder acesso de visualização a todos os itens de trabalho para usuários convidados:",
-        "sub_heading": "Isso permitirá que os convidados tenham acesso de visualização a todos os itens de trabalho do projeto."
+        "title": "Conceder acesso de visualização a todas as tarefas para usuários convidados:",
+        "sub_heading": "Isso permitirá que os convidados tenham acesso de visualização a todas as tarefas do projeto."
       },
       "invite_members": {
         "title": "Convidar membros",
@@ -38,7 +38,7 @@
     },
     "states": {
       "heading": "Estados",
-      "description": "Defina e personalize os estados de fluxo de trabalho para acompanhar o progresso dos seus itens de trabalho.",
+      "description": "Defina e personalize os estados de fluxo de trabalho para acompanhar o progresso das suas tarefas.",
       "describe_this_state_for_your_members": "Descreva este estado para seus membros.",
       "empty_state": {
         "title": "Nenhum estado disponível para o grupo {groupKey}",
@@ -47,7 +47,7 @@
     },
     "labels": {
       "heading": "Etiquetas",
-      "description": "Crie etiquetas personalizadas para categorizar e organizar seus itens de trabalho",
+      "description": "Crie etiquetas personalizadas para categorizar e organizar suas tarefas",
       "label_title": "Título da etiqueta",
       "label_title_is_required": "O título da etiqueta é obrigatório",
       "label_max_char": "O nome da etiqueta não deve exceder 255 caracteres",
@@ -181,14 +181,14 @@
       "heading": "Automações",
       "description": "Configure ações automatizadas para otimizar seu fluxo de trabalho de gerenciamento de projetos e reduzir tarefas manuais.",
       "auto-archive": {
-        "title": "Arquivar automaticamente itens de trabalho fechados",
-        "description": "O Tasks arquivará automaticamente os itens de trabalho que foram concluídos ou cancelados.",
-        "duration": "Arquivar automaticamente itens de trabalho que estão fechados por"
+        "title": "Arquivar automaticamente tarefas fechadas",
+        "description": "O Tasks arquivará automaticamente as tarefas que foram concluídas ou canceladas.",
+        "duration": "Arquivar automaticamente tarefas fechadas há"
       },
       "auto-close": {
-        "title": "Fechar automaticamente itens de trabalho",
-        "description": "O Tasks fechará automaticamente os itens de trabalho que não foram concluídos ou cancelados.",
-        "duration": "Fechar automaticamente itens de trabalho que estão inativos por",
+        "title": "Fechar automaticamente tarefas",
+        "description": "O Tasks fechará automaticamente as tarefas que não foram concluídas ou canceladas.",
+        "duration": "Fechar automaticamente tarefas inativas há",
         "auto_close_status": "Status de fechamento automático"
       },
       "auto-remind": {
@@ -200,25 +200,25 @@
     "empty_state": {
       "labels": {
         "title": "Nenhuma etiqueta ainda",
-        "description": "Crie etiquetas para ajudar a organizar e filtrar itens de trabalho em seu projeto."
+        "description": "Crie etiquetas para ajudar a organizar e filtrar tarefas em seu projeto."
       },
       "estimates": {
         "title": "Nenhum sistema de estimativa ainda",
-        "description": "Crie um conjunto de estimativas para comunicar a quantidade de trabalho por item de trabalho.",
+        "description": "Crie um conjunto de estimativas para comunicar a quantidade de trabalho por tarefa.",
         "primary_button": "Adicionar sistema de estimativa"
       },
       "integrations": {
         "title": "Nenhuma integração configurada",
-        "description": "Configure o GitHub e outras integrações para sincronizar os itens de trabalho do seu projeto."
+        "description": "Configure o GitHub e outras integrações para sincronizar as tarefas do seu projeto."
       }
     },
     "workflows": {
       "toggle": {
         "title": "Habilitar fluxos de trabalho",
-        "description": "Defina fluxos de trabalho para controlar a movimentação dos itens de trabalho",
+        "description": "Defina fluxos de trabalho para controlar a movimentação das tarefas",
         "no_states_tooltip": "Nenhum estado foi adicionado ao fluxo de trabalho.",
-        "no_work_item_types_tooltip": "Nenhum tipo de item de trabalho foi adicionado ao fluxo de trabalho.",
-        "no_states_or_work_item_types_tooltip": "Nenhum estado ou tipo de item de trabalho foi adicionado ao fluxo de trabalho.",
+        "no_work_item_types_tooltip": "Nenhum tipo de tarefa foi adicionado ao fluxo de trabalho.",
+        "no_states_or_work_item_types_tooltip": "Nenhum estado ou tipo de tarefa foi adicionado ao fluxo de trabalho.",
         "toast": {
           "loading": {
             "enabling": "Habilitando fluxos de trabalho",
@@ -235,18 +235,18 @@
         }
       },
       "heading": "Fluxos de trabalho",
-      "description": "Automatize as transições dos itens de trabalho e defina regras para controlar como as tarefas avançam pelo fluxo do seu projeto.",
+      "description": "Automatize as transições das tarefas e defina regras para controlar como as tarefas avançam pelo fluxo do seu projeto.",
       "add_button": "Adicionar novo fluxo de trabalho",
-      "search": "Pesquisar fluxos de trabalho",
+      "search": "Buscar fluxos de trabalho",
       "detail": {
         "define": "Definir fluxo de trabalho",
         "add_states": "Adicionar estados",
         "unmapped_states": {
           "title": "Estados não mapeados detectados",
-          "description": "Alguns itens de trabalho dos tipos selecionados estão atualmente em estados que não existem neste fluxo de trabalho.",
+          "description": "Algumas tarefas dos tipos selecionados estão atualmente em estados que não existem neste fluxo de trabalho.",
           "note": "Se você habilitar este fluxo de trabalho, esses itens serão movidos automaticamente para o estado inicial deste fluxo de trabalho.",
           "label": "Estados ausentes",
-          "tooltip": "Alguns itens de trabalho estão em estados que não estão mapeados para este fluxo de trabalho. Abra o fluxo de trabalho para revisar."
+          "tooltip": "Algumas tarefas estão em estados que não estão mapeados para este fluxo de trabalho. Abra o fluxo de trabalho para revisar."
         }
       },
       "select_states": {
@@ -256,7 +256,7 @@
         }
       },
       "default_footer": {
-        "fallback_message": "Este fluxo de trabalho se aplica a qualquer tipo de item de trabalho que não esteja atribuído a um fluxo de trabalho."
+        "fallback_message": "Este fluxo de trabalho se aplica a qualquer tipo de tarefa que não esteja atribuído a um fluxo de trabalho."
       },
       "create": {
         "heading": "Criar novo fluxo de trabalho",
@@ -275,7 +275,7 @@
           }
         },
         "work_item_type": {
-          "label": "Tipo de item de trabalho"
+          "label": "Tipo de tarefa"
         },
         "success": {
           "title": "Sucesso!",
@@ -319,8 +319,8 @@
       }
     },
     "work_item_types": {
-      "heading": "Tipos de item de trabalho",
-      "description": "Crie e personalize diferentes tipos de itens de trabalho com propriedades únicas"
+      "heading": "Tipos de tarefa",
+      "description": "Crie e personalize diferentes tipos de tarefas com propriedades únicas"
     },
     "features": {
       "cycles": {
@@ -352,8 +352,8 @@
         "toggle_description": "Os membros do projeto poderão criar e editar páginas."
       },
       "intake": {
-        "intake_responsibility": "Responsabilidade de recebimento",
-        "intake_sources": "Fontes de recebimento",
+        "intake_responsibility": "Responsáveis pela Entrada",
+        "intake_sources": "Origens da Entrada",
         "title": "Recepção",
         "short_title": "Recepção",
         "description": "Permita que não membros compartilhem bugs, feedback e sugestões; sem interromper seu fluxo de trabalho.",
@@ -367,28 +367,28 @@
         },
         "in_app": {
           "title": "No aplicativo",
-          "description": "Receba novos itens de trabalho de membros e convidados do seu espaço de trabalho sem perturbar os existentes."
+          "description": "Receba novas tarefas de membros e convidados do seu workspace sem atrapalhar as existentes."
         },
         "email": {
           "title": "E-mail",
-          "description": "Colete novos itens de trabalho de qualquer pessoa que envie um e-mail para um endereço do Tasks.",
+          "description": "Colete novas tarefas de qualquer pessoa que envie um e-mail para um endereço do Tasks.",
           "fieldName": "ID do e-mail"
         },
         "form": {
           "title": "Formulários",
-          "description": "Permita que pessoas fora do seu espaço de trabalho criem possíveis novos itens de trabalho por meio de um formulário dedicado e seguro.",
+          "description": "Permita que pessoas fora do seu workspace criem possíveis novas tarefas por meio de um formulário dedicado e seguro.",
           "fieldName": "URL do formulário padrão",
-          "create_forms": "Criar formulários usando tipos de itens de trabalho",
+          "create_forms": "Criar formulários usando tipos de tarefas",
           "manage_forms": "Gerenciar formulários",
-          "manage_forms_tooltip": "Peça ao administrador do espaço de trabalho para gerenciar.",
+          "manage_forms_tooltip": "Peça ao administrador do workspace para gerenciar.",
           "create_form": "Criar formulário",
           "edit_form": "Editar detalhes do formulário",
           "form_title": "Título do formulário",
           "form_title_required": "O título do formulário é obrigatório",
-          "work_item_type": "Tipo de item de trabalho",
+          "work_item_type": "Tipo de tarefa",
           "remove_property": "Remover propriedade",
           "select_properties": "Selecionar propriedades",
-          "search_placeholder": "Pesquisar propriedades",
+          "search_placeholder": "Buscar propriedades",
           "toasts": {
             "success_create": "Formulário de recebimento criado com sucesso",
             "success_update": "Formulário de recebimento atualizado com sucesso",
@@ -413,16 +413,16 @@
       "time_tracking": {
         "title": "Rastreamento de tempo",
         "short_title": "Rastreamento de tempo",
-        "description": "Registre o tempo gasto em itens de trabalho e projetos.",
+        "description": "Registre o tempo gasto em tarefas e projetos.",
         "toggle_title": "Ativar rastreamento de tempo",
         "toggle_description": "Os membros do projeto poderão registrar o tempo trabalhado."
       },
       "milestones": {
         "title": "Marcos",
         "short_title": "Marcos",
-        "description": "Os marcos fornecem uma camada para alinhar itens de trabalho em direção a datas de conclusão compartilhadas.",
+        "description": "Os marcos fornecem uma camada para alinhar tarefas em direção a datas de conclusão compartilhadas.",
         "toggle_title": "Ativar marcos",
-        "toggle_description": "Organize itens de trabalho por prazos de marcos."
+        "toggle_description": "Organize tarefas por prazos de marcos."
       },
       "toasts": {
         "loading": "Atualizando recurso do projeto...",
@@ -436,7 +436,7 @@
     },
     "templates": {
       "heading": "Modelos",
-      "description": "Economize 80% do tempo gasto na criação de projetos, itens de trabalho e páginas quando você usar modelos."
+      "description": "Economize 80% do tempo gasto na criação de projetos, tarefas e páginas quando você usar modelos."
     },
     "cycles": {
       "auto_schedule": {
@@ -489,8 +489,8 @@
             }
           },
           "auto_rollover": {
-            "label": "Transferência automática de itens de trabalho",
-            "tooltip": "No dia em que um ciclo for concluído, mover todos os itens de trabalho não concluídos para o próximo ciclo."
+            "label": "Transferência automática de tarefas",
+            "tooltip": "No dia em que um ciclo for concluído, mover todas as tarefas não concluídas para o próximo ciclo."
           }
         },
         "toast": {

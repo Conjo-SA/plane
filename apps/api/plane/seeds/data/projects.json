@@ -1,9 +1,9 @@
 [
   {
     "id": 1,
-    "name": "Tasks Demo Project",
+    "name": "Projeto de demonstração do Tasks",
     "identifier": "PDP",
-    "description": "Welcome to the Tasks Demo Project! This project throws you into the driver’s seat of Tasks, work management software. Through curated work items, you’ll uncover key features, pick up best practices, and see how Tasks can streamline your team’s workflow. Whether you’re a startup hungry to scale or an enterprise sharpening efficiency, this demo is your launchpad to mastering Tasks. Jump in and see what it can do!",
+    "description": "Boas-vindas ao Projeto de demonstração do Tasks! Aqui você assume o comando do Tasks, o software de gestão de trabalho. Com tarefas selecionadas, você vai conhecer os principais recursos, aprender boas práticas e ver como o Tasks pode agilizar o fluxo de trabalho da sua equipe. Seja uma startup com fome de crescer ou uma empresa em busca de eficiência, esta demonstração é o seu ponto de partida para dominar o Tasks. Explore e veja do que ele é capaz!",
     "network": 2,
     "cover_image": "https://images.unsplash.com/photo-1691230995681-480d86cbc135?auto=format&fit=crop&q=80&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&w=870&q=80",
     "logo_props": {

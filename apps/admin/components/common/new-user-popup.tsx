@@ -27,17 +27,16 @@ export const NewUserPopup = observer(function NewUserPopup() {
     <div className="shadow-md absolute right-8 bottom-8 w-96 rounded-lg border border-subtle bg-surface-1 p-6">
       <div className="flex gap-4">
         <div className="grow">
-          <div className="text-14 font-semibold">Create workspace</div>
+          <div className="text-14 font-semibold">Criar workspace</div>
           <div className="py-2 text-13 font-medium text-tertiary">
-            Instance setup done! Welcome to the Tasks instance portal. Start your journey with by creating your first
-            workspace.
+            Instância configurada! Boas-vindas ao portal da instância do Tasks. Comece criando seu primeiro workspace.
           </div>
           <div className="flex items-center gap-4 pt-2">
             <Link href="/workspace/create" className={getButtonStyling("primary", "lg")}>
-              Create workspace
+              Criar workspace
             </Link>
             <Button variant="secondary" size="lg" onClick={toggleNewUserPopup}>
-              Close
+              Fechar
             </Button>
           </div>
         </div>

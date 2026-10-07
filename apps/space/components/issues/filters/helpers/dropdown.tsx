@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function FiltersDropdown(props: Props) {
-  const { children, title = "Dropdown", placement } = props;
+  const { children, title = "Menu", placement } = props;
 
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);

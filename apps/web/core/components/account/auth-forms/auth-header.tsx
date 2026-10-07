@@ -27,30 +27,30 @@ type TAuthHeader = {
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Tasks.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Boas-vindas de volta ao Tasks.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Tasks.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Boas-vindas de volta ao Tasks.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Work in all dimensions.",
-      subHeader: "Welcome back to Tasks.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Boas-vindas de volta ao Tasks.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Tasks account.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Crie sua conta no Tasks.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Tasks account.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Crie sua conta no Tasks.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Work in all dimensions.",
-      subHeader: "Create your Tasks account.",
+      header: "Trabalhe em todas as dimensões.",
+      subHeader: "Crie sua conta no Tasks.",
     },
   },
 };
@@ -89,8 +89,8 @@ export const AuthHeader = observer(function AuthHeader(props: TAuthHeader) {
         ),
         subHeader:
           mode == EAuthModes.SIGN_UP
-            ? "Create an account to start managing work with your team."
-            : "Log in to start managing work with your team.",
+            ? "Crie uma conta para começar a gerenciar o trabalho com sua equipe."
+            : "Entre para começar a gerenciar o trabalho com sua equipe.",
       };
     }
 

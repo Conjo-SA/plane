@@ -31,9 +31,9 @@ export const IssueEstimateActivity = observer(function IssueEstimateActivity(pro
       ends={ends}
     >
       <>
-        {activity.new_value ? `set the estimate point to ` : `removed the estimate point`}
+        {activity.new_value ? `definiu a estimativa como ` : `removeu a estimativa `}
         {activity.new_value ? activity.new_value : activity?.old_value}
-        {showIssue && (activity.new_value ? ` to ` : ` from `)}
+        {showIssue && (activity.new_value ? ` em ` : ` de `)}
         {showIssue && <IssueLink activityId={activityId} />}.
       </>
     </IssueActivityBlockComponent>

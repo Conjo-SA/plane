@@ -37,8 +37,8 @@ export function CopyField(props: Props) {
           navigator.clipboard.writeText(url);
           setToast({
             type: TOAST_TYPE.INFO,
-            title: "Copied to clipboard",
-            message: `The ${label} has been successfully copied to your clipboard`,
+            title: "Copiado para a área de transferência",
+            message: `${label} copiado para a área de transferência`,
           });
         }}
       >

@@ -36,7 +36,7 @@ export const CustomThemeModeSelector = observer(function CustomThemeModeSelector
                 onChange={() => onChange(false)}
                 className="cursor-pointer"
               />
-              Light mode
+              Modo claro
             </label>
             <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-subtle-1 bg-layer-2 px-3 py-2 text-body-sm-regular transition-colors hover:bg-layer-2-hover">
               <input
@@ -47,7 +47,7 @@ export const CustomThemeModeSelector = observer(function CustomThemeModeSelector
                 onChange={() => onChange(true)}
                 className="cursor-pointer"
               />
-              Dark mode
+              Modo escuro
             </label>
           </div>
         )}

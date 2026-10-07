@@ -152,7 +152,7 @@ export function BlockMenu(props: Props) {
     {
       icon: TrashIcon,
       key: "delete",
-      label: "Delete",
+      label: "Excluir",
       onClick: (_e) => {
         // Execute the delete action
         editor.chain().deleteSelection().focus().run();
@@ -161,7 +161,7 @@ export function BlockMenu(props: Props) {
     {
       icon: CopyIcon,
       key: "duplicate",
-      label: "Duplicate",
+      label: "Duplicar",
       isDisabled:
         editor.state.selection.content().content.firstChild?.type.name === CORE_EXTENSIONS.IMAGE ||
         editor.isActive(CORE_EXTENSIONS.CUSTOM_IMAGE),

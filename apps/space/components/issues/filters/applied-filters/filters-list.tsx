@@ -21,6 +21,12 @@ type Props = {
 
 export const replaceUnderscoreIfSnakeCase = (str: string) => str.replace(/_/g, " ");
 
+const FILTER_KEY_LABELS: Record<string, string> = {
+  priority: "Prioridade",
+  state: "Estado",
+  labels: "Etiquetas",
+};
+
 export const AppliedFiltersList = observer(function AppliedFiltersList(props: Props) {
   const { appliedFilters = {}, handleRemoveAllFilters, handleRemoveFilter } = props;
   const { t } = useTranslation();
@@ -38,7 +44,9 @@ export const AppliedFiltersList = observer(function AppliedFiltersList(props: Pr
             key={filterKey}
             className="flex flex-wrap items-center gap-2 rounded-md border border-subtle px-2 py-1 capitalize"
           >
-            <span className="text-11 text-tertiary">{replaceUnderscoreIfSnakeCase(filterKey)}</span>
+            <span className="text-11 text-tertiary">
+              {FILTER_KEY_LABELS[filterKey] ?? replaceUnderscoreIfSnakeCase(filterKey)}
+            </span>
             <div className="flex flex-wrap items-center gap-1">
               {filterKey === "priority" && (
                 <AppliedPriorityFilters

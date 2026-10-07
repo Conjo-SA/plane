@@ -30,7 +30,7 @@ export const PowerKSettingsMenu = observer(function PowerKSettingsMenu({ setting
       getValue={(setting) => setting.label}
       getLabel={(setting) => setting.label}
       onSelect={onSelect}
-      emptyText="No settings found"
+      emptyText="Nenhuma configuração encontrada"
     />
   );
 });

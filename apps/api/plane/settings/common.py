@@ -288,7 +288,7 @@ MEDIA_ROOT = "mediafiles"
 MEDIA_URL = "/media/"
 
 # Internationalization
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "pt-br"
 USE_I18N = True
 
 # Timezones

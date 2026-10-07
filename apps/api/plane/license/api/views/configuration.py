@@ -80,7 +80,7 @@ class DisableEmailFeatureEndpoint(BaseAPIView):
             return Response(status=status.HTTP_200_OK)
         except Exception:
             return Response(
-                {"error": "Failed to disable email configuration"},
+                {"error": "Falha ao desativar a configuração de e-mail"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -90,7 +90,7 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
         receiver_email = request.data.get("receiver_email", False)
         if not receiver_email:
             return Response(
-                {"error": "Receiver email is required"},
+                {"error": "O e-mail do destinatário é obrigatório"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -114,8 +114,8 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
             use_ssl=EMAIL_USE_SSL == "1",
         )
         # Prepare email details
-        subject = "Email Notification from Tasks"
-        message = "This is a sample email notification sent from Tasks application."
+        subject = "Notificação por e-mail do Tasks"
+        message = "Esta é uma notificação de exemplo enviada pelo aplicativo Tasks."
         # Send the email
         try:
             msg = EmailMultiAlternatives(
@@ -126,46 +126,46 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
                 connection=connection,
             )
             msg.send(fail_silently=False)
-            return Response({"message": "Email successfully sent."}, status=status.HTTP_200_OK)
+            return Response({"message": "E-mail enviado com sucesso."}, status=status.HTTP_200_OK)
         except BadHeaderError:
-            return Response({"error": "Invalid email header."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Cabeçalho de e-mail inválido."}, status=status.HTTP_400_BAD_REQUEST)
         except SMTPAuthenticationError:
             return Response(
-                {"error": "Invalid credentials provided"},
+                {"error": "Credenciais inválidas"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except SMTPConnectError:
             return Response(
-                {"error": "Could not connect with the SMTP server."},
+                {"error": "Não foi possível conectar ao servidor SMTP."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except SMTPSenderRefused:
             return Response(
-                {"error": "From address is invalid."},
+                {"error": "O endereço do remetente é inválido."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except SMTPServerDisconnected:
             return Response(
-                {"error": "SMTP server disconnected unexpectedly."},
+                {"error": "O servidor SMTP desconectou inesperadamente."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except SMTPRecipientsRefused:
             return Response(
-                {"error": "All recipient addresses were refused."},
+                {"error": "Todos os endereços de destinatário foram recusados."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except TimeoutError:
             return Response(
-                {"error": "Timeout error while trying to connect to the SMTP server."},
+                {"error": "Tempo esgotado ao tentar conectar ao servidor SMTP."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except ConnectionError:
             return Response(
-                {"error": "Network connection error. Please check your internet connection."},
+                {"error": "Erro de conexão de rede. Verifique sua conexão com a internet."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception:
             return Response(
-                {"error": "Could not send email. Please check your configuration"},
+                {"error": "Não foi possível enviar o e-mail. Verifique sua configuração"},
                 status=status.HTTP_400_BAD_REQUEST,
             )

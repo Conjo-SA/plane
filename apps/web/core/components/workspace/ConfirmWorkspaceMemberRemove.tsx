@@ -67,20 +67,20 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                       <Dialog.Title as="h3" className="text-16 leading-6 font-medium text-primary">
                         {currentUser?.id === userDetails.id
-                          ? "Leave workspace?"
-                          : `Remove ${userDetails?.display_name}?`}
+                          ? "Sair do workspace?"
+                          : `Remover ${userDetails?.display_name}?`}
                       </Dialog.Title>
                       <div className="mt-2">
                         {currentUser?.id === userDetails.id ? (
                           <p className="text-13 text-secondary">
-                            Are you sure you want to leave the workspace? You will no longer have access to this
-                            workspace. This action cannot be undone.
+                            Tem certeza de que deseja sair do workspace? Você não terá mais acesso a ele. Esta ação não
+                            pode ser desfeita.
                           </p>
                         ) : (
                           <p className="text-13 text-secondary">
-                            Are you sure you want to remove member-{" "}
-                            <span className="font-bold">{userDetails?.display_name}</span>? They will no longer have
-                            access to this workspace. This action cannot be undone.
+                            Tem certeza de que deseja remover o membro{" "}
+                            <span className="font-bold">{userDetails?.display_name}</span>? Ele não terá mais acesso a
+                            este workspace. Esta ação não pode ser desfeita.
                           </p>
                         )}
                       </div>
@@ -89,16 +89,16 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
                 </div>
                 <div className="flex justify-end gap-2 p-4 sm:px-6">
                   <Button variant="secondary" onClick={handleClose}>
-                    Cancel
+                    Cancelar
                   </Button>
                   <Button variant="error-fill" tabIndex={1} onClick={handleDeletion} loading={isRemoving}>
                     {currentUser?.id === userDetails.id
                       ? isRemoving
-                        ? "Leaving"
-                        : "Leave"
+                        ? "Saindo"
+                        : "Sair"
                       : isRemoving
-                        ? "Removing"
-                        : "Remove"}
+                        ? "Removendo"
+                        : "Remover"}
                   </Button>
                 </div>
               </Dialog.Panel>

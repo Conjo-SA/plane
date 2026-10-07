@@ -68,7 +68,7 @@ export function ProjectSettingLabelItem(props: Props) {
       CustomIcon: CloseIcon,
       onClick: removeFromGroup,
       isVisible: !!label.parent,
-      text: "Remove from group",
+      text: "Remover do grupo",
       key: "remove_from_group",
     },
     {
@@ -78,7 +78,7 @@ export function ProjectSettingLabelItem(props: Props) {
         setIsUpdating(true);
       },
       isVisible: true,
-      text: "Edit label",
+      text: "Editar etiqueta",
       key: "edit_label",
     },
   ];

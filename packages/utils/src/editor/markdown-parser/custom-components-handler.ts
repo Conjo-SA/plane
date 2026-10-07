@@ -31,7 +31,7 @@ export const parseCustomComponents = (args: TArgs): Record<string, Handle> => {
       const src = String(properties.src);
       const alt = String(properties.alt);
       if (!src || !alt) return createTextNode("");
-      return createTextNode(`![${alt || "Image"}](${src})`);
+      return createTextNode(`![${alt || "Imagem"}](${src})`);
     },
     "mention-component": (_state, node) => {
       const properties = node.properties || {};
@@ -44,7 +44,7 @@ export const parseCustomComponents = (args: TArgs): Record<string, Handle> => {
         const userDetails = metaData.user_mentions.find((user) => user.id === userId);
         if (!userDetails) return createTextNode("");
         url = userDetails.url || "";
-        tag = `@${userDetails.display_name || "Unknown user"}`;
+        tag = `@${userDetails.display_name || "Usuário desconhecido"}`;
       }
 
       return createTextNode(`[${tag}](${url}) `);

@@ -49,7 +49,7 @@ export const SelectYAxis = observer(function SelectYAxis({ value, onChange, hidd
       label={
         <div className="flex items-center gap-2">
           <ProjectIcon className="h-3 w-3" />
-          <span>{options.find((v) => v.value === value)?.label ?? "Add Metric"}</span>
+          <span>{options.find((v) => v.value === value)?.label ?? "Adicionar métrica"}</span>
         </div>
       }
       onChange={onChange}

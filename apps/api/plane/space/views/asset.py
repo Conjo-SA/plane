@@ -38,7 +38,7 @@ class EntityAssetEndpoint(BaseAPIView):
         # Check if the project is published
         if not deploy_board:
             return Response(
-                {"error": "Requested resource could not be found."},
+                {"error": "O recurso solicitado não foi encontrado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -56,7 +56,7 @@ class EntityAssetEndpoint(BaseAPIView):
         # Check if the asset is uploaded
         if not asset.is_uploaded:
             return Response(
-                {"error": "The requested asset could not be found."},
+                {"error": "O arquivo solicitado não foi encontrado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -81,7 +81,7 @@ class EntityAssetEndpoint(BaseAPIView):
         deploy_board = DeployBoard.objects.filter(anchor=anchor).first()
         # Check if the project is published
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
         # Get the asset
         name = sanitize_filename(request.data.get("name")) or "unnamed"
@@ -93,7 +93,7 @@ class EntityAssetEndpoint(BaseAPIView):
         # Check if the entity type is allowed
         if entity_type not in FileAsset.EntityTypeContext.values:
             return Response(
-                {"error": "Invalid entity type.", "status": False},
+                {"error": "Tipo de entidade inválido.", "status": False},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -108,7 +108,7 @@ class EntityAssetEndpoint(BaseAPIView):
         if type not in allowed_types:
             return Response(
                 {
-                    "error": "Invalid file type. Only JPEG, PNG, WebP, JPG and GIF files are allowed.",
+                    "error": "Tipo de arquivo inválido. Apenas arquivos JPEG, PNG, WebP, JPG e GIF são permitidos.",
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -148,7 +148,7 @@ class EntityAssetEndpoint(BaseAPIView):
         deploy_board = DeployBoard.objects.filter(anchor=anchor).first()
         # Check if the project is published
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
         # get the asset id — scope to project to prevent cross-project IDOR
         asset = FileAsset.objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
@@ -169,7 +169,7 @@ class EntityAssetEndpoint(BaseAPIView):
         deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
         # Check if the project is published
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
         # Get the asset
         asset = FileAsset.objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
         # Check deleted assets
@@ -188,7 +188,7 @@ class AssetRestoreEndpoint(BaseAPIView):
         deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
         # Check if the project is published
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
         # Get the asset — scope to project to prevent cross-project IDOR
         asset = FileAsset.all_objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
@@ -206,13 +206,13 @@ class EntityBulkAssetEndpoint(BaseAPIView):
         deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
         # Check if the project is published
         if not deploy_board:
-            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
         asset_ids = request.data.get("asset_ids", [])
 
         # Check if the asset ids are provided
         if not asset_ids:
-            return Response({"error": "No asset ids provided."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Nenhum ID de arquivo informado."}, status=status.HTTP_400_BAD_REQUEST)
 
         # get the asset id
         assets = FileAsset.objects.filter(
@@ -226,7 +226,7 @@ class EntityBulkAssetEndpoint(BaseAPIView):
         # Check if the asset is uploaded
         if not asset:
             return Response(
-                {"error": "The requested asset could not be found."},
+                {"error": "O arquivo solicitado não foi encontrado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

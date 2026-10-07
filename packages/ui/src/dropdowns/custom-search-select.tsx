@@ -40,7 +40,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
     optionsClassName = "",
     value,
     tabIndex,
-    noResultsMessage = "No matches found",
+    noResultsMessage = "Nenhum resultado encontrado",
     defaultOpen = false,
   } = props;
   const [query, setQuery] = useState("");
@@ -159,7 +159,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                         className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search"
+                        placeholder="Buscar"
                         displayValue={(assigned: any) => assigned?.name}
                       />
                     </div>
@@ -216,7 +216,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                           <p className="px-1.5 py-1 text-placeholder italic">{noResultsMessage}</p>
                         )
                       ) : (
-                        <p className="px-1.5 py-1 text-placeholder italic">Loading...</p>
+                        <p className="px-1.5 py-1 text-placeholder italic">Carregando...</p>
                       )}
                     </div>
                     {footerOption}

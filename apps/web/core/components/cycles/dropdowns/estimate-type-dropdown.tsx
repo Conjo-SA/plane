@@ -32,7 +32,7 @@ export const EstimateTypeDropdown = observer(function EstimateTypeDropdown(props
     <div className="relative flex items-center gap-2">
       <CustomSelect
         value={value}
-        label={<span>{cycleEstimateOptions.find((v) => v.value === value)?.label ?? "None"}</span>}
+        label={<span>{cycleEstimateOptions.find((v) => v.value === value)?.label ?? "Nenhum"}</span>}
         onChange={onChange}
         maxHeight="lg"
         buttonClassName="bg-surface-2 border-none rounded-sm text-13 font-medium "

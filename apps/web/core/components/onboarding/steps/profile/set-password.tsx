@@ -87,7 +87,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
       >
         <div className="flex items-center gap-1 text-tertiary">
           <LockIcon className="size-3" />
-          <span className="font-medium">Set a password</span>
+          <span className="font-medium">Defina uma senha</span>
           <span>{`(Optional)`}</span>
         </div>
         <div className="flex items-center gap-2 text-placeholder">
@@ -102,29 +102,29 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
             id="password"
             value={passwordState.password}
             onChange={(value) => handlePasswordChange("password", value)}
-            placeholder="Set a password"
+            placeholder="Defina uma senha"
             className="transition-all duration-200"
           />
           {passwordState.password.length > 0 && <PasswordStrengthIndicator password={passwordState.password} />}
         </div>
 
         <div className="flex flex-col gap-2 pb-2">
-          {/* Confirm password label */}
+          {/* Confirmar senha label */}
           <div className="transform text-13 font-medium text-tertiary transition-all delay-75 duration-300 ease-in-out">
-            Confirm password
+            Confirmar senha
           </div>
 
-          {/* Confirm password input */}
+          {/* Confirmar senha input */}
           <div className="transform transition-all delay-100 duration-300 ease-in-out">
             <PasswordInput
               id="confirm-password"
               value={passwordState.confirmPassword}
               onChange={(value) => handlePasswordChange("confirmPassword", value)}
-              placeholder="Confirm password"
+              placeholder="Confirmar senha"
               className="transition-all duration-200"
             />
             {hasPasswordMismatch && <p className="mt-1 text-11 text-danger-primary">Passwords do not match</p>}
-            {isPasswordValid && <p className="mt-1 text-11 text-success-primary">✓ Passwords match</p>}
+            {isPasswordValid && <p className="mt-1 text-11 text-success-primary">✓ As senhas coincidem</p>}
           </div>
         </div>
       </div>

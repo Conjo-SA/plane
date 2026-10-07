@@ -45,23 +45,23 @@ def validate_binary_data(data):
         try:
             binary_data = base64.b64decode(data)
         except Exception:
-            return False, "Invalid base64 encoding"
+            return False, "Codificação base64 inválida"
     else:
         binary_data = data
 
     # Size check - 10MB limit
     if len(binary_data) > MAX_SIZE:
-        return False, "Binary data exceeds maximum size limit (10MB)"
+        return False, "Os dados binários excedem o tamanho máximo permitido (10 MB)"
 
     # Basic format validation
     if len(binary_data) < 4:
-        return False, "Binary data too short to be valid document format"
+        return False, "Os dados binários são curtos demais para um formato de documento válido"
 
     # Check for suspicious text patterns (HTML/JS)
     try:
         decoded_text = binary_data.decode("utf-8", errors="ignore")[:200]
         if any(pattern in decoded_text.lower() for pattern in SUSPICIOUS_BINARY_PATTERNS):
-            return False, "Binary data contains suspicious content patterns"
+            return False, "Os dados binários contêm padrões de conteúdo suspeitos"
     except Exception:
         pass  # Binary data might not be decodable as text, which is fine
 
@@ -218,7 +218,7 @@ def validate_html_content(html_content: str):
 
     # Size check - 10MB limit (consistent with binary validation)
     if len(html_content.encode("utf-8")) > MAX_SIZE:
-        return False, "HTML content exceeds maximum size limit (10MB)", None
+        return False, "O conteúdo HTML excede o tamanho máximo permitido (10 MB)", None
 
     try:
         clean_html = nh3.clean(
@@ -240,7 +240,7 @@ def validate_html_content(html_content: str):
         return True, None, clean_html
     except Exception as e:
         log_exception(e)
-        return False, "Failed to sanitize HTML", None
+        return False, "Falha ao sanitizar o HTML", None
 
 
 def has_alphanumeric(value):

@@ -71,19 +71,19 @@ export const SLUG_REGEX = /^[\p{L}\p{N}_-]+$/u;
  */
 export const validatePersonName = (name: string): boolean | string => {
   if (!name || name.trim() === "") {
-    return "Name is required";
+    return "O nome é obrigatório";
   }
 
   if (name.length > 50) {
-    return "Name must be 50 characters or less";
+    return "O nome deve ter no máximo 50 caracteres";
   }
 
   if (hasInjectionRiskChars(name)) {
-    return "Names cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
+    return "O nome não pode conter caracteres especiais como < > ' \" { } [ ] * ^ ! # %";
   }
 
   if (!PERSON_NAME_REGEX.test(name)) {
-    return "Names can only contain letters, spaces, hyphens, and apostrophes";
+    return "O nome só pode conter letras, espaços, hifens e apóstrofos";
   }
 
   return true;
@@ -105,15 +105,15 @@ export const validateDisplayName = (displayName: string): boolean | string => {
   }
 
   if (displayName.length > 50) {
-    return "Display name must be 50 characters or less";
+    return "O nome de exibição deve ter no máximo 50 caracteres";
   }
 
   if (hasInjectionRiskChars(displayName)) {
-    return "Display name cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
+    return "O nome de exibição não pode conter caracteres especiais como < > ' \" { } [ ] * ^ ! # %";
   }
 
   if (!DISPLAY_NAME_REGEX.test(displayName)) {
-    return "Display name can only contain letters, numbers, periods, hyphens, and underscores";
+    return "O nome de exibição só pode conter letras, números, pontos, hifens e sublinhados";
   }
 
   return true;
@@ -131,23 +131,23 @@ export const validateDisplayName = (displayName: string): boolean | string => {
  */
 export const validateCompanyName = (companyName: string, required: boolean = false): boolean | string => {
   if (!companyName || companyName.trim() === "") {
-    return required ? "Company name is required" : true;
+    return required ? "O nome da empresa é obrigatório" : true;
   }
 
   if (companyName.length > 80) {
-    return "Company name must be 80 characters or less";
+    return "O nome da empresa deve ter no máximo 80 caracteres";
   }
 
   if (hasInjectionRiskChars(companyName)) {
-    return "Company name cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
+    return "O nome da empresa não pode conter caracteres especiais como < > ' \" { } [ ] * ^ ! # %";
   }
 
   if (!COMPANY_NAME_REGEX.test(companyName)) {
-    return "Company name can only contain letters, numbers, spaces, hyphens, and underscores";
+    return "O nome da empresa só pode conter letras, números, espaços, hifens e sublinhados";
   }
 
   if (!HAS_ALPHANUMERIC_REGEX.test(companyName)) {
-    return "Company name must contain at least one letter or number";
+    return "O nome da empresa deve conter pelo menos uma letra ou número";
   }
 
   return true;
@@ -165,23 +165,23 @@ export const validateCompanyName = (companyName: string, required: boolean = fal
  */
 export const validateWorkspaceName = (workspaceName: string, required: boolean = false): boolean | string => {
   if (!workspaceName || workspaceName.trim() === "") {
-    return required ? "Workspace name is required" : true;
+    return required ? "O nome do workspace é obrigatório" : true;
   }
 
   if (workspaceName.length > 80) {
-    return "Workspace name must be 80 characters or less";
+    return "O nome do workspace deve ter no máximo 80 caracteres";
   }
 
   if (hasInjectionRiskChars(workspaceName)) {
-    return "Workspace name cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
+    return "O nome do workspace não pode conter caracteres especiais como < > ' \" { } [ ] * ^ ! # %";
   }
 
   if (!COMPANY_NAME_REGEX.test(workspaceName)) {
-    return "Workspace name can only contain letters, numbers, spaces, hyphens, and underscores";
+    return "O nome do workspace só pode conter letras, números, espaços, hifens e sublinhados";
   }
 
   if (!HAS_ALPHANUMERIC_REGEX.test(workspaceName)) {
-    return "Workspace name must contain at least one letter or number";
+    return "O nome do workspace deve conter pelo menos uma letra ou número";
   }
 
   return true;
@@ -198,19 +198,19 @@ export const validateWorkspaceName = (workspaceName: string, required: boolean =
  */
 export const validateSlug = (slug: string): boolean | string => {
   if (!slug || slug.trim() === "") {
-    return "Slug is required";
+    return "O slug é obrigatório";
   }
 
   if (slug.length > 48) {
-    return "Slug must be 48 characters or less";
+    return "O slug deve ter no máximo 48 caracteres";
   }
 
   if (hasInjectionRiskChars(slug)) {
-    return "Slug cannot contain special characters like < > ' \" { } [ ] * ^ ! # %";
+    return "O slug não pode conter caracteres especiais como < > ' \" { } [ ] * ^ ! # %";
   }
 
   if (!SLUG_REGEX.test(slug)) {
-    return "Slug can only contain letters, numbers, hyphens, and underscores";
+    return "O slug só pode conter letras, números, hifens e sublinhados";
   }
 
   return true;

@@ -19,9 +19,9 @@
     "start_date": "Data de início",
     "end_date": "Data de término",
     "in_your_timezone": "No seu fuso horário",
-    "transfer_work_items": "Transferir {count} itens de trabalho",
+    "transfer_work_items": "Transferir {count} tarefas",
     "transfer": {
-      "no_cycles_available": "Não há outros ciclos disponíveis para transferir itens de trabalho."
+      "no_cycles_available": "Não há outros ciclos disponíveis para transferir tarefas."
     },
     "date_range": "Intervalo de datas",
     "add_date": "Adicionar data",
@@ -29,9 +29,9 @@
       "label": "Ciclo ativo",
       "progress": "Progresso",
       "chart": "Gráfico de burndown",
-      "priority_issue": "Itens de trabalho prioritários",
+      "priority_issue": "Tarefas prioritárias",
       "assignees": "Responsáveis",
-      "issue_burndown": "Burndown de itens de trabalho",
+      "issue_burndown": "Burndown de tarefas",
       "ideal": "Ideal",
       "current": "Atual",
       "labels": "Etiquetas",
@@ -113,18 +113,18 @@
         }
       },
       "no_issues": {
-        "title": "Nenhum item de trabalho adicionado ao ciclo",
-        "description": "Adicione ou crie itens de trabalho que você deseja definir prazos e entregar dentro deste ciclo",
+        "title": "Nenhuma tarefa adicionada ao ciclo",
+        "description": "Adicione ou crie tarefas que você deseja definir prazos e entregar dentro deste ciclo",
         "primary_button": {
-          "text": "Criar novo item de trabalho"
+          "text": "Criar nova tarefa"
         },
         "secondary_button": {
-          "text": "Adicionar item de trabalho existente"
+          "text": "Adicionar tarefa existente"
         }
       },
       "completed_no_issues": {
-        "title": "Nenhum item de trabalho no ciclo",
-        "description": "Nenhum item de trabalho no ciclo. Os itens de trabalho são transferidos ou ocultos. Para ver os itens de trabalho ocultos, se houver, atualize suas propriedades de exibição de acordo."
+        "title": "Nenhuma tarefa no ciclo",
+        "description": "Nenhuma tarefa no ciclo. As tarefas são transferidas ou ocultas. Para ver as tarefas ocultas, se houver, atualize suas propriedades de exibição de acordo."
       },
       "active": {
         "title": "Nenhum ciclo ativo",
@@ -132,7 +132,7 @@
       },
       "archived": {
         "title": "Nenhum ciclo arquivado ainda",
-        "description": "Para organizar seu projeto, arquive os ciclos concluídos. Encontre-os aqui quando forem arquivados."
+        "description": "Para organizar seu projeto, arquive os ciclos concluídos. Encontre-as aqui quando forem arquivadas."
       }
     }
   },
@@ -144,7 +144,7 @@
         "primary_button": {
           "text": "Crie sua primeira visualização",
           "comic": {
-            "title": "As visualizações funcionam sobre as propriedades do item de trabalho.",
+            "title": "As visualizações funcionam sobre as propriedades da tarefa.",
             "description": "Você pode criar uma visualização a partir daqui com quantas propriedades como filtros que você achar adequado."
           }
         },
@@ -154,14 +154,14 @@
         }
       },
       "no_archived_issues": {
-        "title": "Ainda não há itens de trabalho arquivados",
-        "description": "Manualmente ou através de automação, você pode arquivar itens de trabalho concluídos ou cancelados. Encontre-os aqui depois de arquivados.",
+        "title": "Ainda não há tarefas arquivadas",
+        "description": "Manualmente ou através de automação, você pode arquivar tarefas concluídas ou canceladas. Encontre-as aqui depois de arquivadas.",
         "primary_button": {
           "text": "Definir automação"
         }
       },
       "issues_empty_filter": {
-        "title": "Nenhum item de trabalho encontrado correspondente aos filtros aplicados",
+        "title": "Nenhuma tarefa encontrada correspondente aos filtros aplicados",
         "secondary_button": {
           "text": "Limpar todos os filtros"
         }
@@ -190,25 +190,25 @@
   "project_issues": {
     "empty_state": {
       "no_issues": {
-        "title": "Crie um item de trabalho e atribua-o a alguém, mesmo a você mesmo",
-        "description": "Pense nos itens de trabalho como tarefas, trabalhos ou JTBD. O que nós gostamos. Um item de trabalho e seus subitens de trabalho são geralmente acionáveis ​​baseados no tempo atribuídos aos membros de sua equipe. Sua equipe cria, atribui e conclui itens de trabalho para mover seu projeto em direção à sua meta.",
+        "title": "Crie uma tarefa e atribua-a a alguém, mesmo a você mesmo",
+        "description": "Pense nas tarefas como trabalhos, atividades ou JTBD. Uma tarefa e suas subtarefas costumam ser ações com prazo, atribuídas aos membros da sua equipe. Sua equipe cria, atribui e conclui tarefas para mover seu projeto em direção à sua meta.",
         "primary_button": {
-          "text": "Crie seu primeiro item de trabalho",
+          "text": "Crie sua primeira tarefa",
           "comic": {
-            "title": "Os itens de trabalho são blocos de construção no Tasks.",
-            "description": "Redesenhar a interface do usuário do Tasks, reformular a marca da empresa ou lançar o novo sistema de injeção de combustível são exemplos de itens de trabalho que provavelmente têm subitens de trabalho."
+            "title": "As tarefas são blocos de construção no Tasks.",
+            "description": "Redesenhar a interface do usuário do Tasks, reformular a marca da empresa ou lançar o novo sistema de injeção de combustível são exemplos de tarefas que provavelmente têm subtarefas."
           }
         }
       },
       "no_archived_issues": {
-        "title": "Nenhum item de trabalho arquivado ainda",
-        "description": "Manualmente ou por meio de automação, você pode arquivar itens de trabalho que foram concluídos ou cancelados. Encontre-os aqui quando forem arquivados.",
+        "title": "Nenhuma tarefa arquivada ainda",
+        "description": "Manualmente ou por meio de automação, você pode arquivar tarefas que foram concluídas ou canceladas. Encontre-as aqui quando forem arquivadas.",
         "primary_button": {
           "text": "Definir automação"
         }
       },
       "issues_empty_filter": {
-        "title": "Nenhum item de trabalho encontrado correspondendo aos filtros aplicados",
+        "title": "Nenhuma tarefa encontrada correspondendo aos filtros aplicados",
         "secondary_button": {
           "text": "Limpar todos os filtros"
         }
@@ -225,7 +225,7 @@
     "empty_state": {
       "general": {
         "title": "Mapeie os marcos do seu projeto para Módulos e rastreie o trabalho agregado facilmente.",
-        "description": "Um grupo de itens de trabalho que pertencem a um pai lógico e hierárquico forma um módulo. Pense neles como uma forma de rastrear o trabalho por marcos do projeto. Eles têm seus próprios períodos e prazos, bem como análises para ajudá-lo a ver o quão perto ou longe você está de um marco.",
+        "description": "Um grupo de tarefas que pertencem a um pai lógico e hierárquico forma um módulo. Pense neles como uma forma de rastrear o trabalho por marcos do projeto. Eles têm seus próprios períodos e prazos, bem como análises para ajudá-lo a ver o quão perto ou longe você está de um marco.",
         "primary_button": {
           "text": "Construa seu primeiro módulo",
           "comic": {
@@ -235,18 +235,18 @@
         }
       },
       "no_issues": {
-        "title": "Nenhum item de trabalho no módulo",
-        "description": "Crie ou adicione itens de trabalho que você deseja realizar como parte deste módulo",
+        "title": "Nenhuma tarefa no módulo",
+        "description": "Crie ou adicione tarefas que você deseja realizar como parte deste módulo",
         "primary_button": {
-          "text": "Criar novos itens de trabalho"
+          "text": "Criar novas tarefas"
         },
         "secondary_button": {
-          "text": "Adicionar um item de trabalho existente"
+          "text": "Adicionar uma tarefa existente"
         }
       },
       "archived": {
         "title": "Nenhum Módulo arquivado ainda",
-        "description": "Para organizar seu projeto, arquive os módulos concluídos ou cancelados. Encontre-os aqui quando forem arquivados."
+        "description": "Para organizar seu projeto, arquive os módulos concluídos ou cancelados. Encontre-as aqui quando forem arquivadas."
       },
       "sidebar": {
         "in_active": "Este módulo ainda não está ativo.",
@@ -272,7 +272,7 @@
     "empty_state": {
       "general": {
         "title": "Escreva uma nota, um documento ou uma base de conhecimento completa. Peça a Galileo, o assistente de IA do Tasks, para ajudá-lo a começar",
-        "description": "As páginas são espaço para registrar pensamentos no Tasks. Anote notas de reunião, formate-as facilmente, incorpore itens de trabalho, organize-os usando uma biblioteca de componentes e mantenha-os todos no contexto do seu projeto. Para facilitar qualquer documento, invoque Galileo, a IA do Tasks, com um atalho ou o clique de um botão.",
+        "description": "As páginas são espaço para registrar pensamentos no Tasks. Anote notas de reunião, formate-as facilmente, incorpore tarefas, organize-as usando uma biblioteca de componentes e mantenha-as todas no contexto do seu projeto. Para facilitar qualquer documento, invoque Galileo, a IA do Tasks, com um atalho ou o clique de um botão.",
         "primary_button": {
           "text": "Crie sua primeira página"
         }
@@ -300,8 +300,8 @@
   "disabled_project": {
     "empty_state": {
       "inbox": {
-        "title": "A Admissão não está habilitado para o projeto.",
-        "description": "A Admissão ajuda você a gerenciar as solicitações recebidas para o seu projeto e adicioná-las como itens de trabalho em seu fluxo de trabalho. Habilite a admissão nas configurações do projeto para gerenciar as solicitações.",
+        "title": "A Entrada não está habilitada para o projeto.",
+        "description": "A Entrada ajuda você a gerenciar as solicitações recebidas para o seu projeto e adicioná-las como tarefas em seu fluxo de trabalho. Habilite a Entrada nas configurações do projeto para gerenciar as solicitações.",
         "primary_button": {
           "text": "Gerenciar funcionalidades"
         }
@@ -353,7 +353,7 @@
     "order_by": {
       "name": "Nome",
       "progress": "Progresso",
-      "issues": "Número de itens de trabalho",
+      "issues": "Número de tarefas",
       "due_date": "Data de vencimento",
       "created_at": "Data de criação",
       "manual": "Manual"
@@ -364,12 +364,12 @@
     "display_name": "Nome de exibição",
     "email": "E-mail",
     "joining_date": "Data de entrada",
-    "role": "Cargo"
+    "role": "Função"
   },
   "project": {
     "members_import": {
       "title": "Importar membros do CSV",
-      "description": "Carregue um CSV com colunas: Email e Função (5=Convidado, 15=Membro, 20=Admin). Os usuários já devem ser membros do espaço de trabalho.",
+      "description": "Carregue um CSV com colunas: Email e Função (5=Convidado, 15=Membro, 20=Admin). Os usuários já devem ser membros do workspace.",
       "download_sample": "Baixar CSV de exemplo",
       "dropzone": {
         "active": "Solte o arquivo CSV aqui",

@@ -65,7 +65,7 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
             return self.model.objects.all()
         except Exception as e:
             log_exception(e)
-            raise APIException("Please check the view", status.HTTP_400_BAD_REQUEST)
+            raise APIException("Erro de configuração da view", status.HTTP_400_BAD_REQUEST)
 
     def handle_exception(self, exc):
         """
@@ -79,32 +79,32 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
             (print(e, traceback.format_exc()) if settings.DEBUG else print("Server Error"))
             if isinstance(e, IntegrityError):
                 return Response(
-                    {"error": "The payload is not valid"},
+                    {"error": "Os dados enviados não são válidos"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if isinstance(e, ValidationError):
                 return Response(
-                    {"error": "Please provide valid detail"},
+                    {"error": "Informe dados válidos"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if isinstance(e, ObjectDoesNotExist):
                 return Response(
-                    {"error": "The required object does not exist."},
+                    {"error": "O objeto solicitado não existe."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if isinstance(e, KeyError):
                 log_exception(e)
                 return Response(
-                    {"error": "The required key does not exist."},
+                    {"error": "A chave necessária não existe."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             log_exception(e)
             return Response(
-                {"error": "Something went wrong please try again later"},
+                {"error": "Algo deu errado. Tente novamente mais tarde"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -175,31 +175,31 @@ class BaseAPIView(TimezoneMixin, ReadReplicaControlMixin, APIView, BasePaginator
         except Exception as e:
             if isinstance(e, IntegrityError):
                 return Response(
-                    {"error": "The payload is not valid"},
+                    {"error": "Os dados enviados não são válidos"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if isinstance(e, ValidationError):
                 return Response(
-                    {"error": "Please provide valid detail"},
+                    {"error": "Informe dados válidos"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if isinstance(e, ObjectDoesNotExist):
                 return Response(
-                    {"error": "The required object does not exist."},
+                    {"error": "O objeto solicitado não existe."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             if isinstance(e, KeyError):
                 return Response(
-                    {"error": "The required key does not exist."},
+                    {"error": "A chave necessária não existe."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             log_exception(e)
             return Response(
-                {"error": "Something went wrong please try again later"},
+                {"error": "Algo deu errado. Tente novamente mais tarde"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

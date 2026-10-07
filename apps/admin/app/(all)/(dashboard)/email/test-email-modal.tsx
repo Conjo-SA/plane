@@ -58,7 +58,7 @@ export function SendTestEmailModal(props: Props) {
         setSendEmailStep(ESendEmailSteps.SUCCESS);
       })
       .catch((error) => {
-        setError(error?.error || "Failed to send email");
+        setError(error?.error || "Falha ao enviar o e-mail");
         setSendEmailStep(ESendEmailSteps.FAILED);
       })
       .finally(() => {
@@ -94,10 +94,10 @@ export function SendTestEmailModal(props: Props) {
               <Dialog.Panel className="relative w-full transform rounded-lg bg-surface-1 p-5 px-4 text-left shadow-raised-200 transition-all sm:max-w-xl">
                 <h3 className="text-16 leading-6 font-medium text-primary">
                   {sendEmailStep === ESendEmailSteps.SEND_EMAIL
-                    ? "Send test email"
+                    ? "Enviar e-mail de teste"
                     : sendEmailStep === ESendEmailSteps.SUCCESS
-                      ? "Email send"
-                      : "Failed"}{" "}
+                      ? "E-mail enviado"
+                      : "Falha"}{" "}
                 </h3>
                 <div className="pt-6 pb-2">
                   {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
@@ -106,7 +106,7 @@ export function SendTestEmailModal(props: Props) {
                       type="email"
                       value={receiverEmail}
                       onChange={(e) => setReceiverEmail(e.target.value)}
-                      placeholder="Receiver email"
+                      placeholder="E-mail do destinatário"
                       className="w-full resize-none text-16"
                       tabIndex={0}
                     />
@@ -114,20 +114,20 @@ export function SendTestEmailModal(props: Props) {
                   {sendEmailStep === ESendEmailSteps.SUCCESS && (
                     <div className="flex flex-col gap-y-4 text-13">
                       <p>
-                        We have sent the test email to {receiverEmail}. Please check your spam folder if you cannot find
-                        it.
+                        Enviamos o e-mail de teste para {receiverEmail}. Verifique sua pasta de spam caso não o
+                        encontre.
                       </p>
-                      <p>If you still cannot find it, recheck your SMTP configuration and trigger a new test email.</p>
+                      <p>Se ainda não encontrar, revise sua configuração SMTP e envie um novo e-mail de teste.</p>
                     </div>
                   )}
                   {sendEmailStep === ESendEmailSteps.FAILED && <div className="text-13">{error}</div>}
                   <div className="mt-5 flex items-center justify-end gap-2">
                     <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={0}>
-                      {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancel" : "Close"}
+                      {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancelar" : "Fechar"}
                     </Button>
                     {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (
                       <Button variant="primary" size="lg" loading={isLoading} onClick={handleSubmit} tabIndex={0}>
-                        {isLoading ? "Sending email" : "Send email"}
+                        {isLoading ? "Enviando e-mail" : "Enviar e-mail"}
                       </Button>
                     )}
                   </div>

@@ -30,7 +30,7 @@ export function ProjectFeatureToggle(props: Props) {
           size={EPillSize.SM}
           className="rounded-lg border-none"
         >
-          {value ? "Enabled" : "Disabled"}
+          {value ? "Ativado" : "Desativado"}
         </Pill>
         <ChevronRightIcon className="h-4 w-4 text-tertiary" />
       </div>

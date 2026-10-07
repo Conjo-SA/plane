@@ -34,7 +34,7 @@ class WebhookSerializer(DynamicBaseSerializer):
             )
         except ValueError as e:
             logger.warning("Webhook URL validation failed for %s: %s", url, e)
-            raise serializers.ValidationError({"url": "Invalid or disallowed webhook URL."})
+            raise serializers.ValidationError({"url": "URL de webhook inválida ou não permitida."})
 
         hostname = (urlparse(url).hostname or "").rstrip(".").lower()
 
@@ -52,7 +52,7 @@ class WebhookSerializer(DynamicBaseSerializer):
             disallowed_domains.append(request_host)
 
         if any(hostname == domain or hostname.endswith("." + domain) for domain in disallowed_domains):
-            raise serializers.ValidationError({"url": "URL domain or its subdomain is not allowed."})
+            raise serializers.ValidationError({"url": "O domínio da URL ou seu subdomínio não é permitido."})
 
     def create(self, validated_data):
         url = validated_data.get("url", None)

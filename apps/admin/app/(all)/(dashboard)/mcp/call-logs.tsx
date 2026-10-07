@@ -29,14 +29,14 @@ export function MCPCallLogs() {
       mutateLogs();
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Logs cleared",
-        message: "All MCP tool call logs were deleted.",
+        title: "Logs limpos",
+        message: "Todos os logs de chamadas de ferramentas MCP foram excluídos.",
       });
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Could not clear the logs. Please try again.",
+        title: "Erro!",
+        message: "Não foi possível limpar os logs. Tente novamente.",
       });
     } finally {
       setIsClearing(false);
@@ -47,19 +47,19 @@ export function MCPCallLogs() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-16 font-medium text-primary">Call logs</div>
+          <div className="text-16 font-medium text-primary">Logs de chamadas</div>
           <div className="text-13 text-tertiary">
-            Latest tool calls handled by the MCP server. Refreshes automatically every 15 seconds.
+            Últimas chamadas de ferramentas atendidas pelo servidor MCP. Atualiza automaticamente a cada 15 segundos.
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => mutateLogs()}>
             <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
+            Atualizar
           </Button>
           <Button variant="secondary" size="sm" onClick={handleClearLogs} disabled={isClearing || logs.length === 0}>
             <Trash2 className="h-3.5 w-3.5" />
-            Clear
+            Limpar
           </Button>
         </div>
       </div>
@@ -71,18 +71,18 @@ export function MCPCallLogs() {
         </Loader>
       ) : logs.length === 0 ? (
         <div className="rounded-md border border-subtle px-4 py-6 text-center text-13 text-tertiary">
-          No tool calls yet.
+          Nenhuma chamada de ferramenta ainda.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-md border border-subtle">
           <table className="w-full text-left text-13">
             <thead className="border-b border-subtle bg-surface-2 text-12 text-tertiary">
               <tr>
-                <th className="px-4 py-2 font-medium">Tool</th>
+                <th className="px-4 py-2 font-medium">Ferramenta</th>
                 <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Duration</th>
-                <th className="px-4 py-2 font-medium">When</th>
-                <th className="px-4 py-2 font-medium">Details</th>
+                <th className="px-4 py-2 font-medium">Duração</th>
+                <th className="px-4 py-2 font-medium">Quando</th>
+                <th className="px-4 py-2 font-medium">Detalhes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-subtle">
@@ -97,11 +97,11 @@ export function MCPCallLogs() {
                           : "font-medium text-danger-primary"
                       }
                     >
-                      {log.status}
+                      {log.status === "success" ? "sucesso" : log.status === "error" ? "erro" : log.status}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-secondary">{log.duration_ms} ms</td>
-                  <td className="px-4 py-2 text-secondary">{new Date(log.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-secondary">{new Date(log.created_at).toLocaleString("pt-BR")}</td>
                   <td className="max-w-64 truncate px-4 py-2 text-tertiary">
                     {log.status === "error" ? log.error_message : JSON.stringify(log.arguments)}
                   </td>

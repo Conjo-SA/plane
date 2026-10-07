@@ -43,14 +43,14 @@ const InstanceGoogleAuthenticationPage = observer(function InstanceGoogleAuthent
     const updateConfigPromise = updateInstanceConfigurations(payload);
 
     setPromiseToast(updateConfigPromise, {
-      loading: "Saving Configuration",
+      loading: "Salvando configuração",
       success: {
-        title: "Configuration saved",
-        message: () => `Google authentication is now ${value === "1" ? "active" : "disabled"}.`,
+        title: "Configuração salva",
+        message: () => `A autenticação com Google agora está ${value === "1" ? "ativa" : "desativada"}.`,
       },
       error: {
-        title: "Error",
-        message: () => "Failed to save configuration",
+        title: "Erro!",
+        message: () => "Não foi possível salvar a configuração",
       },
     });
 
@@ -68,9 +68,8 @@ const InstanceGoogleAuthenticationPage = observer(function InstanceGoogleAuthent
       customHeader={
         <AuthenticationMethodCard
           name="Google"
-          description="Allow members to login or sign up to Tasks with their Google
-            accounts."
-          icon={<img src={GoogleLogo} height={24} width={24} alt="Google Logo" />}
+          description="Permita que os membros entrem ou se cadastrem no Tasks com suas contas do Google."
+          icon={<img src={GoogleLogo} height={24} width={24} alt="Logo do Google" />}
           config={
             <ToggleSwitch
               value={Boolean(parseInt(enableGoogleConfig))}
@@ -105,6 +104,6 @@ const InstanceGoogleAuthenticationPage = observer(function InstanceGoogleAuthent
   );
 });
 
-export const meta: Route.MetaFunction = () => [{ title: "Google Authentication - God Mode" }];
+export const meta: Route.MetaFunction = () => [{ title: "Autenticação com Google - Administração" }];
 
 export default InstanceGoogleAuthenticationPage;

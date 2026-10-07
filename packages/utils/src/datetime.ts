@@ -4,8 +4,29 @@
  * See the LICENSE file for details.
  */
 
-import { differenceInDays, format, isAfter, isEqual, isValid, parseISO } from "date-fns";
+import { differenceInDays, format as formatDateFns, isAfter, isEqual, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { isNumber } from "lodash-es";
+
+/** Locale padrão de exibição de datas (Tasks é pt-BR). */
+export const DATE_FNS_LOCALE = ptBR;
+
+/**
+ * Formatos de exibição herdados (ordem americana, mês antes do dia) convertidos
+ * para a ordem brasileira. Formatos de payload (ex.: yyyy-MM-dd) não são afetados.
+ */
+const DISPLAY_FORMAT_OVERRIDES: Record<string, string> = {
+  "MMM dd, yyyy": "dd MMM yyyy",
+  "MMM d, yyyy": "d MMM yyyy",
+  "MMMM dd, yyyy": "dd 'de' MMMM 'de' yyyy",
+  "MMMM d, yyyy": "d 'de' MMMM 'de' yyyy",
+  "MMM dd": "dd MMM",
+  "MMM d": "d MMM",
+  "MMM, yyyy": "MMM yyyy",
+};
+
+/** `format` do date-fns sempre em pt-BR. */
+const format = (date: Date | number, formatToken: string): string => formatDateFns(date, formatToken, { locale: ptBR });
 
 // Format Date Helpers
 /**
@@ -18,7 +39,7 @@ import { isNumber } from "lodash-es";
  */
 export const renderFormattedDate = (
   date: string | Date | undefined | null,
-  formatToken: string = "MMM dd, yyyy"
+  formatToken: string = "dd MMM yyyy"
 ): string | undefined => {
   // Parse the date to check if it is valid
   const parsedDate = getDate(date);
@@ -29,10 +50,10 @@ export const renderFormattedDate = (
   let formattedDate;
   try {
     // Format the date in the format provided or default format (MMM dd, yyyy)
-    formattedDate = format(parsedDate, formatToken);
+    formattedDate = format(parsedDate, DISPLAY_FORMAT_OVERRIDES[formatToken] ?? formatToken);
   } catch (_e) {
     // Format the date in format (MMM dd, yyyy) in case of any error
-    formattedDate = format(parsedDate, "MMM dd, yyyy");
+    formattedDate = format(parsedDate, "dd MMM yyyy");
   }
   return formattedDate;
 };
@@ -51,7 +72,7 @@ export const renderFormattedDateWithoutYear = (date: string | Date): string => {
   // Check if the parsed date is valid before formatting
   if (!isValid(parsedDate)) return ""; // Return empty string for invalid dates
   // Format the date in short format (MMM dd)
-  const formattedDate = format(parsedDate, "MMM dd");
+  const formattedDate = format(parsedDate, "dd MMM");
   return formattedDate;
 };
 
@@ -193,7 +214,7 @@ export const calculateTimeAgo = (time: string | number | Date | null): string =>
   if (!parsedTime || !isValid(parsedTime)) return "";
 
   const elapsedSeconds = (parsedTime.getTime() - Date.now()) / 1000;
-  const formatter = new Intl.RelativeTimeFormat(getAppLanguage(), { numeric: "auto" });
+  const formatter = new Intl.RelativeTimeFormat(getAppLanguage() ?? "pt-BR", { numeric: "auto" });
 
   for (const { unit, seconds } of RELATIVE_TIME_UNITS) {
     if (Math.abs(elapsedSeconds) >= seconds) return formatter.format(Math.round(elapsedSeconds / seconds), unit);
@@ -216,7 +237,7 @@ export function calculateTimeAgoShort(date: string | number | Date | null): stri
 
   const diffInMinutes = diffInSeconds / 60;
   if (diffInMinutes < 60) {
-    return `${Math.floor(diffInMinutes)}m`;
+    return `${Math.floor(diffInMinutes)}min`;
   }
 
   const diffInHours = diffInMinutes / 60;
@@ -231,11 +252,11 @@ export function calculateTimeAgoShort(date: string | number | Date | null): stri
 
   const diffInMonths = diffInDays / 30;
   if (diffInMonths < 12) {
-    return `${Math.floor(diffInMonths)}mo`;
+    return `${Math.floor(diffInMonths)}m`;
   }
 
   const diffInYears = diffInMonths / 12;
-  return `${Math.floor(diffInYears)}y`;
+  return `${Math.floor(diffInYears)}a`;
 }
 
 // Date Validation Helpers
@@ -389,7 +410,7 @@ export const convertMinutesToHoursAndMinutes = (mins: number): { hours: number; 
 export const convertMinutesToHoursMinutesString = (totalMinutes: number): string => {
   const { hours, minutes } = convertMinutesToHoursAndMinutes(totalMinutes);
 
-  return `${hours ? `${hours}h ` : ``}${minutes ? `${minutes}m ` : ``}`;
+  return `${hours ? `${hours}h ` : ``}${minutes ? `${minutes}min ` : ``}`;
 };
 
 /**
@@ -522,12 +543,12 @@ export const formatDateRange = (
 
   // If only start date is provided
   if (parsedStartDate && !parsedEndDate) {
-    return format(parsedStartDate, "MMM dd, yyyy");
+    return format(parsedStartDate, "dd MMM yyyy");
   }
 
   // If only end date is provided
   if (!parsedStartDate && parsedEndDate) {
-    return format(parsedEndDate, "MMM dd, yyyy");
+    return format(parsedEndDate, "dd MMM yyyy");
   }
 
   // If both dates are provided
@@ -541,19 +562,19 @@ export const formatDateRange = (
     if (startYear === endYear && startMonth === endMonth) {
       const startDay = format(parsedStartDate, "dd");
       const endDay = format(parsedEndDate, "dd");
-      return `${format(parsedStartDate, "MMM")} ${startDay} - ${endDay}, ${startYear}`;
+      return `${startDay} - ${endDay} ${format(parsedStartDate, "MMM")} ${startYear}`;
     }
 
     // Same year, different month
     if (startYear === endYear) {
-      const startFormatted = format(parsedStartDate, "MMM dd");
-      const endFormatted = format(parsedEndDate, "MMM dd");
-      return `${startFormatted} - ${endFormatted}, ${startYear}`;
+      const startFormatted = format(parsedStartDate, "dd MMM");
+      const endFormatted = format(parsedEndDate, "dd MMM");
+      return `${startFormatted} - ${endFormatted} ${startYear}`;
     }
 
     // Different year
-    const startFormatted = format(parsedStartDate, "MMM dd, yyyy");
-    const endFormatted = format(parsedEndDate, "MMM dd, yyyy");
+    const startFormatted = format(parsedStartDate, "dd MMM yyyy");
+    const endFormatted = format(parsedEndDate, "dd MMM yyyy");
     return `${startFormatted} - ${endFormatted}`;
   }
 
@@ -573,7 +594,7 @@ export const formatDateRange = (
 export const formatDuration = (seconds: number | undefined | null): string => {
   // Return "N/A" if seconds is not a valid number
   if (seconds == null || typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
-    return "N/A";
+    return "N/D";
   }
 
   // If less than 1 second, show in ms (2 decimal places)
@@ -594,7 +615,7 @@ export const formatDuration = (seconds: number | undefined | null): string => {
   const parts: string[] = [];
 
   if (hours > 0) {
-    parts.push(`${hours} hr`);
+    parts.push(`${hours} h`);
   }
 
   if (minutes > 0) {
@@ -602,7 +623,7 @@ export const formatDuration = (seconds: number | undefined | null): string => {
   }
 
   if (remainingSeconds > 0 || parts.length === 0) {
-    parts.push(`${remainingSeconds} sec`);
+    parts.push(`${remainingSeconds} s`);
   }
 
   return parts.join(" ");

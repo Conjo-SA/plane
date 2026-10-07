@@ -161,7 +161,7 @@ class PageViewSet(BaseViewSet):
             )
 
             if page.is_locked:
-                return Response({"error": "Page is locked"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "A página está bloqueada"}, status=status.HTTP_400_BAD_REQUEST)
 
             parent = request.data.get("parent", None)
             if parent:
@@ -175,7 +175,7 @@ class PageViewSet(BaseViewSet):
             # Only update access if the page owner is the requesting  user
             if page.access != request.data.get("access", page.access) and page.owned_by_id != request.user.id:
                 return Response(
-                    {"error": "Access cannot be updated since this page is owned by someone else"},
+                    {"error": "Não é possível alterar o acesso, pois esta página pertence a outra pessoa"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -195,7 +195,7 @@ class PageViewSet(BaseViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Page.DoesNotExist:
             return Response(
-                {"error": "Access cannot be updated since this page is owned by someone else"},
+                {"error": "Não é possível alterar o acesso, pois esta página pertence a outra pessoa"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -221,12 +221,12 @@ class PageViewSet(BaseViewSet):
             and not page.owned_by == request.user
         ):
             return Response(
-                {"error": "You are not allowed to view this page"},
+                {"error": "Você não tem permissão para ver esta página"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if page is None:
-            return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Página não encontrada"}, status=status.HTTP_404_NOT_FOUND)
         else:
             issue_ids = PageLog.objects.filter(page_id=page_id, entity_name="issue").values_list(
                 "entity_identifier", flat=True
@@ -280,7 +280,7 @@ class PageViewSet(BaseViewSet):
         # Only update access if the page owner is the requesting user
         if page.access != request.data.get("access", page.access) and page.owned_by_id != request.user.id:
             return Response(
-                {"error": "Access cannot be updated since this page is owned by someone else"},
+                {"error": "Não é possível alterar o acesso, pois esta página pertence a outra pessoa"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -321,7 +321,7 @@ class PageViewSet(BaseViewSet):
             and request.user.id != page.owned_by_id
         ):
             return Response(
-                {"error": "Only the owner or admin can archive the page"},
+                {"error": "Apenas o proprietário ou o administrador pode arquivar a página"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -352,7 +352,7 @@ class PageViewSet(BaseViewSet):
             and request.user.id != page.owned_by_id
         ):
             return Response(
-                {"error": "Only the owner or admin can un archive the page"},
+                {"error": "Apenas o proprietário ou o administrador pode desarquivar a página"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -375,7 +375,7 @@ class PageViewSet(BaseViewSet):
 
         if page.archived_at is None:
             return Response(
-                {"error": "The page should be archived before deleting"},
+                {"error": "A página deve ser arquivada antes de ser excluída"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -389,7 +389,7 @@ class PageViewSet(BaseViewSet):
             ).exists()
         ):
             return Response(
-                {"error": "Only admin or owner can delete the page"},
+                {"error": "Apenas o administrador ou o proprietário pode excluir a página"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -570,7 +570,7 @@ class PagesDescriptionViewSet(BaseViewSet):
                 existing_instance=existing_instance,
                 user_id=request.user.id,
             )
-            return Response({"message": "Updated successfully"})
+            return Response({"message": "Atualizado com sucesso"})
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -588,7 +588,7 @@ class PageDuplicateEndpoint(BaseAPIView):
 
         # check for permission
         if page.access == Page.PRIVATE_ACCESS and page.owned_by_id != request.user.id:
-            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Permissão negada"}, status=status.HTTP_403_FORBIDDEN)
 
         # get all the project ids where page is present
         project_ids = ProjectPage.objects.filter(page_id=page_id).values_list("project_id", flat=True)

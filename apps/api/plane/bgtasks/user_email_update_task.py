@@ -32,7 +32,7 @@ def send_email_update_magic_code(email, token):
         ) = get_email_configuration()
 
         # Send the mail
-        subject = "Verify your new email address"
+        subject = "Verifique seu novo endereço de e-mail"
         context = {"code": token, "email": email}
 
         html_content = render_to_string("emails/auth/magic_signin.html", context)
@@ -83,7 +83,7 @@ def send_email_update_confirmation(email):
         ) = get_email_configuration()
 
         # Send the confirmation email
-        subject = "Tasks email address successfully updated"
+        subject = "Endereço de e-mail do Tasks atualizado com sucesso"
         context = {"email": email}
 
         html_content = render_to_string("emails/user/email_updated.html", context)

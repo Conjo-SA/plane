@@ -55,12 +55,12 @@ class ExportIssuesEndpoint(BaseAPIView):
                 slug=slug,
             )
             return Response(
-                {"message": "Once the export is ready you will be able to download it"},
+                {"message": "Assim que a exportação estiver pronta, você poderá baixá-la"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                {"error": f"Provider '{provider}' not found."},
+                {"error": f"Provedor '{provider}' não encontrado."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

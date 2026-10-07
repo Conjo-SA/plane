@@ -13,15 +13,11 @@ export function SomethingWentWrongError() {
       <div className="text-center">
         <div className="mx-auto grid h-52 w-52 place-items-center rounded-full">
           <div className="grid h-32 w-32 place-items-center">
-            <img
-              src={SomethingWentWrongImage}
-              alt="Oops! Something went wrong"
-              className="h-full w-full object-contain"
-            />
+            <img src={SomethingWentWrongImage} alt="Ops! Algo deu errado" className="h-full w-full object-contain" />
           </div>
         </div>
-        <h1 className="mt-12 text-24 font-semibold">Oops! Something went wrong.</h1>
-        <p className="mt-4 text-tertiary">The public board does not exist. Please check the URL.</p>
+        <h1 className="mt-12 text-24 font-semibold">Ops! Algo deu errado.</h1>
+        <p className="mt-4 text-tertiary">O quadro público não existe. Verifique o endereço.</p>
       </div>
     </div>
   );

@@ -178,7 +178,7 @@ export const MemberOptions = observer(function MemberOptions(props: Props) {
                           {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
                           {isUserSuspended(option.value, workspaceSlug?.toString()) && (
                             <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS} className="border-none">
-                              Suspended
+                              Suspenso
                             </Pill>
                           )}
                         </>

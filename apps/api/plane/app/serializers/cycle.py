@@ -19,7 +19,7 @@ class CycleWriteSerializer(BaseSerializer):
             and data.get("end_date", None) is not None
             and data.get("start_date", None) > data.get("end_date", None)
         ):
-            raise serializers.ValidationError("Start date cannot exceed end date")
+            raise serializers.ValidationError("A data de início não pode ser posterior à data de término")
         if data.get("start_date", None) is not None and data.get("end_date", None) is not None:
             project_id = (
                 self.initial_data.get("project_id", None)

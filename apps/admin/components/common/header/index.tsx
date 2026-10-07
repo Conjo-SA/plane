@@ -22,7 +22,7 @@ export const HamburgerToggle = observer(function HamburgerToggle() {
   return (
     <button
       type="button"
-      aria-label="Toggle sidebar"
+      aria-label="Recolher/expandir barra lateral"
       className="group flex size-7 cursor-pointer items-center justify-center rounded-sm bg-layer-1 transition-all hover:bg-layer-1-hover md:hidden"
       onClick={() => toggleSidebar(!isSidebarCollapsed)}
     >
@@ -67,7 +67,7 @@ export const AdminHeader = observer(function AdminHeader() {
               component={
                 <BreadcrumbLink
                   href="/general/"
-                  label="Settings"
+                  label="Configurações"
                   icon={<Settings className="h-4 w-4 text-tertiary" />}
                 />
               }
