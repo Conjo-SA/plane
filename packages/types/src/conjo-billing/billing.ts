@@ -32,10 +32,28 @@ export type TIssueTime = {
   } | null;
   /** Hours debited from the client's package for this work item (open debit), if any. */
   debited_hours: string | null;
-  /** Client the work item counts for: by its label first, otherwise by its project. */
-  client: { id: string; name: string; via: "label" | "project"; label: string | null } | null;
-  /** True when the work item has labels of two different clients, so no client is applied. */
-  client_ambiguous: boolean;
+  /** Client the work item counts for: chosen on the card, otherwise inherited from its project. */
+  client: TIssueClientRef | null;
+};
+
+/** A client in a short form (id and name). */
+export type TClientOption = { id: string; name: string };
+
+/** Client of a work item: chosen on the card ("card") or inherited from its project ("project"). */
+export type TIssueClientRef = TClientOption & { via: "card" | "project" };
+
+export type TIssueClient = {
+  client: TIssueClientRef | null;
+  /** Client the whole project belongs to, if any (fallback when the card has none). */
+  project_client: TClientOption | null;
+  /** False for guests, or when an approved estimate requires a workspace admin to change it. */
+  can_change: boolean;
+};
+
+/** Clients of a project's work items: only the ones chosen on the card, by work item id. */
+export type TProjectClientSummary = {
+  project_client: TClientOption | null;
+  issues: Record<string, TClientOption>;
 };
 
 export type TIssueTimeCreate = { duration: string; logged_on?: string; description?: string };

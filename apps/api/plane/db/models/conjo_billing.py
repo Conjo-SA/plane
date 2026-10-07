@@ -130,9 +130,10 @@ class ClientProject(ClientBaseModel):
 
 
 class ClientLabel(ClientBaseModel):
-    """A label that identifies the client on a board shared by several clients (e.g. "RastroPOP" on MAN).
+    """The label used for the client on a board (e.g. "RastroPOP" on MAN), kept in sync with the card's client.
 
-    Work items with the label belong to the client; the label wins over the project's client.
+    Choosing the client on a card applies the label; a portal link with the label's tag sets the client;
+    adding the label to a card without a client sets it.
     """
 
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="client_labels")
@@ -152,6 +153,32 @@ class ClientLabel(ClientBaseModel):
 
     def __str__(self):
         return f"{self.label_id} <{self.client_id}>"
+
+
+class IssueClient(ProjectBaseModel):
+    """The client a work item is for, chosen on the item (boards shared by several clients, like MAN).
+
+    Without it, the work item belongs to the client of its project (projects dedicated to one client).
+    """
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="conjo_clients")
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="issue_links")
+
+    class Meta:
+        verbose_name = "IssueClient"
+        verbose_name_plural = "IssueClients"
+        db_table = "conjo_issue_clients"
+        constraints = [
+            # One client per work item; soft-deleted rows (a cleared client) do not count.
+            models.UniqueConstraint(
+                fields=["issue"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="conjo_issue_client_unique_issue",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.client_id} <{self.issue_id}>"
 
 
 class ClientContract(ClientBaseModel):

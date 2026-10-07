@@ -16,12 +16,15 @@ import type {
   TClientLabelOption,
   TClientLedger,
   TClientListItem,
+  TClientOption,
   TClientTimeline,
   TClientUpdate,
+  TIssueClient,
   TIssueTime,
   TIssueTimeCreate,
   TIssueTimeUpdate,
   TPackageSummary,
+  TProjectClientSummary,
   TClientNoteCreate,
   TClientTimelineType,
   TWorkKind,
@@ -91,6 +94,32 @@ export class ConjoBillingService extends APIService {
 
   async setWorkKind(workspaceSlug: string, projectId: string, issueId: string, kind: TWorkKind): Promise<TIssueTime> {
     return this.call(this.put(`${this.issueUrl(workspaceSlug, projectId, issueId)}/work-kind/`, { kind }));
+  }
+
+  // Client of a work item
+
+  async getIssueClient(workspaceSlug: string, projectId: string, issueId: string): Promise<TIssueClient> {
+    return this.call(this.get(`${this.issueUrl(workspaceSlug, projectId, issueId)}/client/`));
+  }
+
+  /** Sets the client chosen on the card; null clears it (falls back to the project's client). */
+  async setIssueClient(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    clientId: string | null
+  ): Promise<TIssueClient> {
+    return this.call(this.put(`${this.issueUrl(workspaceSlug, projectId, issueId)}/client/`, { client_id: clientId }));
+  }
+
+  /** Active clients of the workspace (sorted by name), for the work item's client picker. */
+  async getClientOptions(workspaceSlug: string): Promise<{ clients: TClientOption[] }> {
+    return this.call(this.get(`/api/workspaces/${workspaceSlug}/clients/options/`));
+  }
+
+  /** Project's client and the clients chosen on its work items' cards. */
+  async getProjectClientSummary(workspaceSlug: string, projectId: string): Promise<TProjectClientSummary> {
+    return this.call(this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/client-summary/`));
   }
 
   // Clients

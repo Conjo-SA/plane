@@ -32,6 +32,7 @@ from plane.db.models import (
     HourLedgerEntry,
     IntakePortalBudget,
     Issue,
+    IssueClient,
     IssueWorkKind,
     IssueWorkLog,
     Label,
@@ -107,7 +108,7 @@ def _work_log(entry):
 def _issue_time_payload(issue):
     entries = IssueWorkLog.objects.filter(issue=issue).select_related("member")
     budget = IntakePortalBudget.objects.filter(issue_id=issue.id).first()
-    client, via, label, ambiguous = billing.client_resolution(issue)
+    client, via = billing.client_resolution(issue)
     debit = billing.open_debit(issue)
     return {
         "entries": [_work_log(entry) for entry in entries],
@@ -124,8 +125,7 @@ def _issue_time_payload(issue):
             else None
         ),
         "debited_hours": str(-debit.hours) if debit else None,
-        "client": {"id": str(client.id), "name": client.name, "via": via, "label": label} if client else None,
-        "client_ambiguous": ambiguous,
+        "client": {"id": str(client.id), "name": client.name, "via": via} if client else None,
     }
 
 
@@ -241,6 +241,81 @@ class IssueWorkKindEndpoint(BaseAPIView):
             )
         billing.change_work_kind(issue, kind)
         return Response(_issue_time_payload(issue))
+
+
+def _issue_client_payload(issue, user, slug):
+    client, via = billing.client_resolution(issue)
+    project_client = billing.client_for_project(issue.project_id)
+    is_guest_or_out = not ProjectMember.objects.filter(
+        project_id=issue.project_id, member=user, is_active=True, role__gte=ROLE.MEMBER.value
+    ).exists()
+    # Changing who an item with an approved estimate is for moves debited hours: an admin decision.
+    moves_hours = (
+        billing.open_debit(issue) is not None
+        or IntakePortalBudget.objects.filter(issue_id=issue.id, status="APPROVED").exists()
+    )
+    return {
+        "client": {"id": str(client.id), "name": client.name, "via": via} if client else None,
+        "project_client": {"id": str(project_client.id), "name": project_client.name} if project_client else None,
+        "can_change": not is_guest_or_out and (not moves_hours or _is_workspace_admin(user, slug)),
+    }
+
+
+class IssueClientEndpoint(BaseAPIView):
+    """The client a work item is for (chosen on the item, or inherited from its project)."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, issue_id):
+        issue = _get_issue(slug, project_id, issue_id)
+        if issue is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        return Response(_issue_client_payload(issue, request.user, slug))
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def put(self, request, slug, project_id, issue_id):
+        issue = _get_issue(slug, project_id, issue_id)
+        if issue is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        if not _issue_client_payload(issue, request.user, slug)["can_change"]:
+            return _error(
+                "Esta tarefa tem orçamento aprovado: só um administrador pode trocar o cliente, porque isso move "
+                "as horas debitadas.",
+                status.HTTP_403_FORBIDDEN,
+            )
+        client_id = request.data.get("client_id")
+        client = None
+        if client_id:
+            client = _get_client(slug, client_id) if is_valid_uuid(str(client_id)) else None
+            if client is None or not client.is_active:
+                return _error("Cliente não encontrado.")
+        billing.set_issue_client(issue, client)
+        return Response(_issue_client_payload(issue, request.user, slug))
+
+
+class ClientOptionsEndpoint(BaseAPIView):
+    """Active clients for the work item's client picker."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug):
+        clients = Client.objects.filter(workspace__slug=slug, is_active=True).order_by("name")
+        return Response({"clients": [{"id": str(c.id), "name": c.name} for c in clients]})
+
+
+class ProjectClientSummaryEndpoint(BaseAPIView):
+    """Clients chosen on the project's work items, for the chip on board and list cards."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id):
+        project_client = billing.client_for_project(project_id)
+        links = IssueClient.objects.filter(project_id=project_id, workspace__slug=slug).select_related("client")
+        return Response(
+            {
+                "project_client": {"id": str(project_client.id), "name": project_client.name}
+                if project_client
+                else None,
+                "issues": {str(link.issue_id): {"id": str(link.client_id), "name": link.client.name} for link in links},
+            }
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -530,6 +605,8 @@ def set_client_labels(client, raw_ids):
         for label in labels:
             if label.id not in existing:
                 ClientLabel.objects.create(client=client, label=label, workspace_id=client.workspace_id)
+                # Cards already tagged with it (the board's history) become the client's.
+                billing.adopt_labelled_cards(client, label)
     return None
 
 

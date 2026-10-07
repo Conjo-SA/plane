@@ -120,7 +120,7 @@ export function ContractProjectsCard({ workspaceSlug, client, isAdmin, onChanged
       )}
 
       <div className="flex items-center justify-between gap-2 pt-1">
-        <h3 className="text-12 font-medium text-secondary">Etiquetas</h3>
+        <h3 className="text-12 font-medium text-secondary">Etiqueta no board</h3>
         {isAdmin && (
           <button
             type="button"
@@ -132,7 +132,8 @@ export function ContractProjectsCard({ workspaceSlug, client, isAdmin, onChanged
         )}
       </div>
       <p className="text-12 text-tertiary">
-        Use quando o cliente divide um board com outros (ex.: MAN): os cards com a etiqueta contam para este cliente.
+        Opcional. Mantém a etiqueta usada no board e no link do portal: ao escolher este cliente num card, a etiqueta é
+        aplicada; um pedido pelo link com a etiqueta já chega com o cliente.
       </p>
       {client.labels.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -387,8 +388,8 @@ function LabelsModal(props: {
   return (
     <FormModal
       isOpen={isOpen}
-      title="Etiquetas do cliente"
-      description="Os cards com as etiquetas marcadas contam no pacote deste cliente, mesmo num board compartilhado. Cada etiqueta pertence a um cliente só."
+      title="Etiqueta no board"
+      description="Aplicada ao escolher este cliente num card; pedidos pelo link do portal com ela já chegam com o cliente. Cada etiqueta pertence a um cliente só."
       submitLabel="Salvar etiquetas"
       isSubmitting={isSubmitting}
       submitDisabled={!data}

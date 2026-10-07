@@ -17,13 +17,16 @@ from plane.app.views.conjo_billing import (
     ClientLedgerExportEndpoint,
     ClientLedgerReverseEndpoint,
     ClientListEndpoint,
+    ClientOptionsEndpoint,
     ClientProjectsEndpoint,
     ClientTimelineEndpoint,
     ClientTimelineNoteDetailEndpoint,
     ClientTimelineNotesEndpoint,
+    IssueClientEndpoint,
     IssueTimeDetailEndpoint,
     IssueTimeEndpoint,
     IssueWorkKindEndpoint,
+    ProjectClientSummaryEndpoint,
 )
 
 ISSUE = "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>"
@@ -33,6 +36,13 @@ urlpatterns = [
     path(f"{ISSUE}/time/", IssueTimeEndpoint.as_view(), name="issue-time"),
     path(f"{ISSUE}/time/<uuid:pk>/", IssueTimeDetailEndpoint.as_view(), name="issue-time-detail"),
     path(f"{ISSUE}/work-kind/", IssueWorkKindEndpoint.as_view(), name="issue-work-kind"),
+    path(f"{ISSUE}/client/", IssueClientEndpoint.as_view(), name="issue-client"),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/client-summary/",
+        ProjectClientSummaryEndpoint.as_view(),
+        name="project-client-summary",
+    ),
+    path("workspaces/<str:slug>/clients/options/", ClientOptionsEndpoint.as_view(), name="client-options"),
     path("workspaces/<str:slug>/clients/", ClientListEndpoint.as_view(), name="clients"),
     path(f"{CLIENT}/", ClientDetailEndpoint.as_view(), name="client-detail"),
     path(f"{CLIENT}/contacts/", ClientContactsEndpoint.as_view(), name="client-contacts"),

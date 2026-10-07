@@ -1505,13 +1505,13 @@ def create_intake_activity(
 
 
 def resync_client_after_label_change(issue_id):
-    """Move the open debit to the package of the work item's (new) client. Never breaks the activity log."""
-    from plane.utils.conjo_billing import resync_issue_client
+    """A card without a client that gets a client's label gets that client (and its debit). Never breaks the log."""
+    from plane.utils.conjo_billing import client_from_labels
 
     try:
         issue = Issue.objects.filter(pk=issue_id).first()
         if issue is not None:
-            resync_issue_client(issue)
+            client_from_labels(issue)
     except Exception as e:
         log_exception(e)
 
@@ -1666,7 +1666,7 @@ def issue_activity(
             activities=issue_activities_created,
         )
 
-        # Conjo: labels tell the client on shared boards; when they change, the hour debit follows.
+        # Conjo: tagging a card with a client's label sets its client when it has none.
         if any(activity.field == "labels" for activity in issue_activities_created):
             resync_client_after_label_change(issue_id)
 

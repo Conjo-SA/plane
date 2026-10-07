@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { AlertTriangle, Clock, Pencil, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
@@ -23,6 +23,9 @@ import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { formatDayMonth, formatHours, formatMinutes, hoursToMinutes, todayISO } from "./format";
 
 const billingService = new ConjoBillingService();
+
+/** SWR key of the "Tempo gasto" panel data (revalidate it when something that affects it changes). */
+export const getIssueTimeSWRKey = (issueId: string) => `ISSUE_TIME_${issueId}`;
 
 const WORK_KINDS: { value: TWorkKind; label: string }[] = [
   { value: "evolution", label: "Evolução" },
@@ -54,7 +57,7 @@ export function IssueTimeCollapsible(props: Props) {
   const { workspaceSlug, projectId, issueId, disabled } = props;
   const [isOpen, setIsOpen] = useState(true);
   const { data, mutate } = useSWR(
-    workspaceSlug && projectId && issueId ? `ISSUE_TIME_${issueId}` : null,
+    workspaceSlug && projectId && issueId ? getIssueTimeSWRKey(issueId) : null,
     () => billingService.getIssueTime(workspaceSlug, projectId, issueId),
     { revalidateOnFocus: true }
   );
@@ -180,20 +183,11 @@ function WorkKindChips(props: ContentProps) {
   );
 }
 
-/** Which client the work item counts for (by its label first, otherwise by its project). */
+/** Which client the work item counts for (chosen on the card, otherwise inherited from its project). */
 function ClientLine(props: ContentProps) {
   const { workspaceSlug, data } = props;
   const { client } = data;
-
-  if (!client) {
-    if (!data.client_ambiguous) return null;
-    return (
-      <span className="flex items-start gap-1.5 text-12 text-warning-primary">
-        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        Etiquetas de clientes diferentes: este card não desconta de nenhum pacote.
-      </span>
-    );
-  }
+  if (!client) return null;
 
   return (
     <div className="flex items-baseline gap-2 text-13 text-tertiary">
@@ -202,11 +196,7 @@ function ClientLine(props: ContentProps) {
         <Link to={`/${workspaceSlug}/clients/${client.id}`} className="font-medium text-primary hover:underline">
           {client.name}
         </Link>
-        {client.via === "label" && client.label ? (
-          <span className="text-12"> · pela etiqueta {client.label}</span>
-        ) : client.via === "project" ? (
-          <span className="text-12"> · pelo projeto</span>
-        ) : null}
+        {client.via === "project" && <span className="text-12"> · pelo projeto</span>}
       </span>
     </div>
   );

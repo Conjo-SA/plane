@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { Building2 } from "lucide-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // ui icons
@@ -38,6 +39,7 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 // plane web components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import type { TIssueOperations } from "../issue-detail";
+import { IssueClientSelect } from "../issue-detail/client";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
@@ -242,6 +244,18 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
 
         <SidebarPropertyListItem icon={LabelPropertyIcon} label={t("common.labels")}>
           <IssueLabel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={disabled} />
+        </SidebarPropertyListItem>
+
+        {/* Conjo: client the work item counts for */}
+        <SidebarPropertyListItem icon={Building2} label="Cliente">
+          <IssueClientSelect
+            className="w-full grow"
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            issueId={issueId}
+            issueOperations={issueOperations}
+            disabled={disabled}
+          />
         </SidebarPropertyListItem>
       </div>
     </div>

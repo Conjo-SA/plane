@@ -144,37 +144,30 @@ def client_for_project(project_id):
 
 
 def clients_for_project(project_id):
-    """Clients with work in a project: the project's own client and the clients of its labels (shared boards)."""
+    """Clients with work in a project: the project's own client, clients chosen on its cards and on its labels."""
     from plane.db.models import Client
 
     return Client.objects.filter(
         Q(client_projects__project_id=project_id, client_projects__deleted_at__isnull=True)
+        | Q(issue_links__project_id=project_id, issue_links__deleted_at__isnull=True)
         | Q(client_labels__label__project_id=project_id, client_labels__deleted_at__isnull=True)
     ).distinct()
 
 
 def client_resolution(issue):
-    """Who a work item is for: ``(client, via, label_name, ambiguous)``.
+    """Who a work item is for: ``(client, via)``.
 
-    A label linked to a client wins (a board shared by several clients, like MAN, tells them apart by
-    label); otherwise the client of the whole project. Labels of two different clients are ambiguous:
-    no client is applied, so nothing is debited by guesswork.
+    The client chosen on the item ("card") wins; otherwise the client of the whole project ("project").
     """
-    from plane.db.models import ClientLabel, IssueLabel
+    from plane.db.models import IssueClient
 
-    label_ids = IssueLabel.objects.filter(issue_id=issue.id).values("label_id")
-    links = {}
-    for link in ClientLabel.objects.filter(label_id__in=label_ids).select_related("client", "label"):
-        links.setdefault(link.client_id, link)
-    if len(links) > 1:
-        return None, None, None, True
-    if links:
-        link = next(iter(links.values()))
-        return link.client, "label", link.label.name, False
+    link = IssueClient.objects.filter(issue_id=issue.id).select_related("client").first()
+    if link is not None:
+        return link.client, "card"
     client = client_for_project(issue.project_id)
     if client is not None:
-        return client, "project", None, False
-    return None, None, None, False
+        return client, "project"
+    return None, None
 
 
 def client_for_issue(issue):
@@ -183,23 +176,22 @@ def client_for_issue(issue):
 
 def client_issues(client):
     """Work items of a client (same rule as ``client_resolution``), as a queryset usable in subqueries."""
-    from plane.db.models import ClientLabel, Issue, IssueLabel
+    from plane.db.models import Issue, IssueClient
 
-    own_labels = ClientLabel.objects.filter(client=client).values("label_id")
-    other_labels = ClientLabel.objects.exclude(client=client).values("label_id")
-    with_own = IssueLabel.objects.filter(label_id__in=own_labels).values("issue_id")
-    with_other = IssueLabel.objects.filter(label_id__in=other_labels).values("issue_id")
+    chosen = IssueClient.objects.filter(client=client).values("issue_id")
+    chosen_other = IssueClient.objects.exclude(client=client).values("issue_id")
     projects = client.client_projects.values("project_id")
-    return Issue.objects.filter((Q(id__in=with_own) | Q(project_id__in=projects)) & ~Q(id__in=with_other))
+    return Issue.objects.filter(Q(id__in=chosen) | (Q(project_id__in=projects) & ~Q(id__in=chosen_other)))
 
 
 def client_project_ids(client):
-    """Projects where the client has work: its own projects and the projects of its labels."""
-    from plane.db.models import ClientLabel
+    """Projects where the client has work: its own projects and the projects of its cards and labels."""
+    from plane.db.models import ClientLabel, IssueClient
 
     own = set(client.client_projects.values_list("project_id", flat=True))
-    shared = set(ClientLabel.objects.filter(client=client).values_list("label__project_id", flat=True))
-    return own | shared
+    cards = set(IssueClient.objects.filter(client=client).values_list("project_id", flat=True))
+    labels = set(ClientLabel.objects.filter(client=client).values_list("label__project_id", flat=True))
+    return own | cards | labels
 
 
 def contract_for_issue(issue, on=None):
@@ -701,18 +693,94 @@ def client_for_contact(project_id, email):
     return Client.objects.filter(pk=client_ids.pop()).first()
 
 
-def label_for_requester(project_id, email):
-    """The label that identifies a requester's client on a shared board, so the ticket arrives tagged.
-
-    Only when the requester is a registered contact and their client has exactly one label there.
-    """
+def client_label(client, project_id):
+    """The client's label in a project (the one kept in sync with the card's client), if any."""
     from plane.db.models import ClientLabel
 
-    client = client_for_contact(project_id, email)
+    link = ClientLabel.objects.filter(client=client, label__project_id=project_id).select_related("label").first()
+    return link.label if link else None
+
+
+def client_for_label(label):
+    from plane.db.models import ClientLabel
+
+    link = ClientLabel.objects.filter(label=label).select_related("client").first() if label else None
+    return link.client if link else None
+
+
+def client_for_new_request(project_id, label, email):
+    """Client of a portal request: the tag of the link it came from, or the requester's registered e-mail."""
+    return client_for_label(label) or client_for_contact(project_id, email)
+
+
+@transaction.atomic
+def set_issue_client(issue, client, apply_label=True):
+    """Choose (or clear, with ``None``) the work item's client; its label follows and the debit moves with it."""
+    from plane.db.models import IssueClient, IssueLabel
+
+    current = IssueClient.objects.filter(issue_id=issue.id).select_related("client").first()
+    if current is not None and (client is None or current.client_id != client.id):
+        # The previous client's label leaves with it, otherwise tagging would bring the old client back.
+        old_label = client_label(current.client, issue.project_id)
+        if old_label is not None:
+            IssueLabel.objects.filter(issue_id=issue.id, label=old_label).delete()
     if client is None:
+        if current is not None:
+            current.delete()
+    elif current is None:
+        IssueClient.objects.create(
+            issue=issue, client=client, project_id=issue.project_id, workspace_id=issue.workspace_id
+        )
+    elif current.client_id != client.id:
+        current.client = client
+        current.save(update_fields=["client", "updated_at"])
+    if client is not None and apply_label:
+        label = client_label(client, issue.project_id)
+        if label is not None and not IssueLabel.objects.filter(issue_id=issue.id, label=label).exists():
+            IssueLabel.objects.create(
+                issue_id=issue.id, label=label, project_id=issue.project_id, workspace_id=issue.workspace_id
+            )
+    return resync_issue_client(issue)
+
+
+def adopt_labelled_cards(client, label):
+    """When a label is linked to a client, the cards already carrying it (and no client yet) become the client's.
+
+    This is how a board organized by labels today (like MAN) moves to clients: link each label once.
+    Cards with labels of two different clients are left alone.
+    """
+    from plane.db.models import ClientLabel, Issue, IssueClient, IssueLabel
+
+    other_labels = ClientLabel.objects.exclude(client=client).values("label_id")
+    with_other = IssueLabel.objects.filter(label_id__in=other_labels).values("issue_id")
+    cards = (
+        Issue.objects.filter(id__in=IssueLabel.objects.filter(label=label).values("issue_id"))
+        .exclude(id__in=IssueClient.objects.values("issue_id"))
+        .exclude(id__in=with_other)
+    )
+    adopted = 0
+    for issue in cards:
+        set_issue_client(issue, client, apply_label=False)
+        adopted += 1
+    return adopted
+
+
+def client_from_labels(issue):
+    """A card without a client that receives a client's label gets that client (the team's tagging habit)."""
+    from plane.db.models import ClientLabel, IssueClient, IssueLabel
+
+    if IssueClient.objects.filter(issue_id=issue.id).exists():
         return None
-    labels = list(ClientLabel.objects.filter(client=client, label__project_id=project_id).select_related("label")[:2])
-    return labels[0].label if len(labels) == 1 else None
+    label_ids = IssueLabel.objects.filter(issue_id=issue.id).values("label_id")
+    client_ids = set(ClientLabel.objects.filter(label_id__in=label_ids).values_list("client_id", flat=True))
+    if len(client_ids) != 1:
+        return None
+    from plane.db.models import Client
+
+    client = Client.objects.filter(pk=client_ids.pop()).first()
+    if client is not None:
+        set_issue_client(issue, client, apply_label=False)
+    return client
 
 
 @transaction.atomic

@@ -46,6 +46,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { IssuePropertyLabels } from "./labels";
 import { WithDisplayPropertiesHOC } from "./with-display-properties-HOC";
 import { IssueDevelopmentCardIndicator } from "@/components/issues/issue-detail-widgets/development";
+import { IssueClientCardChip } from "@/components/issues/issue-detail/client";
 
 export interface IIssueProperties {
   issue: TIssue;
@@ -486,6 +487,15 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       {/* Conjo: pull request state from GitHub */}
       {!isEpic && (
         <IssueDevelopmentCardIndicator
+          workspaceSlug={workspaceSlug?.toString()}
+          projectId={issue.project_id ?? undefined}
+          issueId={issue.id}
+        />
+      )}
+
+      {/* Conjo: client chosen on the card */}
+      {!isEpic && (
+        <IssueClientCardChip
           workspaceSlug={workspaceSlug?.toString()}
           projectId={issue.project_id ?? undefined}
           issueId={issue.id}

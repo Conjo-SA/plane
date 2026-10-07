@@ -186,12 +186,13 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
         label = resolve_portal_label(portal, tag)
         if tag and label is None:
             return Response({"error": "Invalid tag"}, status=status.HTTP_400_BAD_REQUEST)
-        if label is None:
-            # Conjo: on a board shared by several clients, a registered contact's request arrives with
-            # their client's label even when they used the generic link.
-            from plane.utils.conjo_billing import label_for_requester
+        # Conjo: the request's client comes from the link's tag or from the requester's registered e-mail;
+        # the client's label (the board's habit) comes along even when the generic link was used.
+        from plane.utils import conjo_billing
 
-            label = label_for_requester(portal.project_id, requester_email)
+        request_client = conjo_billing.client_for_new_request(portal.project_id, label, requester_email)
+        if label is None and request_client is not None:
+            label = conjo_billing.client_label(request_client, portal.project_id)
 
         attachment_ids = request.data.get("attachment_ids") or []
         if not isinstance(attachment_ids, list):
@@ -250,6 +251,8 @@ class IntakePortalWorkItemEndpoint(BaseAPIView):
                 project_id=portal.project_id,
                 workspace_id=portal.workspace_id,
             )
+        if request_client is not None:
+            conjo_billing.set_issue_client(issue, request_client, apply_label=False)
 
         if attachment_ids:
             # Only claim assets uploaded through this portal that are not linked to

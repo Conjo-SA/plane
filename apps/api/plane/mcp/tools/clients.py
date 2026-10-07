@@ -568,9 +568,9 @@ def _resolve_label(workspace_slug, ref):
 @register_tool(
     name="set_client_labels",
     description=(
-        "Set the labels that identify a client on boards shared by several clients (e.g. 'MAN/RastroPOP'). "
-        "Work items with the label belong to the client (the label wins over the project's client); requests "
-        "from the client's registered contacts arrive with the label. Replaces the list; a label belongs to one "
+        "Set the client's label on boards shared by several clients (e.g. 'MAN/RastroPOP'), kept in sync with "
+        "the work item's client: choosing the client applies the label, a portal link with the label's tag sets "
+        "the client, and tagging a card without a client sets it. Replaces the list; a label belongs to one "
         "client only."
     ),
     input_schema=_schema(
@@ -592,6 +592,32 @@ def set_client_labels(workspace_slug, client, labels):
     if error:
         raise MCPToolError(error)
     return billing_views._client(instance, detail=True)
+
+
+@register_tool(
+    name="set_work_item_client",
+    description=(
+        "Choose which client a work item is for (the client's board label is applied too), or clear it with an "
+        "empty client to fall back to the project's client. Moving an item with an approved estimate moves the "
+        "debited hours to the new client's package."
+    ),
+    input_schema=_schema(
+        {**_WORKSPACE_SLUG_PROPERTY, **_WORK_ITEM_PROPERTY, **_CLIENT_PROPERTY},
+        ["workspace_slug", "work_item", "client"],
+    ),
+    category="clients",
+)
+def set_work_item_client(workspace_slug, work_item, client):
+    issue = _get_issue(workspace_slug, work_item)
+    instance = _get_client(workspace_slug, client) if client else None
+    if instance is not None and not instance.is_active:
+        raise MCPToolError(f"Client '{instance.name}' is inactive")
+    billing.set_issue_client(issue, instance)
+    current, via = billing.client_resolution(issue)
+    return {
+        "work_item": _issue_identifier(issue),
+        "client": {"id": str(current.id), "name": current.name, "via": via} if current else None,
+    }
 
 
 # ---------------------------------------------------------------------------

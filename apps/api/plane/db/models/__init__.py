@@ -108,6 +108,7 @@ from .conjo_billing import (
     ClientProject,
     ClientTimelineNote,
     HourLedgerEntry,
+    IssueClient,
     IssueWorkKind,
     IssueWorkLog,
 )

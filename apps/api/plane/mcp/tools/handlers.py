@@ -632,8 +632,11 @@ def retrieve_work_item(workspace_slug, work_item):
 
     issue = _get_issue(workspace_slug, work_item)
     data = _serialize_issue(issue, include_description=True)
+    from plane.utils.conjo_billing import client_resolution
+
     cycle = CycleIssue.objects.filter(issue=issue).select_related("cycle").first()
     intake = IntakeIssue.objects.filter(issue=issue).first()
+    client, client_via = client_resolution(issue)
     data.update(
         assignees=[
             {"id": str(user.id), "display_name": user.display_name, "email": user.email}
@@ -656,6 +659,7 @@ def retrieve_work_item(workspace_slug, work_item):
         if intake
         else None,
         completed_at=issue.completed_at.isoformat() if issue.completed_at else None,
+        client={"id": str(client.id), "name": client.name, "via": client_via} if client else None,
     )
     return data
 
@@ -869,6 +873,10 @@ def _issue_snapshot(issue):
                 "type": "string",
                 "description": "Make it a sub-work item of this work item (identifier or UUID, same project)",
             },
+            "client": {
+                "type": "string",
+                "description": "Client the work item is for (UUID, name or CNPJ); its board label is applied",
+            },
         },
         "required": ["workspace_slug", "project", "name"],
         "additionalProperties": False,
@@ -887,6 +895,7 @@ def create_work_item(
     assignee_ids=None,
     label_ids=None,
     parent=None,
+    client=None,
 ):
     if not name:
         raise MCPToolError("'name' is required")
@@ -894,6 +903,11 @@ def create_work_item(
     project_instance = _get_project(workspace_slug, project)
     state = _validate_state(project_instance, state_id)
     parent_issue = _validate_parent(workspace_slug, project_instance, parent)
+    client_instance = None
+    if client:
+        from plane.mcp.tools.clients import _get_client
+
+        client_instance = _get_client(workspace_slug, client)
 
     issue_type = IssueType.objects.filter(project_issue_types__project_id=project_instance.id, is_default=True).first()
 
@@ -914,6 +928,10 @@ def create_work_item(
 
     _set_issue_assignees(issue, project_instance, assignee_ids)
     _set_issue_labels(issue, project_instance, label_ids)
+    if client_instance is not None:
+        from plane.utils.conjo_billing import set_issue_client
+
+        set_issue_client(issue, client_instance)
     _record_activity("issue.activity.created", issue, actor, _issue_snapshot(issue))
 
     return _serialize_issue(issue, include_description=True)

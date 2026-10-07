@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { Building2 } from "lucide-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // ui
@@ -38,6 +39,7 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 // components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
+import { IssueClientSelect } from "./client";
 import { IssueCycleSelect } from "./cycle-select";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
@@ -245,6 +247,18 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 workspaceSlug={workspaceSlug}
                 projectId={projectId}
                 issueId={issueId}
+                disabled={!isEditable}
+              />
+            </SidebarPropertyListItem>
+
+            {/* Conjo: client the work item counts for */}
+            <SidebarPropertyListItem icon={Building2} label="Cliente">
+              <IssueClientSelect
+                className="w-full grow"
+                workspaceSlug={workspaceSlug}
+                projectId={projectId}
+                issueId={issueId}
+                issueOperations={issueOperations}
                 disabled={!isEditable}
               />
             </SidebarPropertyListItem>
