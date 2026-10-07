@@ -114,15 +114,6 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
 
   return (
     <div id={commentBlockId} className="relative flex flex-col gap-2">
-      {showAccessSpecifier && (
-        <div className="absolute top-2.5 right-2.5 z-[1] text-tertiary">
-          {comment.access === EIssueCommentAccessSpecifier.INTERNAL ? (
-            <LockIcon className="size-3" />
-          ) : (
-            <GlobeIcon className="size-3" />
-          )}
-        </div>
-      )}
       <div className="relative mb-3 flex w-full items-center gap-2">
         <Avatar size="sm" name={displayName} src={getFileURL(avatarUrl ?? "")} className="shrink-0" />
         <div className="flex flex-1 flex-wrap items-center gap-1">
@@ -139,6 +130,9 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
               </span>
             </Tooltip>
           </div>
+          {showAccessSpecifier && (
+            <CommentAccessBadge isPublic={comment.access === EIssueCommentAccessSpecifier.EXTERNAL} />
+          )}
         </div>
         {!disabled && (
           <div className="flex shrink-0 items-center gap-1">
@@ -194,3 +188,24 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     </div>
   );
 });
+
+/** Who reads the comment: public replies are the ones the requester sees on the portal, so say it in words. */
+function CommentAccessBadge({ isPublic }: { isPublic: boolean }) {
+  if (!isPublic)
+    return (
+      <span className="flex items-center gap-1 text-caption-xs-regular text-tertiary" title="Só a equipe vê">
+        <LockIcon className="size-3" />
+        Interno
+      </span>
+    );
+  return (
+    <span
+      className="flex items-center gap-1 rounded-sm border-[0.5px] px-1.5 py-0.5 text-caption-xs-medium"
+      style={{ color: "#C2410C", borderColor: "#C2410C66" }}
+      title="Aparece para quem abriu o chamado, no portal"
+    >
+      <GlobeIcon className="size-3" />
+      Visível ao cliente
+    </span>
+  );
+}

@@ -147,7 +147,15 @@ class IntakePortalBudgetEndpoint(BaseAPIView):
 
         budget = IntakePortalBudget.objects.filter(issue_id=issue_id).first()
         return Response(
-            {"is_portal_ticket": True, "budget": serialize_portal_budget(budget)},
+            {
+                "is_portal_ticket": True,
+                "budget": serialize_portal_budget(budget),
+                # Conjo: who reads the public replies, shown next to the comment box.
+                "requester": {
+                    "name": (intake_issue.extra or {}).get("requester_name") or "",
+                    "email": intake_issue.source_email or "",
+                },
+            },
             status=status.HTTP_200_OK,
         )
 

@@ -7,10 +7,12 @@
 import uniq from "lodash-es/uniq";
 import { observer } from "mobx-react";
 import { useMemo } from "react";
+import useSWR from "swr";
 // plane package imports
 import type { TActivityFilters } from "@plane/constants";
 import { E_SORT_ORDER, defaultActivityFilters } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
+import { IntakePortalService } from "@plane/services";
 // i18n
 import { useTranslation } from "@plane/i18n";
 //types
@@ -24,6 +26,8 @@ import { IssueActivityCommentRoot } from "./activity-comment-root";
 import { ActivityFilterRoot } from "./filter-root";
 import { useWorkItemCommentOperations } from "./helper";
 import { ActivitySortRoot } from "./sort-root";
+
+const intakePortalService = new IntakePortalService();
 
 type TIssueActivity = {
   workspaceSlug: string;
@@ -75,9 +79,16 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
   const activityOperations = useWorkItemCommentOperations(workspaceSlug, projectId, issueId);
 
   const project = getProjectById(projectId);
+  // Conjo: a ticket that came from the request portal keeps its requester after it is accepted and moves to
+  // the board, so public replies stay possible there (same request and cache as the intake budget panel).
+  const { data: portalContext } = useSWR(
+    workspaceSlug && projectId && issueId ? `PORTAL_BUDGET_${issueId}` : null,
+    () => intakePortalService.retrieveBudget(workspaceSlug, projectId, issueId),
+    { revalidateOnFocus: false }
+  );
   // Intake tickets always have an external requester waiting on the other side,
   // so the author needs the internal / public choice there too.
-  const canChooseCommentAccess = !!project?.anchor || isIntakeIssue;
+  const canChooseCommentAccess = !!project?.anchor || isIntakeIssue || !!portalContext?.is_portal_ticket;
   const renderCommentCreationBox = useMemo(
     () => (
       <CommentCreate
@@ -87,9 +98,10 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
         showToolbarInitially
         projectId={projectId}
         showAccessSpecifier={canChooseCommentAccess}
+        publicAudience={portalContext?.is_portal_ticket ? (portalContext.requester ?? null) : undefined}
       />
     ),
-    [workspaceSlug, issueId, activityOperations, projectId, canChooseCommentAccess]
+    [workspaceSlug, issueId, activityOperations, projectId, canChooseCommentAccess, portalContext]
   );
   if (!project) return <></>;
 

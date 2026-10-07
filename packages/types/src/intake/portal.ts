@@ -200,6 +200,8 @@ export type TIntakePortalBudgetSubmission = {
 export type TIntakePortalBudgetContext = {
   is_portal_ticket: boolean;
   budget: TIntakePortalBudget | null;
+  /** Conjo: who opened the ticket on the portal (reads the public replies). */
+  requester?: { name: string; email: string } | null;
 };
 
 export type TIntakePortalTicketDetail = TIntakePortalTicket & {
