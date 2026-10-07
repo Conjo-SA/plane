@@ -25,8 +25,8 @@ export function MCPTestConnection() {
       .catch(() =>
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Connection test failed",
-          message: "The MCP handshake could not be completed. Check the server configuration.",
+          title: "Falha no teste de conexão",
+          message: "Não foi possível concluir o handshake MCP. Verifique a configuração do servidor.",
         })
       )
       .finally(() => setIsTesting(false));
@@ -35,16 +35,16 @@ export function MCPTestConnection() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-16 font-medium text-primary">Connection test</div>
+        <div className="text-16 font-medium text-primary">Teste de conexão</div>
         <div className="text-13 text-tertiary">
-          Run a synthetic MCP handshake (initialize + tools/list) against the in-process server.
+          Executa um handshake MCP sintético (initialize + tools/list) contra o servidor local.
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <Button variant="primary" size="lg" onClick={handleTestConnection} loading={isTesting}>
           {!isTesting && <PlugZap className="h-3.5 w-3.5" />}
-          {isTesting ? "Testing" : "Test connection"}
+          {isTesting ? "Testando" : "Testar conexão"}
         </Button>
         {result && (
           <div className="flex items-center gap-2 text-13">
@@ -52,14 +52,14 @@ export function MCPTestConnection() {
               <>
                 <CircleCheck className="h-4 w-4 text-success-primary" />
                 <span className="text-primary">
-                  Handshake OK — protocol {result.protocol_version}, {result.tool_count} tools enabled,{" "}
+                  Handshake OK — protocolo {result.protocol_version}, {result.tool_count} ferramentas ativas,{" "}
                   {result.latency_ms} ms
                 </span>
               </>
             ) : (
               <>
                 <CircleX className="h-4 w-4 text-danger-primary" />
-                <span className="text-primary">Handshake failed</span>
+                <span className="text-primary">Falha no handshake</span>
               </>
             )}
           </div>
@@ -68,7 +68,7 @@ export function MCPTestConnection() {
 
       {result && !result.is_enabled && (
         <div className="rounded-sm border border-warning-subtle bg-warning-subtle px-4 py-2 text-caption-sm-regular text-warning-primary">
-          The MCP server is currently disabled. Enable it above before connecting clients.
+          O servidor MCP está desativado. Ative-o acima antes de conectar clientes.
         </div>
       )}
     </div>

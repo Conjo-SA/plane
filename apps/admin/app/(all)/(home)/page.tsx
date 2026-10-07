@@ -45,6 +45,6 @@ function HomePage() {
 export default observer(HomePage);
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Admin – Instance Setup & Sign-In" },
-  { name: "description", content: "Configure your Tasks instance or sign in to the admin portal." },
+  { title: "Admin – Configuração da instância e login" },
+  { name: "description", content: "Configure sua instância do Tasks ou entre no portal de administração." },
 ];

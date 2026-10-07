@@ -31,7 +31,7 @@ type TEmailSecurityKeys = "EMAIL_USE_TLS" | "EMAIL_USE_SSL" | "NONE";
 const EMAIL_SECURITY_OPTIONS: { [key in TEmailSecurityKeys]: string } = {
   EMAIL_USE_TLS: "TLS",
   EMAIL_USE_SSL: "SSL",
-  NONE: "No email security",
+  NONE: "Sem segurança de e-mail",
 };
 
 export function InstanceEmailForm(props: IInstanceEmailForm) {
@@ -71,7 +71,7 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
     {
       key: "EMAIL_PORT",
       type: "text",
-      label: "Port",
+      label: "Porta",
       placeholder: "8080",
       error: Boolean(errors.EMAIL_PORT),
       required: true,
@@ -79,9 +79,9 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
     {
       key: "EMAIL_FROM",
       type: "text",
-      label: "Sender's email address",
+      label: "E-mail do remetente",
       description:
-        "This is the email address your users will see when getting emails from this instance. You will need to verify this address.",
+        "Este é o e-mail que seus usuários verão ao receber e-mails desta instância. Será necessário verificar este endereço.",
       placeholder: "no-reply@conjosa.com.br",
       error: Boolean(errors.EMAIL_FROM),
       required: true,
@@ -92,7 +92,7 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
     {
       key: "EMAIL_HOST_USER",
       type: "text",
-      label: "Username",
+      label: "Usuário",
       placeholder: "tarefas@conjosa.com.br",
       error: Boolean(errors.EMAIL_HOST_USER),
       required: false,
@@ -100,8 +100,8 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
     {
       key: "EMAIL_HOST_PASSWORD",
       type: "password",
-      label: "Password",
-      placeholder: "Password",
+      label: "Senha",
+      placeholder: "Senha",
       error: Boolean(errors.EMAIL_HOST_PASSWORD),
       required: false,
     },
@@ -114,8 +114,8 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
       .then(() =>
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Success",
-          message: "Email Settings updated successfully",
+          title: "Sucesso!",
+          message: "Configurações de e-mail atualizadas com sucesso",
         })
       )
       .catch((err) => console.error(err));
@@ -163,7 +163,7 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
             />
           ))}
           <div className="flex flex-col gap-1">
-            <h4 className="text-13 text-tertiary">Email security</h4>
+            <h4 className="text-13 text-tertiary">Segurança do e-mail</h4>
             <CustomSelect
               value={emailSecurityKey}
               label={EMAIL_SECURITY_OPTIONS[emailSecurityKey]}
@@ -183,9 +183,9 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
           <div className="flex w-full max-w-xl flex-col gap-y-10 px-1">
             <div className="mr-8 flex items-center gap-10 pt-4">
               <div className="grow">
-                <div className="text-13 font-medium text-primary">Authentication</div>
+                <div className="text-13 font-medium text-primary">Autenticação</div>
                 <div className="text-11 font-regular text-tertiary">
-                  This is optional, but we recommend setting up a username and a password for your SMTP server.
+                  É opcional, mas recomendamos configurar um usuário e uma senha para o seu servidor SMTP.
                 </div>
               </div>
             </div>
@@ -215,7 +215,7 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
           loading={isSubmitting}
           disabled={!isValid || !isDirty}
         >
-          {isSubmitting ? "Saving" : "Save changes"}
+          {isSubmitting ? "Salvando" : "Salvar alterações"}
         </Button>
         <Button
           variant="secondary"
@@ -224,7 +224,7 @@ export function InstanceEmailForm(props: IInstanceEmailForm) {
           loading={isSubmitting}
           disabled={!isValid}
         >
-          Send test email
+          Enviar e-mail de teste
         </Button>
       </div>
     </div>

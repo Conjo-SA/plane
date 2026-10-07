@@ -66,15 +66,15 @@ export function InstanceGoogleConfigForm(props: Props) {
       label: "Client ID",
       description: (
         <>
-          Your client ID lives in your Google API Console.{" "}
+          Seu client ID fica no Google API Console.{" "}
           <a
             href="https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow#creatingcred"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
-            aria-label="Google OAuth client ID documentation"
+            aria-label="Documentação do client ID OAuth do Google"
           >
-            Learn more
+            Saiba mais
           </a>
         </>
       ),
@@ -88,15 +88,15 @@ export function InstanceGoogleConfigForm(props: Props) {
       label: "Client secret",
       description: (
         <>
-          Your client secret should also be in your Google API Console.{" "}
+          Seu client secret também deve estar no Google API Console.{" "}
           <a
             href="https://developers.google.com/identity/oauth2/web/guides/get-google-api-clientid"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
-            aria-label="Google OAuth client secret documentation"
+            aria-label="Documentação do client secret OAuth do Google"
           >
-            Learn more
+            Saiba mais
           </a>
         </>
       ),
@@ -109,20 +109,20 @@ export function InstanceGoogleConfigForm(props: Props) {
   const GOOGLE_COMMON_SERVICE_DETAILS: TCopyField[] = [
     {
       key: "Origin_URL",
-      label: "Origin URL",
+      label: "URL de origem",
       url: originURL,
       description: (
         <p>
-          We will auto-generate this. Paste this into your{" "}
-          <CodeBlock darkerShade>Authorized JavaScript origins</CodeBlock> field. For this OAuth client{" "}
+          Geramos isto automaticamente. Cole no campo <CodeBlock darkerShade>Authorized JavaScript origins</CodeBlock>.
+          Para este cliente OAuth, acesse{" "}
           <a
             href="https://console.cloud.google.com/apis/credentials/oauthclient"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
-            aria-label="Google Cloud Console OAuth client credentials"
+            aria-label="Credenciais do cliente OAuth no Google Cloud Console"
           >
-            here.
+            aqui.
           </a>
         </p>
       ),
@@ -132,20 +132,20 @@ export function InstanceGoogleConfigForm(props: Props) {
   const GOOGLE_SERVICE_DETAILS: TCopyField[] = [
     {
       key: "Callback_URI",
-      label: "Callback URI",
+      label: "URI de callback",
       url: `${originURL}/auth/google/callback/`,
       description: (
         <p>
-          We will auto-generate this. Paste this into your <CodeBlock darkerShade>Authorized Redirect URI</CodeBlock>{" "}
-          field. For this OAuth client{" "}
+          Geramos isto automaticamente. Cole no campo <CodeBlock darkerShade>Authorized Redirect URI</CodeBlock>. Para
+          este cliente OAuth, acesse{" "}
           <a
             href="https://console.cloud.google.com/apis/credentials/oauthclient"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
-            aria-label="Google Cloud Console OAuth client credentials"
+            aria-label="Credenciais do cliente OAuth no Google Cloud Console"
           >
-            here.
+            aqui.
           </a>
         </p>
       ),
@@ -159,8 +159,8 @@ export function InstanceGoogleConfigForm(props: Props) {
       const response = await updateInstanceConfigurations(payload);
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Done!",
-        message: "Your Google authentication is configured. You should test it now.",
+        title: "Pronto!",
+        message: "A autenticação com Google foi configurada. Recomendamos testá-la agora.",
       });
       reset({
         GOOGLE_CLIENT_ID: response.find((item) => item.key === "GOOGLE_CLIENT_ID")?.value,
@@ -189,7 +189,7 @@ export function InstanceGoogleConfigForm(props: Props) {
       <div className="flex flex-col gap-8">
         <div className="grid w-full grid-cols-2 gap-x-12 gap-y-8">
           <div className="col-span-2 flex flex-col gap-y-4 pt-1 md:col-span-1">
-            <div className="pt-2.5 text-18 font-medium">Google-provided details for Tasks</div>
+            <div className="pt-2.5 text-18 font-medium">Dados fornecidos pelo Google para o Tasks</div>
             {GOOGLE_FORM_FIELDS.map((field) => (
               <ControllerInput
                 key={field.key}
@@ -213,16 +213,16 @@ export function InstanceGoogleConfigForm(props: Props) {
                   loading={isSubmitting}
                   disabled={!isDirty}
                 >
-                  {isSubmitting ? "Saving" : "Save changes"}
+                  {isSubmitting ? "Salvando" : "Salvar alterações"}
                 </Button>
                 <Link href="/authentication" className={getButtonStyling("secondary", "lg")} onClick={handleGoBack}>
-                  Go back
+                  Voltar
                 </Link>
               </div>
             </div>
           </div>
           <div className="col-span-2 flex flex-col gap-y-6 md:col-span-1">
-            <div className="pt-2 text-18 font-medium">Tasks-provided details for Google</div>
+            <div className="pt-2 text-18 font-medium">Dados fornecidos pelo Tasks para o Google</div>
 
             <div className="flex flex-col gap-y-4">
               {/* common service details */}

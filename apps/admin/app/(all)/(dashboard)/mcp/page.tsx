@@ -24,9 +24,9 @@ const MCPServerPage = observer(function MCPServerPage(_props: Route.ComponentPro
   return (
     <PageWrapper
       header={{
-        title: "MCP server",
+        title: "Servidor MCP",
         description:
-          "Expose this Tasks instance over the Model Context Protocol so AI assistants can read and write workspaces, projects and work items.",
+          "Exponha esta instância do Tasks pelo Model Context Protocol para que assistentes de IA possam ler e editar workspaces, projetos e tarefas.",
       }}
     >
       {config ? (
@@ -50,6 +50,6 @@ const MCPServerPage = observer(function MCPServerPage(_props: Route.ComponentPro
   );
 });
 
-export const meta: Route.MetaFunction = () => [{ title: "MCP Server Settings - God Mode" }];
+export const meta: Route.MetaFunction = () => [{ title: "Configurações do servidor MCP - Administração" }];
 
 export default MCPServerPage;

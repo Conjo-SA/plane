@@ -18,18 +18,18 @@ type Props = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   workspaces: "Workspaces",
-  projects: "Projects",
-  members: "Members",
-  work_items: "Work items",
-  cycles: "Cycles",
-  modules: "Modules",
-  states: "States",
-  labels: "Labels",
-  pages: "Pages",
-  intake: "Intake",
-  time: "Time spent",
-  clients: "Clients and hour packages",
-  development: "Development (GitHub)",
+  projects: "Projetos",
+  members: "Membros",
+  work_items: "Tarefas",
+  cycles: "Ciclos",
+  modules: "Módulos",
+  states: "Estados",
+  labels: "Etiquetas",
+  pages: "Páginas",
+  intake: "Entrada",
+  time: "Tempo gasto",
+  clients: "Clientes e pacotes de horas",
+  development: "Desenvolvimento (GitHub)",
 };
 
 export function MCPToolsCatalog(props: Props) {
@@ -61,8 +61,8 @@ export function MCPToolsCatalog(props: Props) {
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: `Could not update the tool '${tool.name}'. Please try again.`,
+        title: "Erro!",
+        message: `Não foi possível atualizar a ferramenta '${tool.name}'. Tente novamente.`,
       });
     } finally {
       setUpdatingTool(null);
@@ -72,10 +72,10 @@ export function MCPToolsCatalog(props: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-16 font-medium text-primary">Tools</div>
+        <div className="text-16 font-medium text-primary">Ferramentas</div>
         <div className="text-13 text-tertiary">
-          Choose which tools are exposed to connected MCP clients. Disabled tools are hidden from tools/list and
-          rejected on tools/call.
+          Escolha quais ferramentas ficam disponíveis para os clientes MCP conectados. Ferramentas desativadas ficam
+          ocultas em tools/list e são rejeitadas em tools/call.
         </div>
       </div>
 
@@ -89,7 +89,9 @@ export function MCPToolsCatalog(props: Props) {
         <div className="space-y-6">
           {Object.entries(toolsByCategory).map(([category, categoryTools]) => (
             <div key={category} className="space-y-2">
-              <div className="text-13 font-medium text-secondary">{CATEGORY_LABELS[category] ?? category}</div>
+              <div className="text-13 font-medium text-secondary">
+                {CATEGORY_LABELS[category] ?? (category === "general" ? "Geral" : category)}
+              </div>
               <div className="divide-y divide-subtle rounded-md border border-subtle">
                 {categoryTools.map((tool) => (
                   <div key={tool.name} className="flex items-center justify-between gap-4 px-4 py-3">
