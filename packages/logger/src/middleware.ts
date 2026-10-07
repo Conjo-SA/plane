@@ -14,4 +14,6 @@ export const loggerMiddleware: RequestHandler = expressWinston.logger({
   transports: [new transports.Console()],
   msg: "{{req.method}} {{req.url}} {{res.statusCode}} {{res.responseTime}}ms",
   expressFormat: true,
+  // never write credentials to the logs (session cookies, the live server's shared secret)
+  headerBlacklist: ["cookie", "authorization", "live-server-secret-key", "x-admin-secret-key", "x-api-key"],
 });

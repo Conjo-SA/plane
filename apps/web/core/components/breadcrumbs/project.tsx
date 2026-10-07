@@ -11,6 +11,7 @@ import { ProjectIcon } from "@plane/propel/icons";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { BreadcrumbNavigationSearchDropdown, Breadcrumbs } from "@plane/ui";
 import { SwitcherLabel } from "@/components/common/switcher-label";
+import { RealtimeConnectionIndicator } from "@/components/realtime/connection-indicator";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -83,6 +84,7 @@ export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TPro
         }
         showSeparator={false}
       />
+      <RealtimeConnectionIndicator />
     </>
   );
 });

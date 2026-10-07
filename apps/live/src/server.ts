@@ -21,6 +21,8 @@ import { CONTROLLERS } from "@/controllers";
 import { env } from "@/env";
 // hocuspocus server
 import { HocusPocusServerManager } from "@/hocuspocus";
+// realtime
+import { realtimeFanout } from "@/realtime";
 // redis
 import { redisManager } from "@/redis";
 
@@ -43,6 +45,7 @@ export class Server {
     try {
       await redisManager.initialize();
       logger.info("SERVER: Redis setup completed");
+      await realtimeFanout.initialize(redisManager.isClientConnected() ? redisManager.getClient() : null);
       const manager = HocusPocusServerManager.getInstance();
       this.hocuspocusServer = await manager.initialize();
       logger.info("SERVER: HocusPocus setup completed");
@@ -109,6 +112,7 @@ export class Server {
       logger.info("SERVER: HocusPocus connections closed gracefully.");
     }
 
+    await realtimeFanout.destroy();
     await redisManager.disconnect();
     logger.info("SERVER: Redis connection closed gracefully.");
 

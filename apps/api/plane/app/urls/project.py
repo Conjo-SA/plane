@@ -4,6 +4,7 @@
 
 from django.urls import path
 
+from plane.app.views.realtime import ProjectRealtimeAccessEndpoint
 from plane.app.views import (
     ProjectViewSet,
     DeployBoardViewSet,
@@ -22,6 +23,11 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/realtime-access/",
+        ProjectRealtimeAccessEndpoint.as_view(),
+        name="project-realtime-access",
+    ),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectViewSet.as_view({"get": "list", "post": "create"}),

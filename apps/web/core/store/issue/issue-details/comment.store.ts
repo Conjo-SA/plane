@@ -46,6 +46,8 @@ export interface IIssueCommentStore extends IIssueCommentStoreActions {
   // helper methods
   getCommentsByIssueId: (issueId: string) => string[] | undefined;
   getCommentById: (activityId: string) => TIssueComment | undefined;
+  /** Refetches every comment of the work item (edits and deletions included), used by realtime updates. */
+  syncComments: (workspaceSlug: string, projectId: string, issueId: string) => Promise<TIssueComment[]>;
 }
 
 export class IssueCommentStore implements IIssueCommentStore {
@@ -70,6 +72,7 @@ export class IssueCommentStore implements IIssueCommentStore {
       createComment: action,
       updateComment: action,
       removeComment: action,
+      syncComments: action,
     });
     // root store
     this.serviceType = serviceType;
@@ -108,9 +111,9 @@ export class IssueCommentStore implements IIssueCommentStore {
 
     const commentIds = comments.map((comment) => comment.id);
     runInAction(() => {
-      update(this.comments, issueId, (_commentIds) => {
-        if (!_commentIds) return commentIds;
-        return uniq(concat(_commentIds, commentIds));
+      update(this.comments, issueId, (existingIds) => {
+        if (!existingIds) return commentIds;
+        return uniq(concat(existingIds, commentIds));
       });
       comments.forEach((comment) => {
         this.rootIssueDetail.commentReaction.applyCommentReactions(comment.id, comment?.comment_reactions || []);
@@ -119,6 +122,23 @@ export class IssueCommentStore implements IIssueCommentStore {
       this.loader = undefined;
     });
 
+    return comments;
+  };
+
+  syncComments = async (workspaceSlug: string, projectId: string, issueId: string) => {
+    const comments = await this.issueCommentService.getIssueComments(workspaceSlug, projectId, issueId, {});
+    runInAction(() => {
+      const previousIds = this.comments[issueId] ?? [];
+      const currentIds = comments.map((comment) => comment.id);
+      previousIds
+        .filter((commentId) => !currentIds.includes(commentId))
+        .forEach((commentId) => delete this.commentMap[commentId]);
+      set(this.comments, issueId, currentIds);
+      comments.forEach((comment) => {
+        this.rootIssueDetail.commentReaction.applyCommentReactions(comment.id, comment?.comment_reactions || []);
+        set(this.commentMap, comment.id, comment);
+      });
+    });
     return comments;
   };
 

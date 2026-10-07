@@ -197,6 +197,13 @@ def get_project_settings(project_id):
     )
 
 
+def _publish_development_change(issue):
+    """Realtime: open boards and work item pages refresh the development panel."""
+    from plane.utils.realtime import publish_project_event
+
+    publish_project_event("issue.development", issue.project_id, [issue.id], None, ["development"], background=False)
+
+
 def upsert_link(issue, kind, repository, external_id, fields, create_only=False):
     """Create or update a development link (only create with ``create_only``). Returns ``(link, created)``."""
     from plane.db.models import IssueDevelopmentLink
@@ -212,12 +219,16 @@ def upsert_link(issue, kind, repository, external_id, fields, create_only=False)
     if link is not None and create_only:
         return link, False
     if link is not None:
+        changed = any(getattr(link, key) != value for key, value in fields.items())
         for key, value in fields.items():
             setattr(link, key, value)
         link.save()
+        if changed:
+            _publish_development_change(issue)
         return link, False
     try:
         link = IssueDevelopmentLink.objects.create(project_id=issue.project_id, **lookup, **fields)
+        _publish_development_change(issue)
         return link, True
     except IntegrityError:
         # Another delivery for the same object won the race.
@@ -295,7 +306,7 @@ def log_commit_time(issue, actor, durations, short_sha, repository, logged_on=No
     minutes = sum(parse_duration(duration) or 0 for duration in durations)
     if not minutes or minutes > 24 * 60:
         return
-    IssueWorkLog.objects.get_or_create(
+    _, created = IssueWorkLog.objects.get_or_create(
         issue=issue,
         source=IssueWorkLog.SOURCE_COMMIT,
         external_id=short_sha,
@@ -307,6 +318,12 @@ def log_commit_time(issue, actor, durations, short_sha, repository, logged_on=No
             "description": f"via commit {short_sha} em {repository}",
         },
     )
+    if created:
+        from plane.utils.realtime import publish_project_event
+
+        publish_project_event(
+            "issue.time", issue.project_id, [issue.id], getattr(actor, "id", None), ["time"], background=False
+        )
 
 
 def can_act_on(issue, actor):

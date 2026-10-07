@@ -126,9 +126,14 @@ export class IssueService extends APIService {
       });
   }
 
-  async retrieveIssues(workspaceSlug: string, projectId: string, issueIds: string[]): Promise<TIssue[]> {
+  async retrieveIssues(
+    workspaceSlug: string,
+    projectId: string,
+    issueIds: string[],
+    params: Record<string, string> = {}
+  ): Promise<TIssue[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/list/`, {
-      params: { issues: issueIds.join(",") },
+      params: { ...params, issues: issueIds.join(",") },
     })
       .then(async (response) => response?.data)
       .catch((error) => {

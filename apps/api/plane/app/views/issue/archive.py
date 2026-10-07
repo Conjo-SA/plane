@@ -24,6 +24,7 @@ from plane.app.serializers import (
     IssueDetailSerializer,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.utils.realtime import publish_project_event
 from plane.db.models import (
     Issue,
     FileAsset,
@@ -274,6 +275,9 @@ class IssueArchiveViewSet(BaseViewSet):
         )
         issue.archived_at = timezone.now().date()
         issue.save()
+        publish_project_event(
+            "issue.archived", project_id, [issue.id], request.user.id, ["archived_at"], workspace_slug=slug
+        )
 
         return Response({"archived_at": str(issue.archived_at)}, status=status.HTTP_200_OK)
 
@@ -298,6 +302,9 @@ class IssueArchiveViewSet(BaseViewSet):
         )
         issue.archived_at = None
         issue.save()
+        publish_project_event(
+            "issue.restored", project_id, [issue.id], request.user.id, ["archived_at"], workspace_slug=slug
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -339,5 +346,13 @@ class BulkArchiveIssuesEndpoint(BaseAPIView):
             issue.archived_at = timezone.now().date()
             bulk_archive_issues.append(issue)
         Issue.objects.bulk_update(bulk_archive_issues, ["archived_at"])
+        publish_project_event(
+            "issue.archived",
+            project_id,
+            [issue.id for issue in bulk_archive_issues],
+            request.user.id,
+            ["archived_at"],
+            workspace_slug=slug,
+        )
 
         return Response({"archived_at": str(timezone.now().date())}, status=status.HTTP_200_OK)

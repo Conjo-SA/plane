@@ -4,19 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { action, makeObservable, runInAction } from "mobx";
+import { action, makeObservable } from "mobx";
 // types
-import type {
-  TIssue,
-  TLoader,
-  ViewFlags,
-  IssuePaginationOptions,
-  TIssuesResponse,
-  TBulkOperationsPayload,
-} from "@plane/types";
+import type { TIssue, ViewFlags, IssuePaginationOptions, TIssuesResponse, TBulkOperationsPayload } from "@plane/types";
 // helpers
 // base class
-import type { IBaseIssuesStore } from "../helpers/base-issues.store";
+import type { IBaseIssuesStore, TIssueFetchLoader } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
 // services
 import type { IIssueRootStore } from "../root.store";
@@ -28,13 +21,13 @@ export interface IProjectIssues extends IBaseIssuesStore {
   fetchIssues: (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader,
+    loadType: TIssueFetchLoader,
     option: IssuePaginationOptions
   ) => Promise<TIssuesResponse | undefined>;
   fetchIssuesWithExistingPagination: (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader
+    loadType: TIssueFetchLoader
   ) => Promise<TIssuesResponse | undefined>;
   fetchNextIssues: (
     workspaceSlug: string,
@@ -83,7 +76,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
    * @param projectId
    */
   fetchParentStats = async (workspaceSlug: string, projectId?: string) => {
-    projectId && this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
+    if (projectId) this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
   };
 
   /** */
@@ -100,16 +93,13 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
   fetchIssues = async (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader = "init-loader",
+    loadType: TIssueFetchLoader = "init-loader",
     options: IssuePaginationOptions,
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-        this.clear(!isExistingPaginationOptions); // clear while fetching from server.
-      });
+      // set loader and clear store ("background" keeps the list on screen, see prepareFetch)
+      this.prepareFetch(loadType, isExistingPaginationOptions);
 
       // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, projectId, undefined, undefined, undefined);
@@ -123,7 +113,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
       return response;
     } catch (error) {
       // set loader to undefined if errored out
-      this.setLoader(undefined);
+      this.onFetchError(loadType);
       throw error;
     }
   };
@@ -178,7 +168,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
   fetchIssuesWithExistingPagination = async (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader = "mutation"
+    loadType: TIssueFetchLoader = "mutation"
   ) => {
     if (!this.paginationOptions) return;
     return await this.fetchIssues(workspaceSlug, projectId, loadType, this.paginationOptions, true);

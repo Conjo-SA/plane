@@ -9,19 +9,12 @@ import { action, observable, makeObservable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
 import { ALL_ISSUES } from "@plane/constants";
-import type {
-  TIssue,
-  TLoader,
-  IssuePaginationOptions,
-  TIssuesResponse,
-  ViewFlags,
-  TBulkOperationsPayload,
-} from "@plane/types";
+import type { TIssue, IssuePaginationOptions, TIssuesResponse, ViewFlags, TBulkOperationsPayload } from "@plane/types";
 // helpers
 import { getDistributionPathsPostUpdate } from "@plane/utils";
 //local
 import { storage } from "@/lib/local-storage";
-import type { IBaseIssuesStore } from "../helpers/base-issues.store";
+import type { IBaseIssuesStore, TIssueFetchLoader } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
 //
 import type { IIssueRootStore } from "../root.store";
@@ -47,14 +40,14 @@ export interface ICycleIssues extends IBaseIssuesStore {
   fetchIssues: (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader,
+    loadType: TIssueFetchLoader,
     options: IssuePaginationOptions,
     cycleId: string
   ) => Promise<TIssuesResponse | undefined>;
   fetchIssuesWithExistingPagination: (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader,
+    loadType: TIssueFetchLoader,
     cycleId: string
   ) => Promise<TIssuesResponse | undefined>;
   fetchNextIssues: (
@@ -186,17 +179,14 @@ export class CycleIssues extends BaseIssuesStore implements ICycleIssues {
   fetchIssues = async (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader,
+    loadType: TIssueFetchLoader,
     options: IssuePaginationOptions,
     cycleId: string,
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-        this.clear(!isExistingPaginationOptions); // clear while fetching from server.
-      });
+      // set loader and clear store ("background" keeps the list on screen, see prepareFetch)
+      this.prepareFetch(loadType, isExistingPaginationOptions);
 
       // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, cycleId, undefined, undefined, undefined);
@@ -210,7 +200,7 @@ export class CycleIssues extends BaseIssuesStore implements ICycleIssues {
       return response;
     } catch (error) {
       // set loader to undefined once errored out
-      this.setLoader(undefined);
+      this.onFetchError(loadType);
       throw error;
     }
   };
@@ -273,7 +263,7 @@ export class CycleIssues extends BaseIssuesStore implements ICycleIssues {
   fetchIssuesWithExistingPagination = async (
     workspaceSlug: string,
     projectId: string,
-    loadType: TLoader,
+    loadType: TIssueFetchLoader,
     cycleId: string
   ) => {
     if (!this.paginationOptions) return;

@@ -22,6 +22,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.views.base import BaseAPIView
+from plane.utils.realtime import publish_project_event
 from plane.db.models import (
     Client,
     ClientContact,
@@ -170,6 +171,7 @@ class IssueTimeEndpoint(BaseAPIView):
             logged_on=logged_on,
             description=(request.data.get("description") or "").strip()[:2000],
         )
+        publish_project_event("issue.time", project_id, [issue.id], request.user.id, ["time"], workspace_slug=slug)
         return Response(_issue_time_payload(issue), status=status.HTTP_201_CREATED)
 
 
@@ -205,6 +207,7 @@ class IssueTimeDetailEndpoint(BaseAPIView):
         if "description" in request.data:
             entry.description = (request.data.get("description") or "").strip()[:2000]
         entry.save()
+        publish_project_event("issue.time", project_id, [issue_id], request.user.id, ["time"], workspace_slug=slug)
         return Response(_issue_time_payload(entry.issue))
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -214,6 +217,7 @@ class IssueTimeDetailEndpoint(BaseAPIView):
             return error
         issue = entry.issue
         entry.delete()
+        publish_project_event("issue.time", project_id, [issue_id], request.user.id, ["time"], workspace_slug=slug)
         return Response(_issue_time_payload(issue))
 
 
@@ -240,6 +244,9 @@ class IssueWorkKindEndpoint(BaseAPIView):
                 status.HTTP_403_FORBIDDEN,
             )
         billing.change_work_kind(issue, kind)
+        publish_project_event(
+            "issue.work_kind", project_id, [issue.id], request.user.id, ["work_kind"], workspace_slug=slug
+        )
         return Response(_issue_time_payload(issue))
 
 
@@ -289,6 +296,7 @@ class IssueClientEndpoint(BaseAPIView):
             if client is None or not client.is_active:
                 return _error("Cliente não encontrado.")
         billing.set_issue_client(issue, client)
+        publish_project_event("issue.client", project_id, [issue.id], request.user.id, ["client"], workspace_slug=slug)
         return Response(_issue_client_payload(issue, request.user, slug))
 
 

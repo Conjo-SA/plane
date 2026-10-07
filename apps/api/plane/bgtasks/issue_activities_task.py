@@ -36,6 +36,7 @@ from plane.db.models import (
 from plane.settings.redis import redis_instance
 from plane.utils.exception_logger import log_exception
 from plane.utils.issue_relation_mapper import get_inverse_relation
+from plane.utils.realtime import publish_project_event
 from plane.utils.uuid import is_valid_uuid
 
 
@@ -1570,6 +1571,63 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         log_exception(e)
 
 
+REALTIME_SKIPPED_TYPES = {
+    "issue_draft.activity.created",
+    "issue_draft.activity.updated",
+    "issue_draft.activity.deleted",
+}
+
+
+def _requested_issue_ids(requested_data):
+    """Work item ids mentioned by bulk-style payloads (cycles, modules, relations)."""
+    ids = set()
+    if not isinstance(requested_data, dict):
+        return ids
+    for key in ("issues", "issue_ids", "cycles_list"):
+        value = requested_data.get(key)
+        if isinstance(value, list):
+            ids.update(item for item in value if isinstance(item, str))
+    for key in ("issue_id", "issue"):
+        value = requested_data.get(key)
+        if isinstance(value, str):
+            ids.add(value)
+    return {issue_id for issue_id in ids if is_valid_uuid(issue_id)}
+
+
+def publish_activity_event(type, requested_data, issue_id, actor_id, project_id, activities):
+    """Tell the live server which work items changed, so open boards update without a reload.
+
+    Only ids and field names travel; browsers refetch through the API. Never breaks the activity log.
+    """
+    try:
+        if type in REALTIME_SKIPPED_TYPES:
+            return
+        try:
+            data = json.loads(requested_data) if isinstance(requested_data, str) else requested_data
+        except (TypeError, ValueError):
+            data = None
+
+        issue_ids = {str(activity.issue_id) for activity in activities if getattr(activity, "issue_id", None)}
+        if issue_id:
+            issue_ids.add(str(issue_id))
+        issue_ids.update(_requested_issue_ids(data))
+
+        fields = {activity.field for activity in activities if getattr(activity, "field", None)}
+        if type == "issue.activity.updated" and isinstance(data, dict):
+            fields.update(str(key) for key in data.keys())
+
+        publish_project_event(
+            event_type=type.replace(".activity", ""),
+            project_id=project_id,
+            issue_ids=sorted(issue_ids),
+            actor_id=actor_id,
+            fields=fields,
+            background=False,
+        )
+    except Exception as e:
+        log_exception(e)
+
+
 # Receive message from room group
 @shared_task
 def issue_activity(
@@ -1669,6 +1727,16 @@ def issue_activity(
         # Conjo: tagging a card with a client's label sets its client when it has none.
         if any(activity.field == "labels" for activity in issue_activities_created):
             resync_client_after_label_change(issue_id)
+
+        # Realtime: open boards, lists and work item pages refresh this item without a reload.
+        publish_activity_event(
+            type=type,
+            requested_data=requested_data,
+            issue_id=issue_id,
+            actor_id=actor_id,
+            project_id=project_id,
+            activities=issue_activities_created,
+        )
 
         if notification:
             notifications.delay(

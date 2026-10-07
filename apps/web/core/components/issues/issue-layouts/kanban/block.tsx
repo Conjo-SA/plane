@@ -156,6 +156,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
     canEditProperties,
     scrollableContainerRef,
     shouldRenderByDefault,
+    draggableId,
     isEpic = false,
   } = props;
 
@@ -245,6 +246,8 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
       <DropIndicator isVisible={!isCurrentBlockDragging && isDraggingOverBlock} />
       <div
         id={`issue-${issueId}`}
+        data-rt-issue={issueId}
+        data-rt-key={draggableId}
         // make Z-index higher at the beginning of drag, to have a issue drag image of issue block without any overlaps
         className={cn("group/kanban-block relative mb-2", { "z-[1]": isCurrentBlockDragging })}
         onDragStart={() => {
@@ -262,6 +265,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
       >
         <ControlLink
           id={getIssueBlockId(issueId, groupId, subGroupId)}
+          data-rt-surface=""
           href={workItemLink}
           ref={cardRef}
           className={cn(
