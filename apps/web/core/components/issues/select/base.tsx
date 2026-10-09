@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
-import { Component, Loader } from "lucide-react";
+import { Component } from "lucide-react";
 import { Combobox } from "@headlessui/react";
 import { getRandomLabelColor } from "@plane/constants";
 // plane imports
@@ -16,6 +16,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { CheckIcon, SearchIcon, LabelPropertyIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
+import { ConjoLoader } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
 import { IssueLabelsList } from "@/components/ui/labels-list";
@@ -287,7 +288,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                       );
                   })
                 ) : submitting ? (
-                  <Loader className="h-3.5 w-3.5 animate-spin" />
+                  <ConjoLoader size={14} />
                 ) : createLabelEnabled ? (
                   <p
                     onClick={() => {

@@ -11,7 +11,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./styles/conjo-loader.css": "./styles/conjo-loader.css"
   },
   "scripts": {
     "build": "tsdown",

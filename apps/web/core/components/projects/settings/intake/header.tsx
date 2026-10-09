@@ -7,12 +7,11 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { RefreshCcw } from "lucide-react";
 // ui
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, ConjoLoader, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { InboxIssueCreateModalRoot } from "@/components/inbox/modals/create-modal";
@@ -63,7 +62,7 @@ export const ProjectInboxHeader = observer(function ProjectInboxHeader() {
 
           {loader === "pagination-loading" && (
             <div className="flex items-center gap-1.5 text-tertiary">
-              <RefreshCcw className="h-3.5 w-3.5 animate-spin" />
+              <ConjoLoader size={14} />
               <p className="text-13">{t("syncing")}...</p>
             </div>
           )}

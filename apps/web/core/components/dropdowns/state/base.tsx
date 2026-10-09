@@ -175,7 +175,7 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
             renderToolTipByDefault={renderByDefault}
           >
             {isInitializing ? (
-              <Spinner className="h-3.5 w-3.5" />
+              <Spinner height="14px" />
             ) : (
               <>
                 {!hideIcon && (

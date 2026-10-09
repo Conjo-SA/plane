@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { Spinner } from "@plane/ui";
+import { ConjoLoader } from "@plane/ui";
 
-// Spinner genérico no lugar do GIF animado com o logo do Plane.
+// Tela de carregamento: a palavra Conjo "letra a letra", na altura do spinner anterior (24px / 44px no sm+).
 export function LogoSpinner() {
   return (
     <div className="flex items-center justify-center">
-      <Spinner className="h-6 w-6 sm:h-11 sm:w-11" />
+      <ConjoLoader className="text-primary [--conjo-loader-size:24px] sm:[--conjo-loader-size:44px]" />
     </div>
   );
 }

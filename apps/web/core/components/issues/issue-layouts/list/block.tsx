@@ -327,8 +327,8 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
               </div>
             </>
           ) : (
-            <div className="h-4 w-4">
-              <Spinner className="h-4 w-4" />
+            <div className="flex h-4 items-center">
+              <Spinner height="14px" />
             </div>
           )}
         </div>

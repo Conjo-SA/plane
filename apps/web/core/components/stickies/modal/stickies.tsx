@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 
 // plane ui
 import { RecentStickyIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
+import { ConjoLoader } from "@plane/ui";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
 // components
@@ -52,11 +53,7 @@ export const Stickies = observer(function Stickies(props: TProps) {
             <PlusIcon className="my-auto size-4" /> <span>Adicionar nota adesiva</span>
             {creatingSticky && (
               <div className="ml-2 flex items-center justify-center">
-                <div
-                  className={`h-4 w-4 animate-spin rounded-full border-2 border-accent-strong border-t-transparent`}
-                  role="status"
-                  aria-label="loading"
-                />
+                <ConjoLoader size={16} aria-label="loading" />
               </div>
             )}
           </button>
