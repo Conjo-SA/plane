@@ -108,7 +108,9 @@ def push_payload(message, email, sha="a" * 40, ref="refs/heads/man-1-corrigir-lo
     }
 
 
-def pr_payload(action, number=7, merged=False, state="open", draft=False, title="MAN-1 corrige login"):
+def pr_payload(
+    action, number=7, merged=False, state="open", draft=False, title="MAN-1 corrige login", body="", head="feature/x"
+):
     return {
         "action": action,
         "repository": REPO,
@@ -116,12 +118,12 @@ def pr_payload(action, number=7, merged=False, state="open", draft=False, title=
         "pull_request": {
             "number": number,
             "title": title,
-            "body": "",
+            "body": body,
             "html_url": f"https://github.com/Conjo-SA/app/pull/{number}",
             "state": state,
             "merged": merged,
             "draft": draft,
-            "head": {"ref": "feature/x"},
+            "head": {"ref": head},
             "base": {"ref": "main"},
             "updated_at": "2026-10-06T12:00:00Z",
             "user": {"login": "outsider", "id": 999, "avatar_url": ""},
@@ -224,6 +226,27 @@ class TestGitHubWebhook:
         issue.refresh_from_db()
         assert issue.state_id == states["todo"].id
         assert IssueDevelopmentLink.objects.get(issue=issue, kind="pull_request").state == "draft"
+
+    def test_mention_in_description_does_not_link(self, api_client, project, issue, states, sync_tasks):
+        ProjectGitHubSettings.objects.create(project=project, pr_opened_state=states["review"])
+        payload = pr_payload("opened", title="Corrige webhook", body="Follow-up do MAN-1 (#5)")
+        send(api_client, "pull_request", payload)
+        issue.refresh_from_db()
+        assert issue.state_id == states["todo"].id
+        assert not IssueDevelopmentLink.objects.filter(issue=issue, kind="pull_request").exists()
+        assert sync_tasks["chat"].call_count == 0
+
+    def test_branch_name_links_pull_request(self, api_client, issue):
+        send(api_client, "pull_request", pr_payload("opened", title="Corrige webhook", head="man-1-webhook"))
+        assert IssueDevelopmentLink.objects.filter(issue=issue, kind="pull_request").exists()
+
+    def test_stale_link_is_removed(self, api_client, project, issue):
+        # Linked earlier (e.g. by the old description rule); the next event no longer names MAN-1.
+        IssueDevelopmentLink.objects.create(
+            project=project, issue=issue, kind="pull_request", repository=REPO["full_name"], external_id="7"
+        )
+        send(api_client, "pull_request", pr_payload("edited", title="Corrige webhook", body="Follow-up do MAN-1"))
+        assert not IssueDevelopmentLink.objects.filter(issue=issue, kind="pull_request").exists()
 
     def test_duplicate_delivery_is_processed_once(self, api_client, issue, create_user):
         payload = push_payload("MAN-1 #comment oi", create_user.email, ref="refs/heads/main")

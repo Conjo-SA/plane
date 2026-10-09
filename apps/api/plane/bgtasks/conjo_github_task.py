@@ -90,7 +90,6 @@ def compact_payload(event, payload):
             action=payload.get("action") or "",
             number=pr.get("number") or payload.get("number"),
             title=pr.get("title") or "",
-            body=(pr.get("body") or "")[:8000],
             html_url=pr.get("html_url") or "",
             state=pr.get("state") or "",
             # The webhook sends "merged"; the REST list of pull requests (history sync) only has "merged_at".
@@ -476,6 +475,18 @@ def pr_state(data):
     return "draft" if data["draft"] else "open"
 
 
+def drop_stale_pull_request_links(repository, number, issues):
+    """Unlink the PR from work items it no longer names (title edited, or linked by the old description rule)."""
+    from plane.db.models import IssueDevelopmentLink
+
+    stale = IssueDevelopmentLink.objects.filter(
+        provider="github", kind="pull_request", repository=repository, external_id=str(number)
+    ).exclude(issue_id__in=[issue.id for issue in issues])
+    for link in stale.select_related("issue"):
+        link.delete(soft=False)
+        _publish_development_change(link.issue)
+
+
 def handle_pull_request(workspace, data, quiet=False):
     """Link a pull request; automations and chat notices run unless ``quiet`` (history sync)."""
     action = data["action"]
@@ -490,7 +501,9 @@ def handle_pull_request(workspace, data, quiet=False):
     ):
         return
     repository = data["repository"]["full_name"]
-    keys = find_keys(data["title"]) + find_keys(data["head"], any_case=True) + find_keys(data["body"])
+    # Like Jira: only the title and the source branch link a pull request. A mention in the description
+    # ("follow-up do MAN-166") must not attach the PR, move that card or announce it in the chat.
+    keys = find_keys(data["title"]) + find_keys(data["head"], any_case=True)
     keys = list(dict.fromkeys(keys))
     state = pr_state(data)
     user = data["user"]
@@ -498,7 +511,9 @@ def handle_pull_request(workspace, data, quiet=False):
     became_merged = action == "closed" and state == "merged"
     actor = None
 
-    for issue in resolve_issues(workspace.id, keys):
+    issues = resolve_issues(workspace.id, keys)
+    drop_stale_pull_request_links(repository, data["number"], issues)
+    for issue in issues:
         upsert_link(
             issue,
             "pull_request",
