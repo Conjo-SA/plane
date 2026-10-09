@@ -5,12 +5,11 @@
  */
 
 import { useState } from "react";
-import { Check, Copy, GitBranch, Terminal } from "lucide-react";
+import { Check, ChevronDown, Copy, GitBranch, GitFork, Terminal } from "lucide-react";
 import useSWR from "swr";
 // plane imports
 import { GitHubIntegrationService } from "@plane/services";
 import type { TDevelopmentLink, TIssueDevelopment } from "@plane/types";
-import { Collapsible, CollapsibleButton } from "@plane/ui";
 import { cn } from "@plane/utils";
 // local imports
 import { useCopyText } from "@/components/settings/project/content/use-copy-text";
@@ -28,10 +27,14 @@ type Props = {
   issueId: string;
 };
 
-/** Jira-like "Desenvolvimento" panel: summary, pull requests, branches and commits that mention the work item. */
+/**
+ * Jira-like "Desenvolvimento" panel (proposta A do canvas "Desenvolvimento Tasks"): a card with the title and
+ * "Criar branch" in the header, then summary, pull requests, branches and commits that mention the work item.
+ */
 export function IssueDevelopmentCollapsible(props: Props) {
   const { workspaceSlug, projectId, issueId } = props;
   const [isOpen, setIsOpen] = useState(true);
+  const [showBranch, setShowBranch] = useState(false);
   const { data } = useSWR(
     workspaceSlug && projectId && issueId ? `ISSUE_DEVELOPMENT_${issueId}` : null,
     () => githubIntegrationService.retrieveIssueDevelopment(workspaceSlug, projectId, issueId),
@@ -43,32 +46,44 @@ export function IssueDevelopmentCollapsible(props: Props) {
   if (!data.github_configured && total === 0) return null;
 
   return (
-    <Collapsible
-      isOpen={isOpen}
-      onToggle={() => setIsOpen((open) => !open)}
-      title={
-        <CollapsibleButton
-          isOpen={isOpen}
-          title="Desenvolvimento"
-          indicatorElement={
-            <span className="flex items-center justify-center">
-              <p className="text-14 !leading-3 text-tertiary">{total}</p>
-            </span>
-          }
-        />
-      }
-      buttonClassName="w-full"
-    >
-      <DevelopmentContent data={data} />
-    </Collapsible>
+    <section className="rounded-xl border border-subtle bg-surface-1 px-5 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          className="flex min-w-0 items-center gap-2 text-left"
+        >
+          <GitFork className="size-4 flex-shrink-0 text-secondary" />
+          <span className="text-14 font-semibold text-primary">Desenvolvimento</span>
+          <span className="text-13 text-tertiary">{total}</span>
+          <ChevronDown
+            className={cn("size-3.5 flex-shrink-0 text-tertiary transition-transform", !isOpen && "-rotate-90")}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen(true);
+            setShowBranch((show) => !show);
+          }}
+          aria-expanded={showBranch}
+          className="flex flex-shrink-0 items-center gap-1.5 rounded-md border border-subtle px-2.5 py-1 text-13 text-secondary hover:bg-layer-1 hover:text-primary"
+        >
+          <GitBranch className="size-3.5" />
+          Criar branch
+        </button>
+      </div>
+      {isOpen && <DevelopmentContent data={data} showBranch={showBranch} />}
+    </section>
   );
 }
 
-function DevelopmentContent({ data }: { data: TIssueDevelopment }) {
+function DevelopmentContent({ data, showBranch }: { data: TIssueDevelopment; showBranch: boolean }) {
   const total = data.pull_requests.length + data.branches.length + data.commits.length;
   return (
-    <div className="flex flex-col gap-4 py-2">
-      <CreateBranch branchName={data.branch_name} />
+    <div className="mt-4 flex flex-col gap-4">
+      {showBranch && <CreateBranch branchName={data.branch_name} />}
       {total === 0 ? (
         <p className="rounded-md border border-dashed border-subtle px-4 py-3 text-13 text-tertiary">
           Nenhuma branch, commit ou pull request ainda. Use a chave da tarefa no nome da branch, na mensagem do commit
@@ -284,41 +299,27 @@ function Commits({ commits }: { commits: TDevelopmentLink[] }) {
 }
 
 function CreateBranch({ branchName }: { branchName: string }) {
-  const [isOpen, setIsOpen] = useState(false);
   const name = useCopyText();
   const command = useCopyText();
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-md bg-layer-1 px-3 py-2">
+      <code className="min-w-0 flex-grow truncate text-13 text-primary">{branchName}</code>
       <button
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-        className="flex items-center gap-1.5 self-start rounded-md border border-subtle px-2.5 py-1.5 text-13 text-secondary hover:bg-layer-1 hover:text-primary"
+        className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-11 text-secondary hover:bg-layer-2 hover:text-primary"
+        onClick={() => void name.copy(branchName)}
       >
-        <GitBranch className="size-3.5" />
-        Criar branch
+        {name.copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        Copiar nome
       </button>
-      {isOpen && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-layer-1 px-3 py-2">
-          <code className="min-w-0 flex-grow truncate text-13 text-primary">{branchName}</code>
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-11 text-secondary hover:bg-layer-2 hover:text-primary"
-            onClick={() => void name.copy(branchName)}
-          >
-            {name.copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-            Copiar nome
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-11 text-secondary hover:bg-layer-2 hover:text-primary"
-            onClick={() => void command.copy(`git checkout -b ${branchName}`)}
-          >
-            {command.copied ? <Check className="size-3.5" /> : <Terminal className="size-3.5" />}
-            Copiar git checkout
-          </button>
-        </div>
-      )}
+      <button
+        type="button"
+        className="flex items-center gap-1 rounded-sm px-1.5 py-1 text-11 text-secondary hover:bg-layer-2 hover:text-primary"
+        onClick={() => void command.copy(`git checkout -b ${branchName}`)}
+      >
+        {command.copied ? <Check className="size-3.5" /> : <Terminal className="size-3.5" />}
+        Copiar git checkout
+      </button>
     </div>
   );
 }

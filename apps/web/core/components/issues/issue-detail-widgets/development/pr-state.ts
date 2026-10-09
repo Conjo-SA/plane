@@ -43,9 +43,9 @@ export const PR_STATES: Record<TPullRequestState, TPullRequestStateMeta> = {
     label: "Mergeado",
     plural: ["mergeado", "mergeados"],
     Icon: GitMerge,
-    text: "text-[#8250df]",
-    pill: "bg-[#8250df] text-white",
-    chip: "bg-[#8250df]/10 text-[#8250df]",
+    text: "text-[#5B3BB0]",
+    pill: "bg-[#5B3BB0] text-white",
+    chip: "border border-[#D9CFF2] bg-[#5B3BB0]/10 text-[#5B3BB0]",
   },
   closed: {
     label: "Fechado",
