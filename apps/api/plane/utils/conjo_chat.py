@@ -319,7 +319,9 @@ def edit_notice(room_id, event_id, content, txn_id=None):
     Clients that understand edits show ``m.new_content``; the top level is the
     "* ..." fallback the spec asks for, without the custom notice payload.
     """
-    new_content = {key: value for key, value in content.items() if key != "m.mentions"}
+    # ``m.new_content`` keeps the full content (its mentions included); the edit itself
+    # never pings anyone again (see the empty mentions below).
+    new_content = dict(content)
     edit = {
         "msgtype": content.get("msgtype", "m.notice"),
         "body": f"* {content.get('body', '')}",

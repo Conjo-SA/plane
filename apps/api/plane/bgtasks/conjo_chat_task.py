@@ -84,6 +84,11 @@ STATE_GROUP_COLORS = {
 }
 DEFAULT_STATE_COLOR = "#8b8d98"
 
+# A batch notice lists at most this many cards; the rest becomes a "+N cards" chip.
+MAX_BATCH_ISSUES = 30
+# Matrix caps events at 64 KiB; stay below it with room for the event envelope.
+MAX_CONTENT_BYTES = 60 * 1024
+
 BOT_NAME_SUFFIX = re.compile(r"\s*\(MCP\)\s*$")
 
 
@@ -415,10 +420,34 @@ def build_content(notice, latest_html, mention_room=False, msgtype="m.notice"):
         "formatted_body": html,
         NOTICE_KEY: notice,
     }
-    if mention_room:
-        # Intentional mentions (MSC3952); the bot has the room's "notifications.room" power.
-        content["m.mentions"] = {"room": True}
+    # Intentional mentions (MSC3952): only the Entrada request tags the room (the bot has the
+    # room's "notifications.room" power); every other notice explicitly mentions no one.
+    content["m.mentions"] = {"room": True} if mention_room else {}
+    return fit_content(content, notice, latest_html, mention_room, msgtype)
+
+
+def content_size(content):
+    return len(json.dumps(content, ensure_ascii=False).encode("utf-8"))
+
+
+def fit_content(content, notice, latest_html, mention_room, msgtype):
+    """Keep the event under ``MAX_CONTENT_BYTES`` dropping the oldest steps, then the quote."""
+    if content_size(content) <= MAX_CONTENT_BYTES:
+        return content
+    notice = dict(notice)
+    while content_size(content) > MAX_CONTENT_BYTES and (len(notice["steps"]) > 1 or notice.get("quote")):
+        if len(notice["steps"]) > 1:
+            notice["steps"] = notice["steps"][1:]
+        else:
+            notice["quote"] = None
+        html, body = render(notice, latest_html, mention_room)
+        content = {**content, "body": body, "formatted_body": html, NOTICE_KEY: notice}
+    logger.warning("conjo_chat: notice trimmed to %s bytes", content_size(content))
     return content
+
+
+def is_too_large(error):
+    return error.status_code == 413 or error.errcode == "M_TOO_LARGE"
 
 
 # --------------------------------------------------------------------------- #
@@ -555,11 +584,18 @@ def notify_chat_room(self, project_id, issue_id, actor_id, events, batch_issue_i
             return
 
         if batch_issue_ids and len(batch_issue_ids) > 1:
-            issues = list(Issue.all_objects.filter(pk__in=batch_issue_ids).select_related("project"))
+            # Defence in depth: a batch only ever holds cards of the room's own project.
+            issues = list(
+                Issue.all_objects.filter(pk__in=batch_issue_ids, project_id=project_id).select_related("project")
+            )
             issues.sort(key=lambda item: batch_issue_ids.index(str(item.pk)))
             if len(issues) > 1:
-                frag = batch_move_fragment(actor, [issue_payload(item, slug) for item in issues], events, project_id)
-                notice = new_notice(frag, [issue_payload(item, slug) for item in issues])
+                refs = [issue_payload(item, slug) for item in issues]
+                frag = batch_move_fragment(actor, refs, events, project_id)
+                hidden = len(refs) - MAX_BATCH_ISSUES
+                if hidden > 0:
+                    frag["chips"] = [f"+{hidden} cards"]
+                notice = new_notice(frag, refs[:MAX_BATCH_ISSUES])
                 send_notice(integration.room_id, build_content(notice, frag["html"]), txn_id=events[0].get("txn_id"))
                 return
             # Only one card of the batch still exists: a regular notice for it.
@@ -578,6 +614,11 @@ def notify_chat_room(self, project_id, issue_id, actor_id, events, batch_issue_i
             log_exception(e)
             return
         raise self.retry(exc=e, countdown=e.retry_after)
+    except MatrixError as e:
+        if is_too_large(e):
+            logger.warning("conjo_chat: notice refused as too large for issue %s: %s", issue_id, e)
+            return
+        log_exception(e)
     except Exception as e:
         log_exception(e)
 

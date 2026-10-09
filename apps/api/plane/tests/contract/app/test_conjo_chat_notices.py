@@ -152,7 +152,8 @@ class TestNoticeContract:
             "cta": {"label": "Abrir no Tasks", "url": url},
             "at": "2026-10-09T12:00:00+00:00",
         }
-        assert "m.mentions" not in content
+        # Explicitly no mentions: does not rely on the push rules for m.notice.
+        assert content["m.mentions"] == {}
 
     def test_commented_escapes_title_and_comment(self, project, actor, matrix):
         issue = make_issue(project, name="<script>alert(1)</script> título")
@@ -435,3 +436,84 @@ class TestBatchMove:
         assert delay.call_args.kwargs["batch_issue_ids"] is None
         notify_chat_room(*delay.call_args.args, **delay.call_args.kwargs)
         assert content_of(matrix[0])[NOTICE_KEY]["issues"][0]["title"] == issue.name
+
+
+@pytest.mark.contract
+class TestHardening:
+    def test_batch_ignores_cards_of_other_projects(self, workspace, project, states, actor, matrix):
+        ours = [make_issue(project, name="Nosso 1"), make_issue(project, name="Nosso 2")]
+        other_project = Project.objects.create(name="Outro", identifier="OUT", workspace=workspace)
+        foreign = make_issue(other_project, name="Segredo de outro projeto")
+        ids = [str(item.id) for item in (*ours, foreign)]
+        events = [move(states["todo"], states["gmud"], f"t{n}") for n in range(3)]
+
+        notify_chat_room(str(project.id), ids[0], str(actor.id), events, batch_issue_ids=ids)
+
+        notice = content_of(matrix[0])[NOTICE_KEY]
+        assert [item["title"] for item in notice["issues"]] == ["Nosso 1", "Nosso 2"]
+        assert "Segredo" not in content_of(matrix[0])["body"] + content_of(matrix[0])["formatted_body"]
+
+    def test_batch_lists_at_most_30_cards(self, project, states, actor, matrix):
+        issues = [make_issue(project, name=f"Card {n} " + "x" * 200) for n in range(32)]
+        ids = [str(item.id) for item in issues]
+        events = [move(states["todo"], states["gmud"], f"t{n}") for n in range(32)]
+
+        notify_chat_room(str(project.id), ids[0], str(actor.id), events, batch_issue_ids=ids)
+
+        content = content_of(matrix[0])
+        notice = content[NOTICE_KEY]
+        assert len(notice["issues"]) == conjo_chat_task.MAX_BATCH_ISSUES == 30
+        assert notice["chips"] == ["+2 cards"]
+        assert notice["steps"][0]["text"].startswith("Ana Lima moveu 32 cards")
+        assert "+2 cards" in content["formatted_body"] and "+2 cards" in content["body"]
+        assert conjo_chat_task.content_size(content) <= conjo_chat_task.MAX_CONTENT_BYTES
+        assert content["m.mentions"] == {}
+
+    def test_oversized_notice_drops_oldest_steps(self):
+        steps = [
+            {"text": f"passo {n} " + "y" * 1000, "at": "2026-10-09T12:00:00+00:00", "kind": "moved"} for n in range(80)
+        ]
+        notice = {
+            "v": 1,
+            "kind": "moved",
+            "issues": [{"key": "MAN-1", "title": "t", "url": f"{TASKS}/x/browse/MAN-1/"}],
+            "actor": {"name": "Ana", "is_bot": False},
+            "from": None,
+            "to": None,
+            "quote": None,
+            "chips": [],
+            "steps": steps,
+            "cta": None,
+            "at": "2026-10-09T12:00:00+00:00",
+        }
+        content = conjo_chat_task.build_content(notice, "<b>Ana</b> moveu")
+        assert conjo_chat_task.content_size(content) <= conjo_chat_task.MAX_CONTENT_BYTES
+        kept = content[NOTICE_KEY]["steps"]
+        assert 1 <= len(kept) < 80 and kept[-1]["text"].startswith("passo 79 ")
+
+    def test_too_large_refusal_is_logged_not_raised(self, project, states, actor):
+        issue = make_issue(project)
+
+        def refuse(method, path, json=None):
+            raise MatrixError("Matrix error 413 M_TOO_LARGE: event too large", status_code=413, errcode="M_TOO_LARGE")
+
+        with (
+            mock.patch.object(conjo_chat, "matrix_request", side_effect=refuse),
+            mock.patch.object(conjo_chat_task.logger, "warning") as warning,
+            mock.patch.object(conjo_chat_task, "log_exception") as logged,
+        ):
+            notify_chat_room(str(project.id), str(issue.id), str(actor.id), [move(states["todo"], states["review"])])
+        assert "too large" in warning.call_args.args[0]
+        assert logged.call_count == 0
+
+    def test_edits_never_mention_but_keep_the_full_content(self, workspace, project, states, actor, matrix):
+        issue = make_issue(project)
+        intake = Intake.objects.create(name="Entrada", project=project)
+        IntakeIssue.objects.create(intake=intake, project=project, issue=issue, source="PORTAL", source_email="a@b.c")
+        notify_chat_room(str(project.id), str(issue.id), None, [{"kind": "created", "txn_id": "i1"}])
+        notify_chat_room(str(project.id), str(issue.id), str(actor.id), [move(states["todo"], states["review"])])
+
+        assert content_of(matrix[0])["m.mentions"] == {"room": True}
+        edit = content_of(matrix[1])
+        assert edit["m.mentions"] == {}
+        assert edit["m.new_content"]["m.mentions"] == {"room": True}
