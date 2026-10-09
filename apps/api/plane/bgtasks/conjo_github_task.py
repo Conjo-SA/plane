@@ -27,7 +27,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.html import escape
 
 # Module imports
-from plane.utils.conjo_chat import MatrixRetryableError, send_html_message
+from plane.utils.conjo_chat import MatrixRetryableError
 from plane.utils.conjo_chat import is_configured as chat_is_configured
 from plane.utils.conjo_billing import local_date
 from plane.utils.conjo_github import find_keys, parse_smart_commands, resolve_state
@@ -509,6 +509,7 @@ def handle_pull_request(workspace, data, quiet=False):
     user = data["user"]
     became_open = action in ("opened", "reopened", "ready_for_review") and state == "open"
     became_merged = action == "closed" and state == "merged"
+    became_closed = action == "closed" and state == "closed"
     actor = None
 
     issues = resolve_issues(workspace.id, keys)
@@ -529,12 +530,12 @@ def handle_pull_request(workspace, data, quiet=False):
                 "metadata": {"head": data["head"], "base": data["base"]},
             },
         )
-        if quiet or not (became_open or became_merged):
+        if quiet or not (became_open or became_merged or became_closed):
             continue
 
         project_settings = get_project_settings(issue.project_id)
         target = None
-        if project_settings is not None:
+        if project_settings is not None and not became_closed:
             if became_merged:
                 target = project_settings.pr_merged_state
             elif issue.state is None or issue.state.group not in CLOSED_GROUPS:
@@ -547,13 +548,14 @@ def handle_pull_request(workspace, data, quiet=False):
         notify_chat_pull_request.delay(
             str(issue.project_id),
             str(issue.id),
-            "merged" if became_merged else "opened",
+            "merged" if became_merged else "closed" if became_closed else "opened",
             {
                 "number": data["number"],
                 "title": data["title"],
                 "url": data["html_url"],
                 "repository": repository,
-                "author": user["login"],
+                # Who merged/closed it (the webhook's sender), or the author when it was opened.
+                "author": (became_open and user["login"]) or (data.get("sender") or {}).get("login") or user["login"],
             },
             uuid.uuid4().hex,
         )
@@ -710,10 +712,11 @@ def record_last_event(event, data):
 
 @shared_task(bind=True, max_retries=5)
 def notify_chat_pull_request(self, project_id, issue_id, kind, pr, txn_id):
-    """Post "PR aberto/mergeado" in the project's chat room."""
+    """Post "PR aberto/mergeado/fechado" in the project's chat room (folded into the card's recent notice)."""
     try:
         if not chat_is_configured():
             return
+        from plane.bgtasks.conjo_chat_task import issue_payload, post_card_notice, pull_request_fragment
         from plane.db.models import Issue, ProjectChatIntegration
 
         integration = ProjectChatIntegration.objects.filter(project_id=project_id).select_related("workspace").first()
@@ -723,17 +726,13 @@ def notify_chat_pull_request(self, project_id, issue_id, kind, pr, txn_id):
         if issue is None:
             return
 
-        ident = f"{issue.project.identifier}-{issue.sequence_id}"
-        link = f"{settings.TASKS_PUBLIC_URL}/{integration.workspace.slug}/browse/{ident}/"
-        verb = "mergeou" if kind == "merged" else "abriu"
-        pr_label = f"PR #{pr['number']} {pr['title']}"
-        html = (
-            f"<b>{escape(pr['author'] or 'Alguém')}</b> {verb} o "
-            f'<a href="{escape(pr["url"])}">{escape(pr_label)}</a> em <code>{escape(pr["repository"])}</code>'
-            f' · <a href="{escape(link)}">{escape(ident)}</a> · {escape(issue.name or "")}'
+        post_card_notice(
+            integration.room_id,
+            str(issue.id),
+            issue_payload(issue, integration.workspace.slug),
+            [pull_request_fragment(kind, pr)],
+            txn_id,
         )
-        body = f"{pr['author'] or 'Alguém'} {verb} o {pr_label} em {pr['repository']} · {ident} · {issue.name or ''}"
-        send_html_message(integration.room_id, html, body, txn_id=txn_id)
     except MatrixRetryableError as e:
         if self.request.retries >= self.max_retries:
             log_exception(e)
