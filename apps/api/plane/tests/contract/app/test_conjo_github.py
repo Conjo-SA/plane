@@ -11,6 +11,7 @@ from unittest import mock
 
 import pytest
 from django.core.cache import cache
+from django.utils import timezone
 from rest_framework import status
 
 from plane.bgtasks import conjo_github_task
@@ -260,6 +261,14 @@ class TestGitHubWebhook:
         )
         send(api_client, "pull_request", pr_payload("edited", title="Corrige webhook", body="Follow-up do MAN-1"))
         assert not IssueDevelopmentLink.objects.filter(issue=issue, kind="pull_request").exists()
+
+    def test_archived_card_keeps_its_pull_request(self, api_client, issue):
+        send(api_client, "pull_request", pr_payload("closed", merged=True, state="closed"))
+        issue.archived_at = timezone.now()
+        issue.save(update_fields=["archived_at"])
+        # A later event of the same PR (edit, comment, history sync) still names MAN-1.
+        send(api_client, "pull_request", pr_payload("edited", merged=True, state="closed"))
+        assert IssueDevelopmentLink.objects.filter(issue_id=issue.id, kind="pull_request").exists()
 
     def test_duplicate_delivery_is_processed_once(self, api_client, issue, create_user):
         payload = push_payload("MAN-1 #comment oi", create_user.email, ref="refs/heads/main")

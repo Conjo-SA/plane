@@ -22,6 +22,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from django.db import IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.html import escape
@@ -475,13 +476,26 @@ def pr_state(data):
     return "draft" if data["draft"] else "open"
 
 
-def drop_stale_pull_request_links(repository, number, issues):
-    """Unlink the PR from work items it no longer names (title edited, or linked by the old description rule)."""
+def drop_stale_pull_request_links(workspace_id, repository, number, keys):
+    """Unlink the PR from work items it no longer names (title edited, or linked by the old description rule).
+
+    Decided by key, not through ``resolve_issues``: its manager hides archived, triage and draft work items,
+    and a merged PR must stay on a card that was archived after Done.
+    """
     from plane.db.models import IssueDevelopmentLink
 
+    named = Q()
+    for ident, seq in keys:
+        named |= Q(issue__project__identifier__iexact=ident, issue__sequence_id=seq)
     stale = IssueDevelopmentLink.objects.filter(
-        provider="github", kind="pull_request", repository=repository, external_id=str(number)
-    ).exclude(issue_id__in=[issue.id for issue in issues])
+        issue__workspace_id=workspace_id,
+        provider="github",
+        kind="pull_request",
+        repository=repository,
+        external_id=str(number),
+    )
+    if keys:
+        stale = stale.exclude(named)
     for link in stale.select_related("issue"):
         link.delete(soft=False)
         _publish_development_change(link.issue)
@@ -513,7 +527,7 @@ def handle_pull_request(workspace, data, quiet=False):
     actor = None
 
     issues = resolve_issues(workspace.id, keys)
-    drop_stale_pull_request_links(repository, data["number"], issues)
+    drop_stale_pull_request_links(workspace.id, repository, data["number"], keys)
     for issue in issues:
         upsert_link(
             issue,
