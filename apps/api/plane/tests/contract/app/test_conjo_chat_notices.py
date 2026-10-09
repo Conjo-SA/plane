@@ -312,7 +312,8 @@ class TestGrouping:
         assert len(matrix) == 3
         assert "m.relates_to" not in content_of(matrix[0])
         for call, txn in ((matrix[1], "p2"), (matrix[2], "m1")):
-            assert call["path"].endswith(f"/send/m.room.message/{txn}")
+            assert call["path"].endswith(f"/send/m.room.message/{txn}-edit-%24ev1")
+            assert call["json"]["m.mentions"] == {}
             assert call["json"]["m.relates_to"] == {"rel_type": "m.replace", "event_id": "$ev1"}
             assert call["json"]["body"].startswith("* ")
             assert NOTICE_KEY not in call["json"]

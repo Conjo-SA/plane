@@ -325,6 +325,8 @@ def edit_notice(room_id, event_id, content, txn_id=None):
         "body": f"* {content.get('body', '')}",
         "m.new_content": new_content,
         "m.relates_to": {"rel_type": "m.replace", "event_id": event_id},
+        # Empty intentional mentions: an edit never pings anyone again (e.g. the @room of a request).
+        "m.mentions": {},
     }
     if content.get("formatted_body"):
         edit["format"] = content.get("format", "org.matrix.custom.html")

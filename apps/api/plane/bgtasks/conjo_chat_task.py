@@ -66,7 +66,8 @@ CARD_LOCK_KEY = "conjo_chat:lock:{room_id}:{issue_id}"
 # Same actor moving several cards to the same state: wait this long and post one notice.
 BATCH_WINDOW = 5
 BATCH_KEY = "conjo_chat:batch:{project_id}:{actor_id}:{state_id}"
-BATCH_TTL = 120
+# Long enough to survive a busy Celery queue: the flush must still find the moves.
+BATCH_TTL = 60 * 60
 
 CTA_OPEN = "Abrir no Tasks"
 CTA_REPLY = "Responder"
@@ -468,7 +469,9 @@ def post_card_notice(room_id, issue_id, issue_ref, fragments, txn_id):
                 notice = merge_notice(notice, frag, issue_ref)
             content = build_content(notice, latest["html"], last.get("mention_room", False), last.get("msgtype"))
             try:
-                edit_notice(room_id, last["event_id"], content, txn_id=txn_id)
+                # Own transaction per (event, edited message): a retry that falls on the "new
+                # message" path must not be deduplicated against an edit.
+                edit_notice(room_id, last["event_id"], content, txn_id=f"{txn_id}-edit-{last['event_id']}")
             except MatrixRetryableError:
                 raise
             except MatrixError as e:
