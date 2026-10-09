@@ -220,6 +220,19 @@ class TestGitHubWebhook:
 
         assert User.objects.get(pk=actor_id).username == conjo_github_task.BOT_USERNAME
 
+    def test_closed_without_merge_is_announced_and_does_not_move(self, api_client, project, issue, states, sync_tasks):
+        ProjectGitHubSettings.objects.create(
+            project=project, pr_opened_state=states["review"], pr_merged_state=states["done"]
+        )
+        send(api_client, "pull_request", pr_payload("closed", merged=False, state="closed"))
+        issue.refresh_from_db()
+        assert issue.state_id == states["todo"].id
+        assert sync_tasks["chat"].call_count == 1
+        args = sync_tasks["chat"].call_args.args
+        assert args[2] == "closed"
+        # Who closed it (the webhook sender), not the PR author.
+        assert args[3]["author"] == SENDER["login"]
+
     def test_draft_pull_request_does_not_move(self, api_client, project, issue, states):
         ProjectGitHubSettings.objects.create(project=project, pr_opened_state=states["review"])
         send(api_client, "pull_request", pr_payload("opened", draft=True))

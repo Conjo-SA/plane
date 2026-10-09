@@ -297,3 +297,41 @@ def send_html_message(room_id, html, body, txn_id=None, mention_room=False):
         f"/_matrix/client/v3/rooms/{_q(room_id)}/send/m.room.message/{_q(txn_id)}",
         json=content,
     )
+
+
+def _send_room_message(room_id, content, txn_id):
+    return matrix_request(
+        "PUT",
+        f"/_matrix/client/v3/rooms/{_q(room_id)}/send/m.room.message/{_q(txn_id)}",
+        json=content,
+    )
+
+
+def send_notice(room_id, content, txn_id=None):
+    """Send a ready-made ``m.room.message`` content (a Tasks notice). Returns the new ``event_id``."""
+    data = _send_room_message(room_id, content, txn_id or uuid4().hex)
+    return (data or {}).get("event_id")
+
+
+def edit_notice(room_id, event_id, content, txn_id=None):
+    """Replace a previous notice (``m.replace``) with ``content``. Returns the edit's ``event_id``.
+
+    Clients that understand edits show ``m.new_content``; the top level is the
+    "* ..." fallback the spec asks for, without the custom notice payload.
+    """
+    # ``m.new_content`` keeps the full content (its mentions included); the edit itself
+    # never pings anyone again (see the empty mentions below).
+    new_content = dict(content)
+    edit = {
+        "msgtype": content.get("msgtype", "m.notice"),
+        "body": f"* {content.get('body', '')}",
+        "m.new_content": new_content,
+        "m.relates_to": {"rel_type": "m.replace", "event_id": event_id},
+        # Empty intentional mentions: an edit never pings anyone again (e.g. the @room of a request).
+        "m.mentions": {},
+    }
+    if content.get("formatted_body"):
+        edit["format"] = content.get("format", "org.matrix.custom.html")
+        edit["formatted_body"] = f"* {content['formatted_body']}"
+    data = _send_room_message(room_id, edit, txn_id or uuid4().hex)
+    return (data or {}).get("event_id")
