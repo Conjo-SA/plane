@@ -93,7 +93,8 @@ def compact_payload(event, payload):
             body=(pr.get("body") or "")[:8000],
             html_url=pr.get("html_url") or "",
             state=pr.get("state") or "",
-            merged=bool(pr.get("merged")),
+            # The webhook sends "merged"; the REST list of pull requests (history sync) only has "merged_at".
+            merged=bool(pr.get("merged") or pr.get("merged_at")),
             draft=bool(pr.get("draft")),
             head=(pr.get("head") or {}).get("ref") or "",
             base=(pr.get("base") or {}).get("ref") or "",

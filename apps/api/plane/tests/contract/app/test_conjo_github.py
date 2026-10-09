@@ -288,7 +288,8 @@ class TestGitHubHistorySync:
                     "body": "",
                     "html_url": "https://github.com/Conjo-SA/app/pull/9",
                     "state": "closed",
-                    "merged": True,
+                    # Like the real REST list: no "merged" field, only "merged_at".
+                    "merged_at": recent,
                     "draft": False,
                     "head": {"ref": "man-1-login"},
                     "base": {"ref": "main"},
@@ -331,6 +332,18 @@ class TestGitHubHistorySync:
         assert not IssueComment.objects.filter(issue=issue).exists()
         assert sync_tasks["chat"].call_count == 0
         assert cache.get(conjo_github_task.LAST_SYNC_CACHE_KEY)["repositories"] == 1
+
+    def test_closed_without_merge_stays_closed(self, settings, project, issue, states, sync_tasks):
+        settings.CONJO_GITHUB_TOKEN = "token"
+        settings.CONJO_GITHUB_ORG = "Conjo-SA"
+        pages = self._pages()
+        pages["/repos/Conjo-SA/app/pulls"][0]["merged_at"] = None
+        with (
+            mock.patch.object(conjo_github_task, "github_pages", fake_github(pages)),
+            mock.patch.object(conjo_github_task, "_is_before", return_value=False),
+        ):
+            conjo_github_task.sync_github_history(days=90)
+        assert IssueDevelopmentLink.objects.get(issue=issue, kind="pull_request").state == "closed"
 
     def test_resync_is_idempotent(self, settings, issue):
         settings.CONJO_GITHUB_TOKEN = "token"
