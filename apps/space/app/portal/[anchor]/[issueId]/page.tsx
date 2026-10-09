@@ -12,7 +12,6 @@ import {
   Download,
   Eye,
   FileText,
-  Loader2,
   Paperclip,
   Send,
   X,
@@ -26,7 +25,7 @@ import useSWR from "swr";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { IntakePortalService } from "@plane/services";
-import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import { ConjoLoader, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import type { TAttachmentPreviewKind } from "@plane/utils";
 import { getAttachmentPreviewKind } from "@plane/utils";
 // components
@@ -780,7 +779,7 @@ export default function PortalTicketDetailPage() {
                             className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
                           >
                             {attachment.status === "uploading" ? (
-                              <Loader2 className="size-4 shrink-0 animate-spin text-tertiary" />
+                              <ConjoLoader size={16} className="text-tertiary" />
                             ) : attachment.status === "error" ? (
                               <Paperclip className="size-4 shrink-0 text-danger-primary" />
                             ) : (

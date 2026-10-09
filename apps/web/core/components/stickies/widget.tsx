@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { PlusIcon } from "@plane/propel/icons";
+import { ConjoLoader } from "@plane/ui";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
 // local imports
@@ -45,13 +46,7 @@ export const StickiesWidget = observer(function StickiesWidget() {
           >
             <PlusIcon className="my-auto size-4" />
             <span>{t("stickies.add")}</span>
-            {creatingSticky && (
-              <div
-                className="size-4 animate-spin rounded-full border-2 border-accent-strong border-t-transparent"
-                role="status"
-                aria-label="loading"
-              />
-            )}
+            {creatingSticky && <ConjoLoader size={16} aria-label="loading" />}
           </button>
         </div>
       </div>

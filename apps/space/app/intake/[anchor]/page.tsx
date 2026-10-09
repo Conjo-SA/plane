@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, CloudUpload, FileText, Loader2, MailCheck, Paperclip, ShieldCheck, X } from "lucide-react";
+import { CheckCircle2, CloudUpload, FileText, MailCheck, Paperclip, ShieldCheck, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -15,7 +15,7 @@ import type { EditorRefApi } from "@plane/editor";
 import { Button } from "@plane/propel/button";
 import { IntakePortalService } from "@plane/services";
 import type { TIntakePortalSubmission } from "@plane/types";
-import { Input } from "@plane/ui";
+import { ConjoLoader, Input } from "@plane/ui";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { PoweredBy } from "@/components/common/powered-by";
@@ -522,7 +522,7 @@ export default function IntakePortalPage() {
                               className="flex items-center gap-3 rounded-md border border-subtle bg-surface-2 px-3 py-2"
                             >
                               {attachment.status === "uploading" ? (
-                                <Loader2 className="size-4 shrink-0 animate-spin text-tertiary" />
+                                <ConjoLoader size={16} className="text-tertiary" />
                               ) : attachment.status === "error" ? (
                                 <Paperclip className="size-4 shrink-0 text-danger-primary" />
                               ) : (

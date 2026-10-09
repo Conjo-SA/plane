@@ -8,12 +8,11 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Loader as LoaderIcon } from "lucide-react";
 // types
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { TInstanceConfigurationKeys } from "@plane/types";
-import { Loader, ToggleSwitch } from "@plane/ui";
+import { ConjoLoader, Loader, ToggleSwitch } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
@@ -121,9 +120,7 @@ const WorkspaceManagementPage = observer(function WorkspaceManagementPage(_props
               <div className="flex flex-col items-start gap-x-2">
                 <div className="flex items-center gap-2 text-16 font-medium">
                   Todos os workspaces desta instância <span className="text-tertiary">• {workspaceIds.length}</span>
-                  {workspaceLoader && ["mutation", "pagination"].includes(workspaceLoader) && (
-                    <LoaderIcon className="h-4 w-4 animate-spin" />
-                  )}
+                  {workspaceLoader && ["mutation", "pagination"].includes(workspaceLoader) && <ConjoLoader size={16} />}
                 </div>
                 <div className={cn("text-11 leading-5 font-regular text-tertiary")}>
                   Ainda não é possível excluir workspaces, e você só pode acessar um workspace se for administrador ou
@@ -150,7 +147,7 @@ const WorkspaceManagementPage = observer(function WorkspaceManagementPage(_props
                   disabled={workspaceLoader === "pagination"}
                 >
                   Carregar mais
-                  {workspaceLoader === "pagination" && <LoaderIcon className="h-3 w-3 animate-spin" />}
+                  {workspaceLoader === "pagination" && <ConjoLoader size={12} />}
                 </Button>
               </div>
             )}

@@ -14,7 +14,7 @@ import { CheckIcon, CloseIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TEstimatePointsObject, TEstimateSystemKeys, TEstimateTypeErrorObject } from "@plane/types";
-import { Spinner } from "@plane/ui";
+import { SpinnerIcon } from "@plane/ui";
 import { cn, isEstimatePointValuesRepeated } from "@plane/utils";
 import { EstimateInputRoot } from "@/components/estimates/inputs/root";
 // helpers
@@ -194,7 +194,7 @@ export const EstimatePointCreate = observer(function EstimatePointCreate(props: 
           className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs text-success-primary transition-colors hover:bg-layer-1"
           disabled={loader}
         >
-          {loader ? <Spinner className="h-4 w-4" /> : <CheckIcon width={14} height={14} />}
+          {loader ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon width={14} height={14} />}
         </button>
       )}
       <button

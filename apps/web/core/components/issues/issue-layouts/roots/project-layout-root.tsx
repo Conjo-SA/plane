@@ -90,7 +90,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
               {/* mutation loader */}
               {issues?.getIssueLoader() === "mutation" && (
                 <div className="shadow-sm fixed top-[70px] right-[20px] z-50 flex h-[40px] w-[40px] items-center justify-center rounded-sm bg-layer-1">
-                  <Spinner className="h-4 w-4" />
+                  <Spinner height="12px" />
                 </div>
               )}
               <ProjectIssueLayout activeLayout={activeLayout} />

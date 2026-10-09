@@ -5,16 +5,37 @@
  */
 
 import * as React from "react";
+// components
+import { ConjoLoader } from "../conjo-loader";
 // helpers
 import { cn } from "../utils";
 
 export interface ISpinner extends React.SVGAttributes<SVGElement> {
+  /** Altura da palavra Conjo; a largura é proporcional (≈ 2,7× a altura). */
   height?: string;
+  /** Mantido por compatibilidade com os chamadores; a largura vem da proporção da palavra. */
   width?: string;
   className?: string | undefined;
 }
 
-export function Spinner({ height = "32px", width = "32px", className = "" }: ISpinner) {
+/**
+ * Indicador de carregamento padrão do Tasks: a palavra Conjo "letra a letra" (ver `ConjoLoader`).
+ * A cor segue o texto em volta (`currentColor`); use classes `text-*` para mudar.
+ */
+export function Spinner({ height = "32px", className = "" }: ISpinner) {
+  return (
+    <div role="status">
+      <ConjoLoader size={height} className={className} aria-hidden="true" />
+      <span className="sr-only">Carregando...</span>
+    </div>
+  );
+}
+
+/**
+ * Spinner circular antigo, só para ícones minúsculos em botões quadrados onde a palavra Conjo não
+ * cabe (ex.: ícone de um `IconButton`). Para o resto, use `Spinner`.
+ */
+export function SpinnerIcon({ height = "16px", width = "16px", className = "" }: ISpinner) {
   return (
     <div role="status">
       <svg

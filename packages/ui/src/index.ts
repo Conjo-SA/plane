@@ -11,6 +11,7 @@ export * from "./button";
 export * from "./card";
 export * from "./collapsible";
 export * from "./color-picker";
+export * from "./conjo-loader";
 export * from "./constants";
 export * from "./content-wrapper";
 export * from "./control-link";

@@ -10,7 +10,7 @@ import { CheckCheck, RefreshCw } from "lucide-react";
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
-import { Spinner } from "@plane/ui";
+import { SpinnerIcon } from "@plane/ui";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -58,7 +58,7 @@ export const NotificationSidebarHeaderOptions = observer(function NotificationSi
         <IconButton
           size="base"
           variant="ghost"
-          icon={loader === ENotificationLoader.MARK_ALL_AS_READY ? Spinner : CheckCheck}
+          icon={loader === ENotificationLoader.MARK_ALL_AS_READY ? SpinnerIcon : CheckCheck}
           onClick={() => {
             handleMarkAllNotificationsAsRead();
           }}
