@@ -7,6 +7,8 @@
 import type { CSSProperties, ReactNode } from "react";
 // plane imports
 import type { TClientReport, TClientReportKind } from "@plane/types";
+// assets
+import conjoLogo from "@/app/assets/logos/conjo-logo-black.png?url";
 // local imports
 import { endOfMonth, formatFullDate, formatMonthName, parseDateOnly, toHours, toISODate } from "./helpers";
 
@@ -223,25 +225,7 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 9,
-                  background: INK,
-                  color: "#FFFFFF",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 17,
-                }}
-              >
-                C
-              </span>
-              <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: 0.2 }}>Conjo SA</span>
-            </div>
+            <img src={conjoLogo} alt="Conjo SA" style={{ display: "block", height: 48, width: "auto", alignSelf: "flex-start" }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span
                 style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase", color: FAINT }}
@@ -562,8 +546,8 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
               e é debitado do pacote contratado, depois de orçamento aprovado.
             </p>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
-              <b style={{ color: MAN }}>Manutenção</b> é correção de erro, segurança e estabilidade. Está incluída no
-              contrato e não é debitada.
+              <b style={{ color: MAN }}>Manutenção</b> é a correção de bugs: erro, falha ou comportamento inesperado do
+              sistema. Está incluída no contrato e não é debitada.
             </p>
           </div>
         </section>
