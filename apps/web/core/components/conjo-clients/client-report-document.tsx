@@ -562,8 +562,8 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
               e é debitado do pacote contratado, depois de orçamento aprovado.
             </p>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
-              <b style={{ color: MAN }}>Manutenção</b> é correção de erro, segurança e estabilidade. Está incluída no
-              contrato e não é debitada.
+              <b style={{ color: MAN }}>Manutenção</b> é a correção de bugs: erro, falha ou comportamento inesperado do
+              sistema. Está incluída no contrato e não é debitada.
             </p>
           </div>
         </section>
