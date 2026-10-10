@@ -46,6 +46,7 @@ from plane.db.models import (
 from plane.utils import conjo_billing as billing
 from plane.utils.uuid import is_valid_uuid
 from plane.utils.conjo_timeline import TYPES, build_timeline
+from plane.utils.conjo_client_report import build_client_report, parse_period
 from plane.utils.conjo_state_timeline import build_state_timeline
 
 NOT_FOUND = {"error": "Não encontrado."}
@@ -975,6 +976,30 @@ class ClientLedgerExportEndpoint(BaseAPIView):
                 ]
             )
         return response
+
+
+# --------------------------------------------------------------------------- #
+# Activity report (sent to the client)
+# --------------------------------------------------------------------------- #
+
+
+class ClientReportEndpoint(BaseAPIView):
+    """What was done for the client in a period and where the hours went (evolution x maintenance).
+
+    Same access as the client page (workspace admins and members); work items come only from the
+    client's projects the person can see, like the statement and the timeline.
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug, client_id):
+        client = _get_client(slug, client_id)
+        if client is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        start, end = parse_period(request.query_params)
+        if start is None:
+            return _error("Período inválido: informe as datas no formato AAAA-MM-DD, com até um ano.")
+        visible = _visible_project_ids(request.user, slug, billing.client_project_ids(client))
+        return Response(build_client_report(client, start, end, visible))
 
 
 # --------------------------------------------------------------------------- #

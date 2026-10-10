@@ -13,8 +13,10 @@ import { Button } from "@plane/propel/button";
 import { Loader } from "@plane/ui";
 // hooks
 import { useUser } from "@/hooks/store/user";
+import { useAppRouter } from "@/hooks/use-app-router";
 // local imports
 import { ClientFormModal } from "./client-form-modal";
+import { ReportPeriodModal, reportHref } from "./client-report";
 import { PageTitle, useIsClientsAdmin } from "./common";
 import { ContactsCard } from "./contacts-card";
 import { ContractProjectsCard } from "./contract-projects-card";
@@ -30,6 +32,8 @@ export const ClientDetail = observer(function ClientDetail({ workspaceSlug, clie
   const { data: currentUser } = useUser();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isNoteOpen, setIsNoteOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const router = useAppRouter();
   const [timelineToken, setTimelineToken] = useState(0);
 
   const {
@@ -121,6 +125,9 @@ export const ClientDetail = observer(function ClientDetail({ workspaceSlug, clie
             >
               Ver extrato
             </Link>
+            <Button variant="secondary" size="xl" onClick={() => setIsReportOpen(true)}>
+              Emitir relatório
+            </Button>
             <Button variant="primary" size="xl" onClick={() => setIsNoteOpen(true)}>
               Registrar contato
             </Button>
@@ -156,6 +163,13 @@ export const ClientDetail = observer(function ClientDetail({ workspaceSlug, clie
         client={client}
         onClose={() => setIsEditOpen(false)}
         onSaved={refresh}
+      />
+      <ReportPeriodModal
+        isOpen={isReportOpen}
+        title="Emitir relatório"
+        submitLabel="Gerar relatório"
+        onClose={() => setIsReportOpen(false)}
+        onSubmit={(period) => router.push(reportHref(workspaceSlug, client.id, period))}
       />
       <NoteModal
         isOpen={isNoteOpen}

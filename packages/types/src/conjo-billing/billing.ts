@@ -261,3 +261,77 @@ export type TIssueStateTimeline = {
   /** From creation until done (or until now). */
   lead_seconds: number;
 };
+
+/** Conjo: activity report sent to the client (what was done and where the hours went). */
+export type TClientReportKind = Exclude<TWorkKind, "internal">;
+
+export type TClientReportPackage = {
+  contract_name: string;
+  hours_per_month: string;
+  contracted: string;
+  used_before: string;
+  used_in_period: string;
+  balance: string;
+  excess_in_period: string;
+  valid_until: string | null;
+  next_expiry: string | null;
+};
+
+export type TClientReportWarning = {
+  type: "unclassified" | "partial" | "truncated";
+  message: string;
+  items: { id: string; project_id: string; key: string; title: string; hours: string }[];
+};
+
+export type TClientReport = {
+  number: string;
+  issued_on: string;
+  period: { from: string; to: string };
+  client: { id: string; name: string; legal_name: string };
+  contract: { name: string } | null;
+  owner: string;
+  totals: {
+    minutes: number;
+    hours: string;
+    evolution_minutes: number;
+    evolution_hours: string;
+    maintenance_minutes: number;
+    maintenance_hours: string;
+    items: number;
+    done_items: number;
+  };
+  package: TClientReportPackage | null;
+  by_kind: { kind: TClientReportKind; minutes: number; hours: string; items: number; done_items: number }[];
+  by_system: {
+    name: string;
+    minutes: number;
+    hours: string;
+    evolution_minutes: number;
+    maintenance_minutes: number;
+  }[];
+  highlights: {
+    key: string;
+    title: string;
+    kind: TClientReportKind;
+    minutes: number;
+    hours: string;
+    summary: string;
+    done: boolean;
+  }[];
+  rows: {
+    id: string;
+    date: string;
+    key: string;
+    kind: TClientReportKind;
+    title: string;
+    description: string;
+    minutes: number;
+    hours: string;
+  }[];
+  next_steps: (
+    | { type: "in_progress"; key: string; title: string }
+    | { type: "pending_estimate"; key: string; title: string; hours: string }
+  )[];
+  /** Only for whoever issues the report; never printed. */
+  warnings: TClientReportWarning[];
+};
