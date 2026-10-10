@@ -146,6 +146,7 @@ def build_client_report(client, start, end, visible_project_ids):
             workspace_id=client.workspace_id,
             issue_id__in=client_issue_ids,
             project_id__in=visible,
+            issue__project_id__in=visible,
             logged_on__gte=start,
             logged_on__lte=end,
         )
@@ -233,6 +234,7 @@ def build_client_report(client, start, end, visible_project_ids):
             workspace_id=client.workspace_id,
             issue_id__in=client_issue_ids,
             project_id__in=visible,
+            issue__project_id__in=visible,
             status="PENDING",
         )
         .filter(issue_id__in=IssueWorkKind.objects.filter(kind__in=REPORTED_KINDS).values("issue_id"))
