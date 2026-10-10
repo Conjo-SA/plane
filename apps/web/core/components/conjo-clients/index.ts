@@ -5,6 +5,7 @@
  */
 
 export * from "./client-detail";
+export { ClientReport } from "./client-report";
 export * from "./clients-list";
 export * from "./contract-form";
 export * from "./ledger";

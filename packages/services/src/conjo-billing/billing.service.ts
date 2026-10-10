@@ -27,6 +27,7 @@ import type {
   TPackageSummary,
   TProjectClientSummary,
   TClientNoteCreate,
+  TClientReport,
   TClientTimelineType,
   TWorkKind,
 } from "@plane/types";
@@ -226,6 +227,17 @@ export class ConjoBillingService extends APIService {
     params: { from?: string; to?: string }
   ): Promise<{ marked: number }> {
     return this.call(this.post(`${this.clientUrl(workspaceSlug, clientId)}/ledger/export/`, params));
+  }
+
+  // Activity report
+
+  /** Activity report of a period (the previous month when `from`/`to` are omitted). */
+  async getReport(
+    workspaceSlug: string,
+    clientId: string,
+    params?: { from?: string; to?: string }
+  ): Promise<TClientReport> {
+    return this.call(this.get(`${this.clientUrl(workspaceSlug, clientId)}/report/`, { params }));
   }
 
   // Timeline
