@@ -1527,8 +1527,8 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         if not issue_id or not actor_id or not activities:
             return
 
-        from plane.bgtasks.intake_portal_task import send_portal_ticket_update
-        from plane.db.models import IntakeIssue
+        from plane.bgtasks.intake_portal_task import send_portal_ticket_reply, send_portal_ticket_update
+        from plane.db.models import IntakeIssue, IssueComment
         from plane.db.models.intake import SourceType
 
         is_portal_ticket = IntakeIssue.objects.filter(
@@ -1537,11 +1537,31 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         if not is_portal_ticket:
             return
 
-        relevant_fields = {"state", "priority", "comment", "target_date", "assignees", "labels"}
+        # MAN-332: resposta pública vai inteira no e-mail, com o botão para responder; nota interna
+        # (e edição de comentário) não avisa o cliente, que não a veria no portal.
+        new_comment_ids = [
+            str(activity.issue_comment_id)
+            for activity in activities
+            if activity.field == "comment" and activity.verb == "created" and activity.issue_comment_id
+        ]
+        public_reply_ids = (
+            [
+                str(pk)
+                for pk in IssueComment.objects.filter(
+                    pk__in=new_comment_ids, issue_id=issue_id, access="EXTERNAL"
+                ).values_list("id", flat=True)
+            ]
+            if new_comment_ids
+            else []
+        )
+        for comment_id in public_reply_ids:
+            send_portal_ticket_reply.delay(str(issue_id), comment_id)
+
+        relevant_fields = {"state", "priority", "target_date", "assignees", "labels"}
         changed_fields = {
             activity.field
             for activity in activities
-            if activity.field in relevant_fields or activity.field is None
+            if activity.field in relevant_fields or (activity.field is None and not public_reply_ids)
         }
         if not changed_fields:
             return
@@ -1549,7 +1569,6 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         field_labels = {
             "state": "status",
             "priority": "prioridade",
-            "comment": "comentário",
             "target_date": "data-alvo",
             "assignees": "responsáveis",
             "labels": "etiquetas",

@@ -10,10 +10,10 @@ from celery import shared_task
 
 # Django imports
 from django.conf import settings
-from django.utils.html import escape
+from django.utils.html import escape, strip_tags
 
 # Module imports
-from plane.db.models import IntakeIssue, IntakePortalBudget, Issue
+from plane.db.models import IntakeIssue, IntakePortal, IntakePortalBudget, Issue, IssueComment
 from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.utils.exception_logger import log_exception
 from plane.utils.intake_portal import approved_hours, note_to_html
@@ -38,7 +38,14 @@ def _portal_ticket_url(anchor: str | None, issue_id: str | None = None) -> str:
     if not anchor:
         return ""
 
-    base_origin = settings.SPACE_BASE_URL or settings.WEB_URL or settings.APP_BASE_URL
+    # Em produção só existe TASKS_PUBLIC_URL (o portal mora em <TASKS_PUBLIC_URL>/spaces/); sem ela o
+    # link saía vazio e o e-mail ia sem botão (MAN-332).
+    base_origin = (
+        settings.SPACE_BASE_URL
+        or settings.WEB_URL
+        or settings.APP_BASE_URL
+        or getattr(settings, "TASKS_PUBLIC_URL", "")
+    )
     if not base_origin:
         return ""
 
@@ -52,6 +59,18 @@ def _portal_ticket_url(anchor: str | None, issue_id: str | None = None) -> str:
         ticket_path = f"{ticket_path}/{quote(str(issue_id).strip(), safe='')}"
 
     return f"{base_origin.rstrip('/')}{space_base_path}{ticket_path}"
+
+
+def _requester_portal_url(intake_issue, issue_id) -> str:
+    """Link do chamado no portal. Chamado sem o identificador do portal gravado usa o do portal da entrada."""
+    anchor = ""
+    if isinstance(intake_issue.extra, dict):
+        anchor = intake_issue.extra.get("portal_anchor") or ""
+    if not anchor and intake_issue.intake_id:
+        anchor = (
+            IntakePortal.objects.filter(intake_id=intake_issue.intake_id).values_list("anchor", flat=True).first() or ""
+        )
+    return _portal_ticket_url(anchor, str(issue_id))
 
 
 def _portal_cta_html(portal_url: str, button_label: str) -> str:
@@ -113,11 +132,7 @@ def send_portal_ticket_created(issue_id, portal_url=""):
         if intake_issue is None or not intake_issue.source_email:
             return
 
-        portal_anchor = ""
-        if isinstance(intake_issue.extra, dict):
-            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
-
-        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+        effective_portal_url = portal_url or _requester_portal_url(intake_issue, issue_id)
 
         link_html = _portal_cta_html(effective_portal_url, "Abrir chamado no portal") if effective_portal_url else ""
         body = (
@@ -146,11 +161,7 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
         if intake_issue is None or not intake_issue.source_email:
             return
 
-        portal_anchor = ""
-        if isinstance(intake_issue.extra, dict):
-            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
-
-        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+        effective_portal_url = portal_url or _requester_portal_url(intake_issue, issue_id)
 
         state_html = (
             f"<p>Status atual: <strong>{escape(issue.state.name)}</strong></p>"
@@ -170,6 +181,69 @@ def send_portal_ticket_update(issue_id, summary, portal_url=""):
             intake_issue.source_email,
             f"Atualização no chamado: {issue.name}",
             _wrap("Atualização no seu chamado", body),
+        )
+    except Exception as e:
+        log_exception(e)
+
+
+REPLY_TEXT_MAX = 1500
+
+
+def _reply_text(comment_html: str) -> str:
+    """Texto puro da resposta, com as quebras de parágrafo, cortado para caber no e-mail."""
+    html = comment_html or ""
+    for tag in ("</p>", "<br>", "<br/>", "<br />", "</li>", "</div>", "</h1>", "</h2>", "</h3>"):
+        html = html.replace(tag, f"{tag}\n")
+    text = "\n".join(line.strip() for line in strip_tags(html).splitlines())
+    while "\n\n\n" in text:
+        text = text.replace("\n\n\n", "\n\n")
+    text = text.strip()
+    return text if len(text) <= REPLY_TEXT_MAX else f"{text[: REPLY_TEXT_MAX - 1].rstrip()}…"
+
+
+@shared_task
+def send_portal_ticket_reply(issue_id, comment_id, portal_url=""):
+    """A equipe respondeu publicamente: o cliente recebe a resposta no e-mail e o botão para responder."""
+    try:
+        issue = Issue.objects.filter(pk=issue_id).select_related("state").first()
+        if issue is None:
+            return
+
+        intake_issue = IntakeIssue.objects.filter(issue_id=issue_id, source=SourceType.PORTAL).first()
+        if intake_issue is None or not intake_issue.source_email:
+            return
+
+        # Só resposta pública: nota interna nunca chega ao cliente.
+        comment = IssueComment.objects.filter(pk=comment_id, issue_id=issue_id, access="EXTERNAL").first()
+        if comment is None:
+            return
+
+        text = _reply_text(comment.comment_html)
+        effective_portal_url = portal_url or _requester_portal_url(intake_issue, issue_id)
+        reply_html = (
+            '<div style="background:#f3f4f6;border-left:4px solid #1080bc;border-radius:6px;'
+            'padding:12px 16px;margin:16px 0;white-space:pre-line;">'
+            f"{escape(text)}"
+            "</div>"
+            if text
+            else ""
+        )
+        state_html = (
+            f"<p>Status atual: <strong>{escape(issue.state.name)}</strong></p>"
+            if issue.state_id and issue.state
+            else ""
+        )
+        link_html = _portal_cta_html(effective_portal_url, "Ver e responder no portal") if effective_portal_url else ""
+        body = (
+            f"<p>A equipe respondeu sua solicitação <strong>{escape(issue.name)}</strong>:</p>"
+            f"{reply_html}"
+            f"{state_html}"
+            f"{link_html}"
+        )
+        send_transactional_email(
+            intake_issue.source_email,
+            f"Nova resposta no seu chamado: {issue.name}",
+            _wrap("Nova resposta no seu chamado", body),
         )
     except Exception as e:
         log_exception(e)
@@ -203,11 +277,7 @@ def send_portal_budget_request(issue_id, portal_url="", budget_id=None):
         last_event = budget.events.order_by("-occurred_at").first()
         revised_from = last_event.previous_hours if last_event and last_event.kind == "revised" else None
 
-        portal_anchor = ""
-        if isinstance(intake_issue.extra, dict):
-            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
-
-        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+        effective_portal_url = portal_url or _requester_portal_url(intake_issue, issue_id)
 
         hours = f"{budget.estimated_hours:.2f}".rstrip("0").rstrip(".")
         note_html = (
@@ -267,11 +337,7 @@ def send_portal_budget_cancelled(issue_id, budget_id, portal_url=""):
         if budget is None or budget.status != IntakePortalBudgetStatus.CANCELLED:
             return
 
-        portal_anchor = ""
-        if isinstance(intake_issue.extra, dict):
-            portal_anchor = intake_issue.extra.get("portal_anchor") or ""
-
-        effective_portal_url = portal_url or _portal_ticket_url(portal_anchor, str(issue_id))
+        effective_portal_url = portal_url or _requester_portal_url(intake_issue, issue_id)
 
         hours = _hours_label(budget.estimated_hours)
         reason_html = (
