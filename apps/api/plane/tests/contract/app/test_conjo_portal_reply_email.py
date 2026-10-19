@@ -25,6 +25,7 @@ from plane.db.models import (
     Project,
     ProjectMember,
     State,
+    User,
 )
 from plane.db.models.intake import SourceType
 
@@ -59,15 +60,19 @@ def setup(db, workspace, create_user):
     return {"project": project, "portal": portal, "issue": issue, "ticket": ticket, "user": create_user}
 
 
-def comment(setup, access, html="<p>Olá Maria,</p><p>já ajustamos o frete.</p>"):
+def comment(setup, access, html="<p>Olá Maria,</p><p>já ajustamos o frete.</p>", actor=None):
     return IssueComment.objects.create(
         issue=setup["issue"],
         project=setup["project"],
         workspace=setup["project"].workspace,
         comment_html=html,
         access=access,
-        actor=setup["user"],
+        actor=actor or setup["user"],
     )
+
+
+def outsider():
+    return User.objects.create(email="curioso@fora.com", username="curioso")
 
 
 def activity(setup, field, verb="created", comment_id=None):
@@ -90,14 +95,16 @@ def test_link_do_portal_usa_tasks_public_url_quando_nao_ha_outra_base():
 
 @override_settings(**ONLY_TASKS_URL)
 def test_resposta_publica_vai_com_o_texto_e_o_botao(setup):
-    reply = comment(setup, "EXTERNAL", "<p>Olá Maria,</p><p>já ajustamos <b>o frete</b>.</p><script>x()</script>")
+    reply = comment(
+        setup, "EXTERNAL", "<p>Olá Maria,</p><p>já ajustamos <b>o frete</b> &amp; o prazo.</p><script>x()</script>"
+    )
     with mock.patch("plane.bgtasks.intake_portal_task.send_transactional_email") as mail:
         send_portal_ticket_reply(str(setup["issue"].id), str(reply.id))
     to, subject, html = mail.call_args.args
     portal_url = f"{TASKS}/spaces/portal/{setup['portal'].anchor}/{setup['issue'].id}"
     assert to == EMAIL
     assert subject == "Nova resposta no seu chamado: Pedido de frete"
-    assert "Olá Maria,\njá ajustamos o frete." in html
+    assert "Olá Maria,\njá ajustamos o frete &amp; o prazo." in html and "&amp;amp;" not in html
     assert f'href="{portal_url}"' in html and "Ver e responder no portal" in html
     assert "<script>" not in html and "<b>" not in html
 
@@ -143,3 +150,16 @@ def test_resposta_publica_dispara_o_e_mail_da_resposta_e_nota_interna_nada(setup
         )
         update_mail.assert_called_once()
         assert "status" in update_mail.call_args.args[1]
+
+
+@override_settings(**ONLY_TASKS_URL)
+def test_comentario_publico_de_quem_nao_e_da_equipe_nao_vira_resposta(setup):
+    stranger = comment(setup, "EXTERNAL", "<p>Pague o boleto em http://golpe.exemplo</p>", actor=outsider())
+    with mock.patch("plane.bgtasks.intake_portal_task.send_transactional_email") as mail:
+        send_portal_ticket_reply(str(setup["issue"].id), str(stranger.id))
+    mail.assert_not_called()
+    with mock.patch("plane.bgtasks.intake_portal_task.send_portal_ticket_reply.delay") as reply_mail:
+        notify_intake_portal_requester(
+            str(setup["issue"].id), str(stranger.actor_id), [activity(setup, "comment", comment_id=stranger.id)]
+        )
+    reply_mail.assert_not_called()

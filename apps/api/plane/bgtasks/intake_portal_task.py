@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 # Python imports
+from html import unescape
 from urllib.parse import quote
 
 # Third party imports
@@ -13,7 +14,7 @@ from django.conf import settings
 from django.utils.html import escape, strip_tags
 
 # Module imports
-from plane.db.models import IntakeIssue, IntakePortal, IntakePortalBudget, Issue, IssueComment
+from plane.db.models import IntakeIssue, IntakePortal, IntakePortalBudget, Issue, IssueComment, ProjectMember
 from plane.db.models.intake import IntakePortalBudgetStatus, SourceType
 from plane.utils.exception_logger import log_exception
 from plane.utils.intake_portal import approved_hours, note_to_html
@@ -71,6 +72,14 @@ def _requester_portal_url(intake_issue, issue_id) -> str:
             IntakePortal.objects.filter(intake_id=intake_issue.intake_id).values_list("anchor", flat=True).first() or ""
         )
     return _portal_ticket_url(anchor, str(issue_id))
+
+
+def is_team_member(project_id, user_id) -> bool:
+    """Membro ativo do projeto do chamado."""
+    return (
+        bool(user_id)
+        and ProjectMember.objects.filter(project_id=project_id, member_id=user_id, is_active=True).exists()
+    )
 
 
 def _portal_cta_html(portal_url: str, button_label: str) -> str:
@@ -194,7 +203,7 @@ def _reply_text(comment_html: str) -> str:
     html = comment_html or ""
     for tag in ("</p>", "<br>", "<br/>", "<br />", "</li>", "</div>", "</h1>", "</h2>", "</h3>"):
         html = html.replace(tag, f"{tag}\n")
-    text = "\n".join(line.strip() for line in strip_tags(html).splitlines())
+    text = "\n".join(line.strip() for line in unescape(strip_tags(html)).replace("\xa0", " ").splitlines())
     while "\n\n\n" in text:
         text = text.replace("\n\n\n", "\n\n")
     text = text.strip()
@@ -216,6 +225,10 @@ def send_portal_ticket_reply(issue_id, comment_id, portal_url=""):
         # Só resposta pública: nota interna nunca chega ao cliente.
         comment = IssueComment.objects.filter(pk=comment_id, issue_id=issue_id, access="EXTERNAL").first()
         if comment is None:
+            return
+        # "A equipe respondeu" só para quem é da equipe: comentário de outra pessoa (board publicado
+        # com comentários) não vira e-mail com remetente oficial.
+        if not is_team_member(issue.project_id, comment.actor_id):
             return
 
         text = _reply_text(comment.comment_html)

@@ -1527,7 +1527,11 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         if not issue_id or not actor_id or not activities:
             return
 
-        from plane.bgtasks.intake_portal_task import send_portal_ticket_reply, send_portal_ticket_update
+        from plane.bgtasks.intake_portal_task import (
+            is_team_member,
+            send_portal_ticket_reply,
+            send_portal_ticket_update,
+        )
         from plane.db.models import IntakeIssue, IssueComment
         from plane.db.models.intake import SourceType
 
@@ -1547,9 +1551,10 @@ def notify_intake_portal_requester(issue_id, actor_id, activities):
         public_reply_ids = (
             [
                 str(pk)
-                for pk in IssueComment.objects.filter(
+                for pk, project_id, author_id in IssueComment.objects.filter(
                     pk__in=new_comment_ids, issue_id=issue_id, access="EXTERNAL"
-                ).values_list("id", flat=True)
+                ).values_list("id", "project_id", "actor_id")
+                if is_team_member(project_id, author_id)
             ]
             if new_comment_ids
             else []
