@@ -113,6 +113,13 @@ class IntakeIssuePublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # A Entrada da URL tem de ser a publicada neste board (MAN-333).
+        if str(project_deploy_board.intake_id) != str(intake_id):
+            return Response(
+                {"error": "O objeto solicitado não existe."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         if not request.data.get("issue", {}).get("name", False):
             return Response({"error": "O nome é obrigatório"}, status=status.HTTP_400_BAD_REQUEST)
 

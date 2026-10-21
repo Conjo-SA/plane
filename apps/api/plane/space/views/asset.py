@@ -19,9 +19,18 @@ from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.db.models import DeployBoard, FileAsset
 from plane.settings.storage import S3Storage
 from plane.utils.path_validator import sanitize_filename
+from plane.utils.uuid import is_valid_uuid
 
 # Module imports
 from .base import BaseAPIView
+from .issue import board_comments
+
+
+def board_comment_exists(deploy_board, comment_id):
+    """True se o comentário é público e de um chamado do projeto publicado (MAN-333)."""
+    if not is_valid_uuid(str(comment_id)):
+        return False
+    return board_comments(deploy_board).filter(pk=comment_id).exists()
 
 
 class EntityAssetEndpoint(BaseAPIView):
@@ -112,6 +121,13 @@ class EntityAssetEndpoint(BaseAPIView):
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # O comentário informado tem de ser público e do projeto publicado (MAN-333).
+        if entity_identifier and not board_comment_exists(deploy_board, entity_identifier):
+            return Response(
+                {"error": "O comentário informado não foi encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # asset key
@@ -232,6 +248,12 @@ class EntityBulkAssetEndpoint(BaseAPIView):
 
         # Check if the entity type is allowed
         if asset.entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
+            # O comentário da URL tem de ser público e do projeto publicado (MAN-333).
+            if not board_comment_exists(deploy_board, entity_id):
+                return Response(
+                    {"error": "O comentário informado não foi encontrado."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             # update the attributes
             assets.update(comment_id=entity_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
