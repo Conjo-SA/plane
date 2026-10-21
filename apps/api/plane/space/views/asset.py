@@ -240,19 +240,14 @@ class EntityBulkAssetEndpoint(BaseAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Só imagens de comentário que o próprio visitante enviou neste projeto.
-        assets = FileAsset.objects.filter(
+        # Só imagens de comentário que o próprio visitante enviou neste projeto. Ids que
+        # não casam (de terceiros, de descrição ou imagens já apagadas no editor) ficam
+        # intactos; o editor do board manda também os ids de imagens que o visitante removeu.
+        FileAsset.objects.filter(
             id__in=set(asset_ids),
             workspace=deploy_board.workspace,
             project_id=deploy_board.project_id,
             created_by=request.user,
             entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-        )
-        if assets.count() != len(set(asset_ids)):
-            return Response(
-                {"error": "O arquivo solicitado não foi encontrado."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        assets.update(comment_id=entity_id)
+        ).update(comment_id=entity_id)
         return Response(status=status.HTTP_204_NO_CONTENT)

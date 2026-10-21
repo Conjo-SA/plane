@@ -12,6 +12,7 @@ partir de qualquer board publicado. Cada caso aqui tem o controle positivo
 (mesmo projeto funciona) e o negativo (outro projeto responde 404 e não grava).
 """
 
+import json
 from unittest import mock
 from uuid import uuid4
 
@@ -244,6 +245,26 @@ class TestPublicBoardCommentFields:
         assert comment.access == "EXTERNAL"
         assert comment.parent_id is None
         assert comment.external_source is None
+
+    @pytest.mark.django_db
+    def test_edit_sends_sanitized_html_to_activity(self, scenario):
+        """A atividade (e o e-mail aos membros) recebe o HTML já sanitizado, nunca o corpo cru."""
+        own = scenario["external_comment"](scenario["issue_a"], scenario["visitor"])
+        raw = '<p>oi</p><script>alert(1)</script><img src=x onerror="alert(2)">'
+        with mock.patch("plane.space.views.issue.issue_activity") as activity:
+            response = scenario["client"].patch(
+                url(scenario["anchor"], f"issues/{scenario['issue_a'].id}/comments/{own.id}/"),
+                {"comment_html": raw},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK, detail(response)
+        own.refresh_from_db()
+        assert "script" not in own.comment_html and "onerror" not in own.comment_html
+
+        requested = json.loads(activity.delay.call_args.kwargs["requested_data"])
+        assert requested["comment_html"] == own.comment_html
+        assert "script" not in requested["comment_html"]
+        assert "onerror" not in requested["comment_html"]
 
 
 @pytest.mark.contract
@@ -586,25 +607,37 @@ class TestPublicBoardCommentAssets:
         assert asset.comment_id is None
 
     @pytest.mark.django_db
-    def test_bulk_cannot_take_assets_of_other_person(self, scenario):
+    def test_bulk_links_only_own_assets_and_leaves_others_untouched(self, scenario):
+        """Ids de terceiros ou de descrição de chamado no meio do lote não são tocados."""
         mine = self.asset(scenario)
         theirs = self.asset(scenario, created_by=scenario["owner"])
+        description = self.asset(scenario, entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION)
+        their_comment = scenario["external_comment"](scenario["issue_a"], scenario["owner"])
+        FileAsset.objects.filter(pk=theirs.pk).update(comment=their_comment)
         comment = self.own_comment(scenario)
-        response = self.bulk(scenario, comment.id, [mine.id, theirs.id])
-        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+
+        response = self.bulk(scenario, comment.id, [mine.id, theirs.id, description.id])
+        assert response.status_code == status.HTTP_204_NO_CONTENT, detail(response)
         mine.refresh_from_db()
         theirs.refresh_from_db()
-        assert mine.comment_id is None
-        assert theirs.comment_id is None
+        description.refresh_from_db()
+        assert mine.comment_id == comment.id
+        assert theirs.comment_id == their_comment.id
+        assert description.comment_id is None
 
     @pytest.mark.django_db
-    def test_bulk_cannot_take_issue_description_assets(self, scenario):
-        description = self.asset(scenario, entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION)
+    def test_bulk_with_image_removed_in_editor_links_the_rest(self, scenario):
+        """O editor do board manda também o id da imagem que o visitante apagou antes de publicar."""
+        kept = self.asset(scenario)
+        removed = self.asset(scenario)
+        removed.delete()
         comment = self.own_comment(scenario)
-        response = self.bulk(scenario, comment.id, [description.id])
-        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
-        description.refresh_from_db()
-        assert description.comment_id is None
+
+        response = self.bulk(scenario, comment.id, [kept.id, removed.id])
+        assert response.status_code == status.HTTP_204_NO_CONTENT, detail(response)
+        kept.refresh_from_db()
+        assert kept.comment_id == comment.id
+        assert FileAsset.all_objects.get(pk=removed.pk).comment_id is None
 
     @pytest.mark.django_db
     def test_bulk_link_own_assets_to_own_comment_works(self, scenario):

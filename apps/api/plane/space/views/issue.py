@@ -360,7 +360,8 @@ class IssueCommentPublicViewSet(BaseViewSet):
             serializer.save(actor=request.user, access="EXTERNAL")
             issue_activity.delay(
                 type="comment.activity.updated",
-                requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+                # Dados já validados e sanitizados, nunca o corpo cru (vai para atividade e e-mail).
+                requested_data=json.dumps(serializer.data, cls=DjangoJSONEncoder),
                 actor_id=str(request.user.id),
                 issue_id=str(issue_id),
                 project_id=str(project_deploy_board.project_id),
