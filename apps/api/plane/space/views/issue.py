@@ -70,6 +70,47 @@ from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_filters import issue_filters
 
 
+def get_board_issue(deploy_board, issue_id):
+    """Chamado da URL, desde que seja do projeto publicado neste board (MAN-333).
+
+    Usa ``issue_objects``, o mesmo recorte que o board mostra (sem rascunho,
+    arquivado, triagem ou excluído). Chamado de outro projeto levanta
+    ``Issue.DoesNotExist``, que a view devolve como 404.
+    """
+    return Issue.issue_objects.get(
+        pk=issue_id,
+        project_id=deploy_board.project_id,
+        workspace_id=deploy_board.workspace_id,
+    )
+
+
+def board_comments(deploy_board):
+    """Comentários públicos (EXTERNAL) de chamados do projeto publicado neste board."""
+    return IssueComment.objects.filter(
+        project_id=deploy_board.project_id,
+        workspace_id=deploy_board.workspace_id,
+        access="EXTERNAL",
+        issue__in=Issue.issue_objects.filter(
+            project_id=deploy_board.project_id,
+            workspace_id=deploy_board.workspace_id,
+        ),
+    )
+
+
+# Campos que o visitante do board pode enviar num comentário. O resto (autor,
+# visibilidade, comentário pai, origem externa) é definido pelo servidor (MAN-333).
+BOARD_COMMENT_FIELDS = ("comment_html", "comment_json")
+
+
+def board_comment_data(data):
+    return {key: data[key] for key in BOARD_COMMENT_FIELDS if key in data}
+
+
+def get_board_comment(deploy_board, comment_id):
+    """Comentário da URL, desde que seja público e do projeto do board (senão 404)."""
+    return board_comments(deploy_board).get(pk=comment_id)
+
+
 class ProjectIssuesPublicEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
@@ -233,6 +274,7 @@ class IssueCommentPublicViewSet(BaseViewSet):
                     super()
                     .get_queryset()
                     .filter(workspace_id=project_deploy_board.workspace_id)
+                    .filter(project_id=project_deploy_board.project_id)
                     .filter(issue_id=self.kwargs.get("issue_id"))
                     .filter(access="EXTERNAL")
                     .select_related("project")
@@ -263,13 +305,17 @@ class IssueCommentPublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = IssueCommentSerializer(data=request.data)
+        # O chamado da URL tem de ser do projeto publicado (MAN-333).
+        issue = get_board_issue(project_deploy_board, issue_id)
+
+        serializer = IssueCommentSerializer(data=board_comment_data(request.data))
         if serializer.is_valid():
             serializer.save(
                 project_id=project_deploy_board.project_id,
-                issue_id=issue_id,
+                issue_id=issue.id,
                 actor=request.user,
                 access="EXTERNAL",
+                parent=None,
             )
             issue_activity.delay(
                 type="comment.activity.created",
@@ -301,13 +347,21 @@ class IssueCommentPublicViewSet(BaseViewSet):
                 {"error": "Comentários não estão habilitados para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        comment = IssueComment.objects.get(pk=pk, actor=request.user)
-        serializer = IssueCommentSerializer(comment, data=request.data, partial=True)
+        comment = IssueComment.objects.get(
+            pk=pk,
+            actor=request.user,
+            issue_id=issue_id,
+            project_id=project_deploy_board.project_id,
+            workspace_id=project_deploy_board.workspace_id,
+            access="EXTERNAL",
+        )
+        serializer = IssueCommentSerializer(comment, data=board_comment_data(request.data), partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(actor=request.user, access="EXTERNAL")
             issue_activity.delay(
                 type="comment.activity.updated",
-                requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+                # Dados já validados e sanitizados, nunca o corpo cru (vai para atividade e e-mail).
+                requested_data=json.dumps(serializer.data, cls=DjangoJSONEncoder),
                 actor_id=str(request.user.id),
                 issue_id=str(issue_id),
                 project_id=str(project_deploy_board.project_id),
@@ -325,7 +379,14 @@ class IssueCommentPublicViewSet(BaseViewSet):
                 {"error": "Comentários não estão habilitados para este projeto"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        comment = IssueComment.objects.get(pk=pk, actor=request.user)
+        comment = IssueComment.objects.get(
+            pk=pk,
+            actor=request.user,
+            issue_id=issue_id,
+            project_id=project_deploy_board.project_id,
+            workspace_id=project_deploy_board.workspace_id,
+            access="EXTERNAL",
+        )
         issue_activity.delay(
             type="comment.activity.deleted",
             requested_data=json.dumps({"comment_id": str(pk)}),
@@ -345,16 +406,13 @@ class IssueReactionPublicViewSet(BaseViewSet):
 
     def get_queryset(self):
         try:
-            project_deploy_board = DeployBoard.objects.get(
-                workspace__slug=self.kwargs.get("slug"),
-                project_id=self.kwargs.get("project_id"),
-            )
+            project_deploy_board = DeployBoard.objects.get(anchor=self.kwargs.get("anchor"), entity_name="project")
             if project_deploy_board.is_reactions_enabled:
                 return (
                     super()
                     .get_queryset()
-                    .filter(workspace__slug=self.kwargs.get("slug"))
-                    .filter(project_id=self.kwargs.get("project_id"))
+                    .filter(workspace_id=project_deploy_board.workspace_id)
+                    .filter(project_id=project_deploy_board.project_id)
                     .filter(issue_id=self.kwargs.get("issue_id"))
                     .order_by("-created_at")
                     .distinct()
@@ -372,11 +430,14 @@ class IssueReactionPublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # O chamado da URL tem de ser do projeto publicado (MAN-333).
+        issue = get_board_issue(project_deploy_board, issue_id)
+
         serializer = IssueReactionSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(
                 project_id=project_deploy_board.project_id,
-                issue_id=issue_id,
+                issue_id=issue.id,
                 actor=request.user,
             )
             if not ProjectMember.objects.filter(
@@ -410,6 +471,7 @@ class IssueReactionPublicViewSet(BaseViewSet):
             )
         issue_reaction = IssueReaction.objects.get(
             workspace_id=project_deploy_board.workspace_id,
+            project_id=project_deploy_board.project_id,
             issue_id=issue_id,
             reaction=reaction_code,
             actor=request.user,
@@ -457,11 +519,14 @@ class CommentReactionPublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # O comentário tem de ser público e de um chamado do projeto publicado (MAN-333).
+        comment = get_board_comment(project_deploy_board, comment_id)
+
         serializer = CommentReactionSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(
                 project_id=project_deploy_board.project_id,
-                comment_id=comment_id,
+                comment_id=comment.id,
                 actor=request.user,
             )
             if not ProjectMember.objects.filter(
@@ -478,7 +543,7 @@ class CommentReactionPublicViewSet(BaseViewSet):
                 requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
                 actor_id=str(self.request.user.id),
                 issue_id=None,
-                project_id=str(self.kwargs.get("project_id", None)),
+                project_id=str(project_deploy_board.project_id),
                 current_instance=None,
                 epoch=int(timezone.now().timestamp()),
             )
@@ -525,9 +590,7 @@ class IssueVotePublicViewSet(BaseViewSet):
 
     def get_queryset(self):
         try:
-            project_deploy_board = DeployBoard.objects.get(
-                workspace__slug=self.kwargs.get("anchor"), entity_name="project"
-            )
+            project_deploy_board = DeployBoard.objects.get(anchor=self.kwargs.get("anchor"), entity_name="project")
             if project_deploy_board.is_votes_enabled:
                 return (
                     super()
@@ -542,10 +605,18 @@ class IssueVotePublicViewSet(BaseViewSet):
 
     def create(self, request, anchor, issue_id):
         project_deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
+        if not project_deploy_board.is_votes_enabled:
+            return Response(
+                {"error": "Votos não estão habilitados neste projeto"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # O chamado da URL tem de ser do projeto publicado (MAN-333).
+        issue = get_board_issue(project_deploy_board, issue_id)
         issue_vote, _ = IssueVote.objects.get_or_create(
             actor_id=request.user.id,
             project_id=project_deploy_board.project_id,
-            issue_id=issue_id,
+            issue_id=issue.id,
         )
         # Add the user for workspace tracking
         if not ProjectMember.objects.filter(
