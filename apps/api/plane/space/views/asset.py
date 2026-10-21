@@ -26,11 +26,11 @@ from .base import BaseAPIView
 from .issue import board_comments
 
 
-def board_comment_exists(deploy_board, comment_id):
-    """True se o comentário é público e de um chamado do projeto publicado (MAN-333)."""
+def board_comment_exists(deploy_board, comment_id, user):
+    """True se o comentário é do próprio visitante, público e de um chamado do projeto publicado (MAN-333)."""
     if not is_valid_uuid(str(comment_id)):
         return False
-    return board_comments(deploy_board).filter(pk=comment_id).exists()
+    return board_comments(deploy_board).filter(pk=comment_id, actor=user).exists()
 
 
 class EntityAssetEndpoint(BaseAPIView):
@@ -124,7 +124,7 @@ class EntityAssetEndpoint(BaseAPIView):
             )
 
         # O comentário informado tem de ser público e do projeto publicado (MAN-333).
-        if entity_identifier and not board_comment_exists(deploy_board, entity_identifier):
+        if entity_identifier and not board_comment_exists(deploy_board, entity_identifier, request.user):
             return Response(
                 {"error": "O comentário informado não foi encontrado."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -230,30 +230,29 @@ class EntityBulkAssetEndpoint(BaseAPIView):
         if not asset_ids:
             return Response({"error": "Nenhum ID de arquivo informado."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # get the asset id
+        if not isinstance(asset_ids, list) or not all(is_valid_uuid(str(asset_id)) for asset_id in asset_ids):
+            return Response({"error": "IDs de arquivo inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # O comentário da URL tem de ser do próprio visitante, público e do projeto publicado (MAN-333).
+        if not board_comment_exists(deploy_board, entity_id, request.user):
+            return Response(
+                {"error": "O comentário informado não foi encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Só imagens de comentário que o próprio visitante enviou neste projeto.
         assets = FileAsset.objects.filter(
-            id__in=asset_ids,
+            id__in=set(asset_ids),
             workspace=deploy_board.workspace,
             project_id=deploy_board.project_id,
+            created_by=request.user,
+            entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
         )
-
-        asset = assets.first()
-
-        # Check if the asset is uploaded
-        if not asset:
+        if assets.count() != len(set(asset_ids)):
             return Response(
                 {"error": "O arquivo solicitado não foi encontrado."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Check if the entity type is allowed
-        if asset.entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
-            # O comentário da URL tem de ser público e do projeto publicado (MAN-333).
-            if not board_comment_exists(deploy_board, entity_id):
-                return Response(
-                    {"error": "O comentário informado não foi encontrado."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            # update the attributes
-            assets.update(comment_id=entity_id)
+        assets.update(comment_id=entity_id)
         return Response(status=status.HTTP_204_NO_CONTENT)

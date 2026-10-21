@@ -97,6 +97,15 @@ def board_comments(deploy_board):
     )
 
 
+# Campos que o visitante do board pode enviar num comentário. O resto (autor,
+# visibilidade, comentário pai, origem externa) é definido pelo servidor (MAN-333).
+BOARD_COMMENT_FIELDS = ("comment_html", "comment_json")
+
+
+def board_comment_data(data):
+    return {key: data[key] for key in BOARD_COMMENT_FIELDS if key in data}
+
+
 def get_board_comment(deploy_board, comment_id):
     """Comentário da URL, desde que seja público e do projeto do board (senão 404)."""
     return board_comments(deploy_board).get(pk=comment_id)
@@ -299,13 +308,14 @@ class IssueCommentPublicViewSet(BaseViewSet):
         # O chamado da URL tem de ser do projeto publicado (MAN-333).
         issue = get_board_issue(project_deploy_board, issue_id)
 
-        serializer = IssueCommentSerializer(data=request.data)
+        serializer = IssueCommentSerializer(data=board_comment_data(request.data))
         if serializer.is_valid():
             serializer.save(
                 project_id=project_deploy_board.project_id,
                 issue_id=issue.id,
                 actor=request.user,
                 access="EXTERNAL",
+                parent=None,
             )
             issue_activity.delay(
                 type="comment.activity.created",
@@ -345,9 +355,9 @@ class IssueCommentPublicViewSet(BaseViewSet):
             workspace_id=project_deploy_board.workspace_id,
             access="EXTERNAL",
         )
-        serializer = IssueCommentSerializer(comment, data=request.data, partial=True)
+        serializer = IssueCommentSerializer(comment, data=board_comment_data(request.data), partial=True)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(actor=request.user, access="EXTERNAL")
             issue_activity.delay(
                 type="comment.activity.updated",
                 requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),

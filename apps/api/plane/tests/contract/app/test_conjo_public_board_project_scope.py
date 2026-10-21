@@ -16,6 +16,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -32,6 +33,7 @@ from plane.db.models import (
     Project,
     State,
     User,
+    Workspace,
 )
 
 THUMBS_UP = "128077"
@@ -196,6 +198,140 @@ class TestPublicBoardComments:
 
 
 @pytest.mark.contract
+class TestPublicBoardCommentFields:
+    """O visitante só escreve o texto do comentário; autor, visibilidade e pai são do servidor."""
+
+    @pytest.mark.django_db
+    def test_edit_cannot_change_actor_or_access(self, scenario):
+        own = scenario["external_comment"](scenario["issue_a"], scenario["visitor"])
+        response = scenario["client"].patch(
+            url(scenario["anchor"], f"issues/{scenario['issue_a'].id}/comments/{own.id}/"),
+            {
+                "comment_html": "<p>editado</p>",
+                "actor": str(scenario["owner"].id),
+                "access": "INTERNAL",
+                "parent": str(scenario["comment_b"].id),
+                "external_source": "INTAKE_PORTAL",
+                "external_id": "x",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK, detail(response)
+        own.refresh_from_db()
+        assert own.comment_html == "<p>editado</p>"
+        assert own.actor_id == scenario["visitor"].id
+        assert own.access == "EXTERNAL"
+        assert own.parent_id is None
+        assert own.external_source is None
+        assert own.external_id is None
+
+    @pytest.mark.django_db
+    def test_create_ignores_actor_access_and_parent(self, scenario):
+        response = scenario["client"].post(
+            url(scenario["anchor"], f"issues/{scenario['issue_a'].id}/comments/"),
+            {
+                "comment_html": "<p>novo</p>",
+                "actor": str(scenario["owner"].id),
+                "access": "INTERNAL",
+                "parent": str(scenario["comment_b"].id),
+                "external_source": "INTAKE_PORTAL",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED, detail(response)
+        comment = IssueComment.objects.get(pk=response.data["id"])
+        assert comment.actor_id == scenario["visitor"].id
+        assert comment.access == "EXTERNAL"
+        assert comment.parent_id is None
+        assert comment.external_source is None
+
+
+@pytest.mark.contract
+class TestPublicBoardHiddenIssues:
+    """Chamado que o board não mostra (arquivado, rascunho, triagem) também não recebe interação."""
+
+    @pytest.fixture(params=["archived", "draft", "triage"])
+    def hidden_issue(self, request, scenario):
+        project = scenario["project_a"]
+        if request.param == "archived":
+            return Issue.objects.create(name="Arquivado", project=project, archived_at=timezone.now())
+        if request.param == "draft":
+            return Issue.objects.create(name="Rascunho", project=project, is_draft=True)
+        triage = State.objects.create(
+            name="Triagem", group="triage", project=project, workspace=project.workspace, sequence=65000
+        )
+        return Issue.objects.create(name="Em triagem", project=project, state=triage)
+
+    @pytest.mark.django_db
+    def test_comment_react_and_vote_on_hidden_issue_are_404(self, scenario, hidden_issue):
+        client = scenario["client"]
+        anchor = scenario["anchor"]
+        response = client.post(
+            url(anchor, f"issues/{hidden_issue.id}/comments/"), {"comment_html": "<p>x</p>"}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        response = client.post(
+            url(anchor, f"issues/{hidden_issue.id}/reactions/"), {"reaction": THUMBS_UP}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        response = client.post(url(anchor, f"issues/{hidden_issue.id}/votes/"), {"vote": 1}, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+
+        assert not IssueComment.objects.filter(issue=hidden_issue).exists()
+        assert not IssueReaction.objects.filter(issue=hidden_issue).exists()
+        assert not IssueVote.objects.filter(issue=hidden_issue).exists()
+
+    @pytest.mark.django_db
+    def test_react_on_comment_of_hidden_issue_is_404(self, scenario, hidden_issue):
+        comment = scenario["external_comment"](hidden_issue, scenario["owner"])
+        response = scenario["client"].post(
+            url(scenario["anchor"], f"comments/{comment.id}/reactions/"), {"reaction": THUMBS_UP}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        assert not CommentReaction.objects.filter(comment=comment).exists()
+
+
+@pytest.mark.contract
+class TestPublicBoardOtherWorkspace:
+    @pytest.mark.django_db
+    def test_board_of_other_workspace_cannot_touch_issue(self, scenario):
+        other_ws = Workspace.objects.create(name="Outro", owner=scenario["owner"], slug=f"outro-{uuid4().hex[:6]}")
+        other_project = make_project(other_ws, scenario["owner"], "Outro publicado", "OUT")
+        other_board = DeployBoard.objects.create(
+            workspace=other_ws,
+            project=other_project,
+            entity_name="project",
+            entity_identifier=other_project.id,
+            is_comments_enabled=True,
+            is_reactions_enabled=True,
+            is_votes_enabled=True,
+        )
+        client = scenario["client"]
+        issue = scenario["issue_a"]
+        response = client.post(
+            url(other_board.anchor, f"issues/{issue.id}/comments/"), {"comment_html": "<p>x</p>"}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        response = client.post(
+            url(other_board.anchor, f"issues/{issue.id}/reactions/"), {"reaction": THUMBS_UP}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        response = client.post(url(other_board.anchor, f"issues/{issue.id}/votes/"), {"vote": 1}, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        response = client.post(
+            url(other_board.anchor, f"comments/{scenario['comment_a'].id}/reactions/"),
+            {"reaction": THUMBS_UP},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+
+        assert not IssueComment.objects.filter(issue=issue, actor=scenario["visitor"]).exists()
+        assert not IssueReaction.objects.filter(issue=issue).exists()
+        assert not IssueVote.objects.filter(issue=issue).exists()
+        assert not CommentReaction.objects.filter(comment=scenario["comment_a"]).exists()
+
+
+@pytest.mark.contract
 class TestPublicBoardIssueReactions:
     @pytest.mark.django_db
     def test_react_on_issue_of_other_project_is_404(self, scenario):
@@ -222,10 +358,18 @@ class TestPublicBoardIssueReactions:
         assert [r["reaction"] for r in response.data] == [THUMBS_UP]
 
     @pytest.mark.django_db
-    def test_list_does_not_expose_reactions_of_other_project(self, scenario):
+    def test_list_returns_only_reactions_of_board_project(self, scenario):
+        """A listagem funciona no chamado do board e não devolve a reação do chamado de outro projeto."""
+        own = IssueReaction.objects.create(
+            issue=scenario["issue_a"], project=scenario["project_a"], actor=scenario["owner"], reaction=THUMBS_UP
+        )
         IssueReaction.objects.create(
             issue=scenario["issue_b"], project=scenario["project_b"], actor=scenario["owner"], reaction=THUMBS_UP
         )
+        response = scenario["client"].get(url(scenario["anchor"], f"issues/{scenario['issue_a'].id}/reactions/"))
+        assert response.status_code == status.HTTP_200_OK, detail(response)
+        assert [str(r["id"]) for r in response.data] == [str(own.id)]
+
         response = scenario["client"].get(url(scenario["anchor"], f"issues/{scenario['issue_b'].id}/reactions/"))
         assert response.status_code == status.HTTP_200_OK, detail(response)
         assert response.data == []
@@ -273,6 +417,28 @@ class TestPublicBoardCommentReactions:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
         assert not CommentReaction.objects.filter(comment=internal).exists()
+
+    @pytest.mark.django_db
+    def test_remove_own_reaction_on_comment_of_other_project_is_404(self, scenario):
+        reaction = CommentReaction.objects.create(
+            comment=scenario["comment_b"], project=scenario["project_b"], actor=scenario["visitor"], reaction=THUMBS_UP
+        )
+        response = scenario["client"].delete(
+            url(scenario["anchor"], f"comments/{scenario['comment_b'].id}/reactions/{THUMBS_UP}/")
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        reaction.refresh_from_db()
+        assert reaction.deleted_at is None
+
+    @pytest.mark.django_db
+    def test_remove_own_reaction_on_comment_of_board_project_works(self, scenario):
+        CommentReaction.objects.create(
+            comment=scenario["comment_a"], project=scenario["project_a"], actor=scenario["visitor"], reaction=THUMBS_UP
+        )
+        response = scenario["client"].delete(
+            url(scenario["anchor"], f"comments/{scenario['comment_a'].id}/reactions/{THUMBS_UP}/")
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT, detail(response)
 
     @pytest.mark.django_db
     def test_react_on_comment_of_board_project_is_created(self, scenario):
@@ -344,73 +510,136 @@ class TestPublicBoardIntake:
 
 @pytest.mark.contract
 class TestPublicBoardCommentAssets:
-    def asset(self, scenario):
-        return FileAsset.objects.create(
+    def asset(self, scenario, created_by=None, entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION):
+        asset = FileAsset.objects.create(
             attributes={"name": "print.png", "type": "image/png", "size": 10},
             asset=f"{scenario['project_a'].workspace_id}/{uuid4().hex}-print.png",
             size=10,
             workspace=scenario["project_a"].workspace,
             project=scenario["project_a"],
-            entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-            created_by=scenario["visitor"],
+            entity_type=entity_type,
+        )
+        # O save() do modelo preenche created_by pelo usuário da requisição (vazio fora dela).
+        FileAsset.objects.filter(pk=asset.pk).update(created_by=created_by or scenario["visitor"])
+        asset.refresh_from_db()
+        return asset
+
+    def own_comment(self, scenario):
+        return scenario["external_comment"](scenario["issue_a"], scenario["visitor"])
+
+    def internal_comment(self, scenario):
+        return IssueComment.objects.create(
+            issue=scenario["issue_a"],
+            project=scenario["project_a"],
+            workspace=scenario["project_a"].workspace,
+            comment_html="<p>nota interna</p>",
+            access="INTERNAL",
+            actor=scenario["visitor"],
         )
 
+    def bulk(self, scenario, comment_id, asset_ids):
+        return scenario["client"].post(
+            f"/api/public/assets/v2/anchor/{scenario['anchor']}/{comment_id}/bulk/",
+            {"asset_ids": [str(a) for a in asset_ids]},
+            format="json",
+        )
+
+    def upload(self, scenario, comment_id):
+        with mock.patch("plane.space.views.asset.S3Storage") as storage:
+            storage.return_value.generate_presigned_post.return_value = {"url": "https://s3.test", "fields": {}}
+            return scenario["client"].post(
+                f"/api/public/assets/v2/anchor/{scenario['anchor']}/",
+                {
+                    "name": "print.png",
+                    "type": "image/png",
+                    "size": 10,
+                    "entity_type": FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
+                    "entity_identifier": str(comment_id),
+                },
+                format="json",
+            )
+
+    # vínculo em lote
     @pytest.mark.django_db
     def test_bulk_link_to_comment_of_other_project_is_404(self, scenario):
         asset = self.asset(scenario)
-        response = scenario["client"].post(
-            f"/api/public/assets/v2/anchor/{scenario['anchor']}/{scenario['comment_b'].id}/bulk/",
-            {"asset_ids": [str(asset.id)]},
-            format="json",
-        )
+        own_in_b = scenario["external_comment"](scenario["issue_b"], scenario["visitor"])
+        response = self.bulk(scenario, own_in_b.id, [asset.id])
         assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
         asset.refresh_from_db()
         assert asset.comment_id is None
 
     @pytest.mark.django_db
-    def test_bulk_link_to_comment_of_board_project_works(self, scenario):
+    def test_bulk_link_to_comment_of_other_person_is_404(self, scenario):
         asset = self.asset(scenario)
-        response = scenario["client"].post(
-            f"/api/public/assets/v2/anchor/{scenario['anchor']}/{scenario['comment_a'].id}/bulk/",
-            {"asset_ids": [str(asset.id)]},
-            format="json",
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT, detail(response)
+        response = self.bulk(scenario, scenario["comment_a"].id, [asset.id])
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
         asset.refresh_from_db()
-        assert asset.comment_id == scenario["comment_a"].id
+        assert asset.comment_id is None
 
+    @pytest.mark.django_db
+    def test_bulk_link_to_internal_comment_is_404(self, scenario):
+        asset = self.asset(scenario)
+        response = self.bulk(scenario, self.internal_comment(scenario).id, [asset.id])
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        asset.refresh_from_db()
+        assert asset.comment_id is None
+
+    @pytest.mark.django_db
+    def test_bulk_cannot_take_assets_of_other_person(self, scenario):
+        mine = self.asset(scenario)
+        theirs = self.asset(scenario, created_by=scenario["owner"])
+        comment = self.own_comment(scenario)
+        response = self.bulk(scenario, comment.id, [mine.id, theirs.id])
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        mine.refresh_from_db()
+        theirs.refresh_from_db()
+        assert mine.comment_id is None
+        assert theirs.comment_id is None
+
+    @pytest.mark.django_db
+    def test_bulk_cannot_take_issue_description_assets(self, scenario):
+        description = self.asset(scenario, entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION)
+        comment = self.own_comment(scenario)
+        response = self.bulk(scenario, comment.id, [description.id])
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        description.refresh_from_db()
+        assert description.comment_id is None
+
+    @pytest.mark.django_db
+    def test_bulk_link_own_assets_to_own_comment_works(self, scenario):
+        assets = [self.asset(scenario), self.asset(scenario)]
+        comment = self.own_comment(scenario)
+        response = self.bulk(scenario, comment.id, [a.id for a in assets])
+        assert response.status_code == status.HTTP_204_NO_CONTENT, detail(response)
+        for asset in assets:
+            asset.refresh_from_db()
+            assert asset.comment_id == comment.id
+
+    # upload
     @pytest.mark.django_db
     def test_upload_for_comment_of_other_project_is_404(self, scenario):
-        with mock.patch("plane.space.views.asset.S3Storage") as storage:
-            storage.return_value.generate_presigned_post.return_value = {"url": "https://s3.test", "fields": {}}
-            response = scenario["client"].post(
-                f"/api/public/assets/v2/anchor/{scenario['anchor']}/",
-                {
-                    "name": "print.png",
-                    "type": "image/png",
-                    "size": 10,
-                    "entity_type": FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-                    "entity_identifier": str(scenario["comment_b"].id),
-                },
-                format="json",
-            )
+        own_in_b = scenario["external_comment"](scenario["issue_b"], scenario["visitor"])
+        response = self.upload(scenario, own_in_b.id)
         assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
-        assert not FileAsset.objects.filter(comment=scenario["comment_b"]).exists()
+        assert not FileAsset.objects.filter(comment=own_in_b).exists()
 
     @pytest.mark.django_db
-    def test_upload_for_comment_of_board_project_works(self, scenario):
-        with mock.patch("plane.space.views.asset.S3Storage") as storage:
-            storage.return_value.generate_presigned_post.return_value = {"url": "https://s3.test", "fields": {}}
-            response = scenario["client"].post(
-                f"/api/public/assets/v2/anchor/{scenario['anchor']}/",
-                {
-                    "name": "print.png",
-                    "type": "image/png",
-                    "size": 10,
-                    "entity_type": FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
-                    "entity_identifier": str(scenario["comment_a"].id),
-                },
-                format="json",
-            )
+    def test_upload_for_comment_of_other_person_is_404(self, scenario):
+        response = self.upload(scenario, scenario["comment_a"].id)
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        assert not FileAsset.objects.filter(comment=scenario["comment_a"]).exists()
+
+    @pytest.mark.django_db
+    def test_upload_for_internal_comment_is_404(self, scenario):
+        internal = self.internal_comment(scenario)
+        response = self.upload(scenario, internal.id)
+        assert response.status_code == status.HTTP_404_NOT_FOUND, detail(response)
+        assert not FileAsset.objects.filter(comment=internal).exists()
+
+    @pytest.mark.django_db
+    def test_upload_for_own_comment_works(self, scenario):
+        comment = self.own_comment(scenario)
+        response = self.upload(scenario, comment.id)
         assert response.status_code == status.HTTP_200_OK, detail(response)
-        assert FileAsset.objects.filter(comment=scenario["comment_a"]).exists()
+        assert FileAsset.objects.filter(comment=comment, created_by=scenario["visitor"]).exists()
