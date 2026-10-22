@@ -79,6 +79,10 @@ export enum EAuthenticationErrorCodes {
   GOOGLE_OAUTH_PROVIDER_ERROR = "5115",
   GITHUB_OAUTH_PROVIDER_ERROR = "5120",
   GITLAB_OAUTH_PROVIDER_ERROR = "5121",
+  // ConjoSA: provedor OIDC (login pelo conjo-mail)
+  OIDC_NOT_CONFIGURED = "5113",
+  OIDC_OAUTH_PROVIDER_ERROR = "5114",
+  OAUTH_PROVIDER_UNVERIFIED_EMAIL = "5124",
   // Reset Password
   INVALID_PASSWORD_TOKEN = "5125",
   EXPIRED_PASSWORD_TOKEN = "5130",
@@ -288,6 +292,18 @@ const errorCodeMessages: {
     title: `Erro no provedor OAuth do GitLab`,
     message: () => `Erro no provedor OAuth do GitLab. Tente novamente.`,
   },
+  [EAuthenticationErrorCodes.OIDC_NOT_CONFIGURED]: {
+    title: `Login pela conta da empresa não configurado`,
+    message: () => `Login pela conta da empresa não configurado. Entre em contato com o administrador.`,
+  },
+  [EAuthenticationErrorCodes.OIDC_OAUTH_PROVIDER_ERROR]: {
+    title: `Erro no login pela conta da empresa`,
+    message: () => `Não foi possível concluir o login pela conta da empresa. Tente novamente.`,
+  },
+  [EAuthenticationErrorCodes.OAUTH_PROVIDER_UNVERIFIED_EMAIL]: {
+    title: `E-mail não verificado`,
+    message: () => `O provedor de login não confirmou o seu e-mail. Entre em contato com o administrador.`,
+  },
 
   // Reset Password
   [EAuthenticationErrorCodes.INVALID_PASSWORD_TOKEN]: {
@@ -415,6 +431,9 @@ export const authErrorHandler = (errorCode: EAuthenticationErrorCodes, email?: s
     EAuthenticationErrorCodes.GOOGLE_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.GITHUB_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.GITLAB_OAUTH_PROVIDER_ERROR,
+    EAuthenticationErrorCodes.OIDC_NOT_CONFIGURED,
+    EAuthenticationErrorCodes.OIDC_OAUTH_PROVIDER_ERROR,
+    EAuthenticationErrorCodes.OAUTH_PROVIDER_UNVERIFIED_EMAIL,
     EAuthenticationErrorCodes.INVALID_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.EXPIRED_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.INCORRECT_OLD_PASSWORD,
