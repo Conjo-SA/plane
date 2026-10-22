@@ -18,8 +18,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { reverse } from "lodash-es";
-import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
@@ -37,7 +37,7 @@ import { PortalChip } from "@/components/portal/chip";
 import { PortalBalanceAfterApproval } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
-import { getPortalSession } from "@/helpers/portal-session";
+import { expirePortalSession, getPortalSession, isPortalSessionExpired } from "@/helpers/portal-session";
 import { getPortalTicketStatus } from "@/helpers/portal-ticket-status";
 
 const intakePortalService = new IntakePortalService();
@@ -95,6 +95,7 @@ export default function PortalTicketDetailPage() {
   // params
   const { anchor, issueId } = useParams<{ anchor: string; issueId: string }>();
   const session = anchor ? getPortalSession(anchor) : null;
+  const router = useRouter();
   // states
   const [reply, setReply] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<TPendingAttachment[]>([]);
@@ -117,17 +118,32 @@ export default function PortalTicketDetailPage() {
     isLoading,
     mutate,
   } = useSWR(
-    anchor && issueId && session ? `PORTAL_TICKET_${anchor}_${issueId}` : null,
+    // The token is part of the key (in memory only) so a new login never reuses the error cached for the old one.
+    anchor && issueId && session ? ["PORTAL_TICKET", anchor, issueId, session.token] : null,
     anchor && issueId && session ? () => intakePortalService.retrieveTicket(anchor, issueId, session.token) : null
   );
 
   // Conjo: hour package of the client, sent with the ticket list (same SWR key as the list page).
-  const { data: ticketList } = useSWR(
-    anchor && session ? `PORTAL_TICKETS_${anchor}_${session.email}` : null,
+  const { data: ticketList, error: ticketListError } = useSWR(
+    anchor && session ? ["PORTAL_TICKETS", anchor, session.email, session.token] : null,
     anchor && session ? () => intakePortalService.listTickets(anchor, session.token) : null,
     { revalidateOnFocus: false }
   );
   const hourPackage = ticketList?.package ?? null;
+
+  // Session expired on the server side: forget it and go back to the portal login, which explains why.
+  const sessionToken = session?.token;
+  const handleSessionExpired = useCallback(() => {
+    if (!anchor || !sessionToken) return;
+    expirePortalSession(anchor, sessionToken);
+    router.replace(`/portal/${anchor}`);
+  }, [anchor, sessionToken, router]);
+
+  const isSessionExpired = isPortalSessionExpired(error) || isPortalSessionExpired(ticketListError);
+
+  useEffect(() => {
+    if (isSessionExpired) handleSessionExpired();
+  }, [isSessionExpired, handleSessionExpired]);
 
   const isUploading = pendingAttachments.some((attachment) => attachment.status === "uploading");
 
@@ -171,6 +187,7 @@ export default function PortalTicketDetailPage() {
       setIsConfirmingApproval(false);
       await mutate();
     } catch (err) {
+      if (isPortalSessionExpired(err)) return handleSessionExpired();
       setApprovalError(readError(err) || "Não foi possível aprovar o orçamento. Tente novamente.");
     } finally {
       setIsApproving(false);
@@ -193,6 +210,7 @@ export default function PortalTicketDetailPage() {
       setRejectionReason("");
       await mutate();
     } catch (err) {
+      if (isPortalSessionExpired(err)) return handleSessionExpired();
       setApprovalError(readError(err) || "Não foi possível recusar o orçamento. Tente novamente.");
     } finally {
       setIsRejecting(false);
@@ -211,6 +229,7 @@ export default function PortalTicketDetailPage() {
       );
       if (url) window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
+      if (isPortalSessionExpired(err)) return handleSessionExpired();
       setFormError(readError(err) || "Não foi possível abrir o anexo.");
     }
   };
@@ -223,6 +242,7 @@ export default function PortalTicketDetailPage() {
       const url = await intakePortalService.retrieveAttachmentUrl(anchor, issueId, assetId, session.token, "inline");
       if (url) setPreview({ url, name, kind });
     } catch (err) {
+      if (isPortalSessionExpired(err)) return handleSessionExpired();
       setFormError(readError(err) || "Não foi possível abrir o anexo.");
     } finally {
       setPreviewingAssetId(null);
@@ -264,6 +284,7 @@ export default function PortalTicketDetailPage() {
       setPendingAttachments([]);
       await mutate();
     } catch (err) {
+      if (isPortalSessionExpired(err)) return handleSessionExpired();
       setFormError(readError(err) || "Não foi possível enviar sua mensagem. Tente novamente.");
     } finally {
       setIsSubmitting(false);
@@ -280,7 +301,7 @@ export default function PortalTicketDetailPage() {
       </div>
     );
 
-  if (isLoading)
+  if (isLoading || isSessionExpired)
     return (
       <div className="flex h-screen w-full items-center justify-center bg-surface-2">
         <LogoSpinner />

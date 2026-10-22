@@ -22,7 +22,12 @@ import { PoweredBy } from "@/components/common/powered-by";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
-import { clearPortalSession, getPortalSession, setPortalSession } from "@/helpers/portal-session";
+import {
+  clearPortalSession,
+  getPortalSession,
+  isPortalSessionExpired,
+  setPortalSession,
+} from "@/helpers/portal-session";
 
 const intakePortalService = new IntakePortalService();
 
@@ -216,7 +221,7 @@ export default function IntakePortalPage() {
       editorRef.current?.clearEditor();
     } catch (err) {
       const response = err as { status?: number; data?: { error?: string } } | undefined;
-      if (response?.status === 401) {
+      if (isPortalSessionExpired(response)) {
         // The confirmation expired on the server: ask for it again without losing what was typed.
         forgetSession();
         setSubmitError(
