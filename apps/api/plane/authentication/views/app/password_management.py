@@ -28,6 +28,7 @@ from plane.license.models import Instance
 from plane.db.models import User
 from plane.license.utils.instance_value import get_configuration_value
 from plane.authentication.utils.host import base_host
+from plane.authentication.utils.sso import sso_password_exception, uses_sso
 from plane.authentication.adapter.error import (
     AuthenticationException,
     AUTHENTICATION_ERROR_CODES,
@@ -80,6 +81,9 @@ class ForgotPasswordEndpoint(APIView):
         # Get the user
         user = User.objects.filter(email=email).first()
         if user:
+            # ConjoSA: conta do SSO nao tem senha no Plane
+            if uses_sso(user):
+                return Response(sso_password_exception().get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
             # Get the reset token for user
             uidb64, token = generate_password_token(user=user)
             current_site = base_host(request=request, is_app=True)
@@ -125,6 +129,14 @@ class ResetPasswordEndpoint(View):
                 url = urljoin(
                     base_host(request=request, is_app=True),
                     "accounts/reset-password?" + urlencode(params),
+                )
+                return HttpResponseRedirect(url)
+
+            # ConjoSA: conta do SSO nao tem senha no Plane
+            if uses_sso(user):
+                url = urljoin(
+                    base_host(request=request, is_app=True),
+                    "accounts/reset-password?" + urlencode(sso_password_exception().get_error_dict()),
                 )
                 return HttpResponseRedirect(url)
 

@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 
 ## Module imports
 from plane.db.models import User
+from plane.authentication.utils.sso import sso_password_exception, uses_sso
 from plane.license.models import Instance
 from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
@@ -79,6 +80,12 @@ class EmailCheckSpaceEndpoint(APIView):
 
         # If existing user
         if existing_user:
+            # ConjoSA: conta do SSO entra so pelo botao do SSO
+            if uses_sso(existing_user):
+                return Response(
+                    sso_password_exception(email=email).get_error_dict(),
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             # Return response
             return Response(
                 {

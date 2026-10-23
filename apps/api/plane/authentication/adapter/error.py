@@ -48,6 +48,8 @@ AUTHENTICATION_ERROR_CODES = {
     # ConjoSA: provedor OIDC (5113/5114 nao sao usados pelo upstream)
     "OIDC_NOT_CONFIGURED": 5113,
     "OIDC_OAUTH_PROVIDER_ERROR": 5114,
+    # ConjoSA: conta do SSO nao usa senha nem codigo (ver authentication/utils/sso.py)
+    "SSO_PASSWORD_DISABLED": 5116,
     "GOOGLE_OAUTH_PROVIDER_ERROR": 5115,
     "GITHUB_OAUTH_PROVIDER_ERROR": 5120,
     "GITLAB_OAUTH_PROVIDER_ERROR": 5121,
