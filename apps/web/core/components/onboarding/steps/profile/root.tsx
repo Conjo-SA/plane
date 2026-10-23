@@ -120,7 +120,8 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   };
 
   // derived values
-  const isPasswordAlreadySetup = !user?.is_password_autoset;
+  // ConjoSA: quem entra pelo SSO (oidc) nao cria senha no Plane; a API tambem recusa.
+  const isPasswordAlreadySetup = !user?.is_password_autoset || user?.last_login_medium === "oidc";
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 

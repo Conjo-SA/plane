@@ -130,6 +130,18 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
 
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
+  // ConjoSA: quem entra pelo SSO nao tem senha no Plane; a senha e a da Conta Conjo.
+  if (currentUser?.last_login_medium === "oidc")
+    return (
+      <div className="size-full">
+        <ProfileSettingsHeading title={t("auth.common.password.change_password.label.default")} />
+        <p className="mt-7 text-13 text-secondary">
+          Você entra pela Conta Conjo, então não há senha do Plane para trocar. A senha é a da sua conta da
+          empresa.
+        </p>
+      </div>
+    );
+
   return (
     <div className="size-full">
       <ProfileSettingsHeading title={t("auth.common.password.change_password.label.default")} />

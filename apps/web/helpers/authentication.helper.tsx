@@ -83,6 +83,7 @@ export enum EAuthenticationErrorCodes {
   OIDC_NOT_CONFIGURED = "5113",
   OIDC_OAUTH_PROVIDER_ERROR = "5114",
   OAUTH_PROVIDER_UNVERIFIED_EMAIL = "5124",
+  SSO_PASSWORD_DISABLED = "5116",
   // Reset Password
   INVALID_PASSWORD_TOKEN = "5125",
   EXPIRED_PASSWORD_TOKEN = "5130",
@@ -300,6 +301,10 @@ const errorCodeMessages: {
     title: `Erro no login pela conta da empresa`,
     message: () => `Não foi possível concluir o login pela conta da empresa. Tente novamente.`,
   },
+  [EAuthenticationErrorCodes.SSO_PASSWORD_DISABLED]: {
+    title: `Entre pela Conta Conjo`,
+    message: () => `Esta conta entra pela Conta Conjo, sem senha do Plane. Use o botão "Entrar com Conta Conjo".`,
+  },
   [EAuthenticationErrorCodes.OAUTH_PROVIDER_UNVERIFIED_EMAIL]: {
     title: `E-mail não verificado`,
     message: () => `O provedor de login não confirmou o seu e-mail. Entre em contato com o administrador.`,
@@ -434,6 +439,7 @@ export const authErrorHandler = (errorCode: EAuthenticationErrorCodes, email?: s
     EAuthenticationErrorCodes.OIDC_NOT_CONFIGURED,
     EAuthenticationErrorCodes.OIDC_OAUTH_PROVIDER_ERROR,
     EAuthenticationErrorCodes.OAUTH_PROVIDER_UNVERIFIED_EMAIL,
+    EAuthenticationErrorCodes.SSO_PASSWORD_DISABLED,
     EAuthenticationErrorCodes.INVALID_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.EXPIRED_PASSWORD_TOKEN,
     EAuthenticationErrorCodes.INCORRECT_OLD_PASSWORD,
