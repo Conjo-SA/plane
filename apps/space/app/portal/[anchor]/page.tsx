@@ -6,7 +6,7 @@
 
 import { ArrowLeft, ChevronRight, LogOut, Ticket } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import useSWR from "swr";
 // plane imports
@@ -21,7 +21,14 @@ import { PortalChip } from "@/components/portal/chip";
 import { PortalPackageBalanceCard } from "@/components/portal/package-balance";
 import { PageNotFound } from "@/components/ui/not-found";
 // helpers
-import { clearPortalSession, getPortalSession, setPortalSession } from "@/helpers/portal-session";
+import {
+  PORTAL_SESSION_EXPIRED_MESSAGE,
+  clearPortalSession,
+  consumePortalSessionExpired,
+  getPortalSession,
+  isPortalSessionExpired,
+  setPortalSession,
+} from "@/helpers/portal-session";
 import { getPortalTicketStatus } from "@/helpers/portal-ticket-status";
 import type { TPortalTicketBucket } from "@/helpers/portal-ticket-status";
 
@@ -47,6 +54,8 @@ export default function PortalTicketsPage() {
   const [step, setStep] = useState<"email" | "code">("email");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // shown on the login step when the requester was signed out because the session expired
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   // portal meta
   const { data: portal, error: portalError } = useSWR(
     anchor ? `INTAKE_PORTAL_${anchor}` : null,
@@ -58,9 +67,28 @@ export default function PortalTicketsPage() {
     error: ticketsError,
     isLoading: areTicketsLoading,
   } = useSWR(
-    anchor && session ? `PORTAL_TICKETS_${anchor}_${session.email}` : null,
+    // The token is part of the key (in memory only) so a new login never reuses the error cached for the old one.
+    anchor && session ? ["PORTAL_TICKETS", anchor, session.email, session.token] : null,
     anchor && session ? () => intakePortalService.listTickets(anchor, session.token) : null
   );
+
+  // Another page of this portal (e.g. a ticket) signed the requester out: explain why on the login step.
+  useEffect(() => {
+    if (anchor && consumePortalSessionExpired(anchor)) setSessionNotice(PORTAL_SESSION_EXPIRED_MESSAGE);
+  }, [anchor]);
+
+  // Session expired on the server side: drop it and go back to the login (e-mail step).
+  useEffect(() => {
+    if (!anchor || !session || !isPortalSessionExpired(ticketsError)) return;
+    // only the expired token is dropped from storage, a newer login made in another tab is kept
+    if (getPortalSession(anchor)?.token === session.token) clearPortalSession(anchor);
+    setSession(null);
+    setStep("email");
+    setEmail(session.email);
+    setCode("");
+    setFormError(null);
+    setSessionNotice(PORTAL_SESSION_EXPIRED_MESSAGE);
+  }, [anchor, session, ticketsError]);
 
   const handleRequestCode = async () => {
     if (!anchor) return;
@@ -85,6 +113,7 @@ export default function PortalTicketsPage() {
       setPortalSession(anchor, response);
       setSession(response);
       setCode("");
+      setSessionNotice(null);
     } catch (err) {
       setFormError(readError(err) || "Código inválido. Tente novamente.");
     } finally {
@@ -98,14 +127,10 @@ export default function PortalTicketsPage() {
     setSession(null);
     setStep("email");
     setEmail("");
+    setSessionNotice(null);
   };
 
   if (portalError || !portal) return portalError ? <PageNotFound /> : null;
-
-  // Session expired on the server side
-  if (session && (ticketsError as { status?: number })?.status === 401) {
-    clearPortalSession(anchor);
-  }
 
   return (
     <>
@@ -129,6 +154,14 @@ export default function PortalTicketsPage() {
             <div className="px-6 py-7 sm:px-9">
               {!session ? (
                 <div className="mx-auto max-w-sm space-y-4">
+                  {sessionNotice && (
+                    <p
+                      role="status"
+                      className="rounded-md border border-subtle bg-layer-1 px-3 py-2 text-center text-13 text-secondary"
+                    >
+                      {sessionNotice}
+                    </p>
+                  )}
                   <div className="text-center">
                     <h2 className="text-16 font-semibold text-primary">
                       {step === "email" ? "Acesse seus chamados" : "Confirme o código"}
@@ -200,14 +233,19 @@ export default function PortalTicketsPage() {
                     </p>
                   )}
                 </div>
-              ) : areTicketsLoading ? (
+              ) : areTicketsLoading || isPortalSessionExpired(ticketsError) ? (
                 <div className="flex justify-center py-12">
                   <LogoSpinner />
                 </div>
               ) : (
                 <div className="space-y-5">
+                  {ticketsError && !ticketList ? (
+                    <p className="rounded-md border border-danger-subtle bg-danger-subtle px-3 py-2 text-13 text-danger-primary">
+                      {readError(ticketsError) || "Não foi possível carregar seus chamados. Tente novamente."}
+                    </p>
+                  ) : null}
                   {ticketList?.package && <PortalPackageBalanceCard pkg={ticketList.package} />}
-                  {!ticketList?.tickets?.length ? (
+                  {ticketsError && !ticketList ? null : !ticketList?.tickets?.length ? (
                     <div className="flex flex-col items-center gap-3 py-12 text-center">
                       <Ticket className="size-8 text-tertiary" />
                       <p className="text-14 text-secondary">Nenhum chamado encontrado para {session.email}.</p>
