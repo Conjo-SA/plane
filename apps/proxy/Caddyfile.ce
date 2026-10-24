@@ -21,8 +21,36 @@
 
 	reverse_proxy /static/* api:8000
 
-	reverse_proxy /{$BUCKET_NAME}/* plane-minio:9000
-	reverse_proxy /{$BUCKET_NAME} plane-minio:9000
+	# MinIO: a edição comunitária foi arquivada e a versão em uso tem escrita sem a chave secreta
+	# (CVE-2026-40344, CVE-2026-41145, só com a access key que vai em toda URL pré-assinada). Daqui só
+	# passa o que o navegador usa: ler objeto (GET/HEAD com URL pré-assinada) e o upload por formulário
+	# com policy assinada pela API (POST multipart na raiz do bucket). As chamadas do próprio servidor
+	# (cópia, avatar, exclusão) vão direto a plane-minio:9000 pela rede interna.
+	@minio_read {
+		method GET HEAD
+		path /{$BUCKET_NAME}/*
+		not path /{$BUCKET_NAME}/
+	}
+	handle @minio_read {
+		request_header -X-Amz-*
+		request_header -X-Minio-*
+		reverse_proxy plane-minio:9000
+	}
+
+	@minio_upload {
+		method POST
+		path /{$BUCKET_NAME} /{$BUCKET_NAME}/
+		header Content-Type multipart/form-data*
+		expression {query} == ""
+	}
+	handle @minio_upload {
+		request_header -X-Amz-*
+		request_header -X-Minio-*
+		reverse_proxy plane-minio:9000
+	}
+
+	@minio_other path /{$BUCKET_NAME} /{$BUCKET_NAME}/*
+	respond @minio_other 403
 
 	reverse_proxy /* web:3000
 }
