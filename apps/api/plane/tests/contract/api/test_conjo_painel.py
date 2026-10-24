@@ -13,6 +13,7 @@ from plane.db.models import (
     APIToken,
     Project,
     ProjectMember,
+    ProjectMemberInvite,
     Session,
     User,
     Workspace,
@@ -52,7 +53,8 @@ def cenario(db):
     APIToken.objects.create(user=alvo, label="conjochat", token=f"plane_api_{uuid4().hex}")
     Session.objects.create(session_key=uuid4().hex, session_data="x", expire_date="2099-01-01T00:00Z",
                            user_id=str(alvo.id))
-    WorkspaceMemberInvite.objects.create(workspace=ws, email=alvo.email, token=uuid4().hex, role=15)
+    WorkspaceMemberInvite.objects.create(workspace=ws, email="RYAN@gmail.com", token=uuid4().hex, role=15)
+    ProjectMemberInvite.objects.create(project=proj, workspace=ws, email=alvo.email, token=uuid4().hex, role=15)
     return {"dono": dono, "alvo": alvo, "ws": ws, "proj": proj}
 
 
@@ -103,7 +105,8 @@ class TestConjoPainel:
         assert not ProjectMember.objects.filter(member=alvo, is_active=True).exists()
         assert not APIToken.objects.filter(user=alvo, is_active=True).exists()
         assert not Session.objects.filter(user_id=str(alvo.id)).exists()
-        assert not WorkspaceMemberInvite.objects.filter(email=alvo.email).exists()
+        assert not WorkspaceMemberInvite.objects.filter(email__iexact=alvo.email).exists()
+        assert not ProjectMemberInvite.objects.filter(email__iexact=alvo.email).exists()
         assert any("conjochat" in linha for linha in r.json()["feito"])
         # o dono nao foi tocado
         assert WorkspaceMember.objects.filter(member=cenario["dono"], is_active=True).exists()

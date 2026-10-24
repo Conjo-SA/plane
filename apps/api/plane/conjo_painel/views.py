@@ -32,6 +32,7 @@ from plane.db.models import (
     Account,
     APIToken,
     ProjectMember,
+    ProjectMemberInvite,
     Session,
     User,
     WorkspaceMember,
@@ -128,44 +129,47 @@ def _unico_admin(qs, campo_grupo, user):
     return presos
 
 
+class _Recusa(Exception):
+    pass
+
+
 class DesligarUsuarioEndpoint(PainelBase):
     def post(self, request, pk):
-        user = User.objects.filter(pk=pk).first()
-        if not user:
-            return Response({"erro": "usuario nao encontrado"}, status=status.HTTP_404_NOT_FOUND)
-        if user.is_bot:
-            return Response({"erro": "conta de bot: desligar a mao"}, status=status.HTTP_409_CONFLICT)
-        if user.is_superuser or InstanceAdmin.objects.filter(user=user).exists():
-            return Response(
-                {"erro": "administrador da instancia: o painel nao desliga, fazer a mao"},
-                status=status.HTTP_409_CONFLICT,
-            )
-        presos = _unico_admin(WorkspaceMember.objects, "workspace", user) + _unico_admin(
-            ProjectMember.objects, "project", user
-        )
-        if presos:
-            return Response(
-                {"erro": "unico admin de: " + ", ".join(presos) + " (promover outra pessoa antes)"},
-                status=status.HTTP_409_CONFLICT,
-            )
+        try:
+            with transaction.atomic():
+                # Conferir e desligar na mesma transacao, com a linha do usuario travada:
+                # ninguem vira admin da instancia entre conferir e desligar.
+                user = User.objects.select_for_update().filter(pk=pk).first()
+                if not user:
+                    return Response({"erro": "usuario nao encontrado"}, status=status.HTTP_404_NOT_FOUND)
+                if user.is_bot:
+                    raise _Recusa("conta de bot: desligar a mao")
+                if user.is_superuser or InstanceAdmin.objects.filter(user=user).exists():
+                    raise _Recusa("administrador da instancia: o painel nao desliga, fazer a mao")
+                presos = _unico_admin(WorkspaceMember.objects, "workspace", user) + _unico_admin(
+                    ProjectMember.objects, "project", user
+                )
+                if presos:
+                    raise _Recusa("unico admin de: " + ", ".join(presos) + " (promover outra pessoa antes)")
 
-        with transaction.atomic():
-            user = User.objects.select_for_update().get(pk=user.pk)
-            estava_ativo = user.is_active
-            projetos = ProjectMember.objects.filter(member=user, is_active=True).update(is_active=False)
-            workspaces = WorkspaceMember.objects.filter(member=user, is_active=True).update(is_active=False)
-            convites = _apagados(WorkspaceMemberInvite.objects.filter(email=user.email).delete())
-            tokens = list(APIToken.objects.filter(user=user, is_active=True).values_list("label", flat=True))
-            APIToken.objects.filter(user=user, is_active=True).update(is_active=False)
-            sessoes = _apagados(Session.objects.filter(user_id=str(user.id)).delete())
+                estava_ativo = user.is_active
+                projetos = ProjectMember.objects.filter(member=user, is_active=True).update(is_active=False)
+                workspaces = WorkspaceMember.objects.filter(member=user, is_active=True).update(is_active=False)
+                convites = _apagados(WorkspaceMemberInvite.objects.filter(email__iexact=user.email).delete())
+                convites += _apagados(ProjectMemberInvite.objects.filter(email__iexact=user.email).delete())
+                tokens = list(APIToken.objects.filter(user=user, is_active=True).values_list("label", flat=True))
+                APIToken.objects.filter(user=user, is_active=True).update(is_active=False)
+                sessoes = _apagados(Session.objects.filter(user_id=str(user.id)).delete())
 
-            user.is_password_autoset = True
-            user.set_password(uuid.uuid4().hex)
-            user.is_active = False
-            if estava_ativo or not user.last_logout_time:
-                user.last_logout_time = timezone.now()
-            user.token_updated_at = timezone.now()
-            user.save()
+                user.is_password_autoset = True
+                user.set_password(uuid.uuid4().hex)
+                user.is_active = False
+                if estava_ativo or not user.last_logout_time:
+                    user.last_logout_time = timezone.now()
+                user.token_updated_at = timezone.now()
+                user.save()
+        except _Recusa as e:
+            return Response({"erro": str(e)}, status=status.HTTP_409_CONFLICT)
 
         feito = [
             "usuario desativado" if estava_ativo else "usuario ja estava desativado",
