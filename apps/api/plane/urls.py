@@ -25,6 +25,8 @@ urlpatterns = [
     # MCP protocol endpoint consumed by MCP clients (bearer token auth).
     path("api/mcp/", include("plane.mcp.urls.server")),
     path("api/v1/", include("plane.api.urls")),
+    # ConjoSA: painel de acessos (segredo proprio, ver plane/conjo_painel/views.py).
+    path("api/conjo-painel/", include("plane.conjo_painel.urls")),
     path("auth/", include("plane.authentication.urls")),
     path("", include("plane.web.urls")),
 ]

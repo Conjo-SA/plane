@@ -641,3 +641,6 @@ if ENABLE_DRF_SPECTACULAR:
     REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
     INSTALLED_APPS.append("drf_spectacular")
     from .openapi import SPECTACULAR_SETTINGS  # noqa: F401
+
+# ConjoSA: segredo do painel de acessos (plane/conjo_painel). Vazio desliga as rotas.
+CONJO_PAINEL_SEGREDO = os.environ.get("CONJO_PAINEL_SEGREDO", "")
