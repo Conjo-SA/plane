@@ -34,6 +34,7 @@
 	handle @minio_read {
 		request_header -X-Amz-*
 		request_header -X-Minio-*
+		request_header -X-Http-Method-Override
 		reverse_proxy plane-minio:9000
 	}
 
@@ -46,6 +47,7 @@
 	handle @minio_upload {
 		request_header -X-Amz-*
 		request_header -X-Minio-*
+		request_header -X-Http-Method-Override
 		reverse_proxy plane-minio:9000
 	}
 
