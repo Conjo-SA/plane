@@ -246,7 +246,7 @@ export default function IntakePortalPage() {
 
   return (
     <>
-      <div className="vertical-scrollbar scrollbar-md h-screen w-full overflow-y-auto bg-gradient-to-b from-surface-2 via-surface-2 to-surface-1">
+      <div className="vertical-scrollbar scrollbar-md h-dvh w-full overflow-y-auto bg-gradient-to-b from-surface-2 via-surface-2 to-surface-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
           <div className="overflow-hidden rounded-2xl border border-subtle bg-surface-1 shadow-raised-200">
             <div className="border-b border-subtle-1 bg-gradient-to-r from-accent-subtle to-surface-1 px-6 py-7 sm:px-9">
