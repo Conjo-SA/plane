@@ -1723,7 +1723,8 @@ def _set_page_labels(page, labels, actor):
     name="list_pages",
     description=(
         "Lista as páginas públicas de um projeto ou, sem 'project', do workspace inteiro (a documentação). "
-        "Filtra por etiqueta (tag: o mesmo nome em projetos diferentes conta como a mesma tag) e por título. "
+        "Filtra por etiqueta (tag: o mesmo nome em projetos diferentes conta como a mesma tag) e por título; "
+        "pagina com limit/offset. "
         "Páginas privadas de outras pessoas não aparecem."
     ),
     input_schema={
@@ -1737,13 +1738,20 @@ def _set_page_labels(page, labels, actor):
             },
             "label": {"type": "string", "maxLength": MAX_NAME_LENGTH, "description": "Nome ou UUID da etiqueta"},
             "search": {"type": "string", "maxLength": MAX_NAME_LENGTH, "description": "Parte do título"},
+            "limit": _limit_property(50, 200),
+            "offset": {"type": "integer", "minimum": 0, "description": "Pula esta quantidade (paginação)"},
         },
         "required": ["workspace_slug"],
         "additionalProperties": False,
     },
     category="pages",
 )
-def list_pages(workspace_slug, project=None, label=None, search=None):
+def list_pages(workspace_slug, project=None, label=None, search=None, limit=50, offset=0):
+    limit = _limit(limit, 50, 200)
+    try:
+        offset = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        raise MCPToolError("'offset' deve ser um número inteiro")
     if project:
         pages = _visible_pages(_get_project(workspace_slug, project))
     else:
@@ -1758,5 +1766,10 @@ def list_pages(workspace_slug, project=None, label=None, search=None):
         )
     if search:
         pages = pages.filter(name__icontains=_clean_text(search, "search", MAX_NAME_LENGTH))
-    pages = page_prefetch(pages.order_by("-updated_at").distinct())
-    return {"pages": [_serialize_page(page) for page in pages]}
+    pages = pages.order_by("-updated_at").distinct()
+    total = pages.count()
+    return {
+        "pages": [_serialize_page(page) for page in page_prefetch(pages[offset : offset + limit])],
+        "total": total,
+        "next_offset": offset + limit if offset + limit < total else None,
+    }

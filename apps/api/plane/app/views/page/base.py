@@ -36,6 +36,7 @@ from plane.app.serializers import (
     PageDetailSerializer,
     PageBinaryUpdateSerializer,
 )
+from plane.app.serializers.page import visible_labels_q
 from plane.db.models import (
     Page,
     PageLabel,
@@ -118,7 +119,9 @@ class PageViewSet(BaseViewSet):
                             page_labels__label_id__isnull=False,
                             page_labels__deleted_at__isnull=True,
                             page_labels__label__deleted_at__isnull=True,
-                        ),
+                        )
+                        # tags from projects the user is not in stay hidden
+                        & visible_labels_q(self.request.user.id, prefix="page_labels__label__"),
                     ),
                     Value([], output_field=ArrayField(UUIDField())),
                 ),
@@ -719,9 +722,11 @@ class WorkspacePagesEndpoint(BaseAPIView):
         ).values_list("page_id", "project_id"):
             project_ids.setdefault(page_id, []).append(project_id)
         label_ids = {}
-        for page_id, label_id in PageLabel.objects.filter(
-            page_id__in=page_ids, label__deleted_at__isnull=True
-        ).values_list("page_id", "label_id"):
+        for page_id, label_id in (
+            PageLabel.objects.filter(page_id__in=page_ids, label__deleted_at__isnull=True)
+            .filter(visible_labels_q(request.user.id, prefix="label__"))
+            .values_list("page_id", "label_id")
+        ):
             label_ids.setdefault(page_id, []).append(label_id)
 
         for page in page_list:

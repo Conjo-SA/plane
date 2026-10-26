@@ -129,6 +129,28 @@ class TestWorkspacePages:
         assert client_for(docs["ana"]).get("/api/workspaces/outra/pages/").json() == []
         assert client_for(docs["gil"]).get("/api/workspaces/outra/pages/").status_code == 403
 
+    def test_subpages_archived_and_shared_private_pages_of_others(self, docs, create_user):
+        wiki, man = docs["wiki"], docs["man"]
+        ProjectMember.objects.create(project=man, member=docs["ana"], role=15, is_active=True)
+        private = make_page(wiki, create_user, "Privada compartilhada", access=Page.PRIVATE_ACCESS)
+        ProjectPage.objects.create(page=private, project=man, workspace=man.workspace)
+        child = make_page(wiki, create_user, "Subpágina")
+        child.parent = docs["pages"]["deploy"]
+        child.save()
+        archived = make_page(wiki, create_user, "Arquivada")
+        archived.archived_at = archived.created_at
+        archived.save()
+        assert names(client_for(docs["ana"]).get(self.url)) == ["Checkout", "Deploy", "Notas da Ana", "Notas do Gil"]
+
+    def test_tags_of_projects_the_reader_is_not_in_stay_hidden(self, session_client, docs):
+        page = docs["pages"]["deploy"]
+        PageLabel.objects.create(page=page, label=docs["labels"]["rastro"], workspace=page.workspace)
+        deploy = next(p for p in client_for(docs["ana"]).get(self.url).json() if p["name"] == "Deploy")
+        assert deploy["label_ids"] == [str(docs["labels"]["pap_wiki"].id)]
+        project_list = client_for(docs["ana"]).get(f"/api/workspaces/test-workspace/projects/{docs['wiki'].id}/pages/")
+        listed = next(p for p in project_list.json() if p["name"] == "Deploy")
+        assert listed["label_ids"] == [str(docs["labels"]["pap_wiki"].id)]
+
 
 @pytest.mark.contract
 class TestPageLabels:
@@ -169,6 +191,44 @@ class TestPageLabels:
         )
         assert response.status_code == 201, response.content
         assert response.json()["label_ids"] == [str(docs["labels"]["pap_wiki"].id)]
+
+    def test_hidden_tags_are_kept_when_someone_else_edits_the_tags(self, docs):
+        page = docs["pages"]["deploy"]
+        PageLabel.objects.create(page=page, label=docs["labels"]["rastro"], workspace=page.workspace)
+        # Ana cannot see RastroPOP (MAN): she sends only what she sees and the hidden tag stays.
+        response = client_for(docs["ana"]).patch(self.url(docs["wiki"], page), {"labels": []}, format="json")
+        assert response.status_code == 200, response.content
+        assert list(PageLabel.objects.filter(page=page).values_list("label_id", flat=True)) == [
+            docs["labels"]["rastro"].id
+        ]
+
+    def test_workspace_label_accepted_archived_project_label_refused(self, session_client, docs, create_user):
+        workspace = docs["wiki"].workspace
+        global_label = Label.objects.create(name="Geral", project=None, workspace=workspace)
+        old = Project.objects.create(name="Antigo", identifier="OLD", workspace=workspace, created_by=create_user)
+        ProjectMember.objects.create(project=old, member=create_user, role=20, is_active=True)
+        old_label = Label.objects.create(name="Legado", project=old, workspace=workspace)
+        old.archived_at = old.created_at
+        old.save()
+        page = docs["pages"]["deploy"]
+        response = session_client.patch(self.url(docs["wiki"], page), {"labels": [str(old_label.id)]}, format="json")
+        assert response.status_code == 400
+        response = session_client.patch(self.url(docs["wiki"], page), {"labels": [str(global_label.id)]}, format="json")
+        assert response.status_code == 200, response.content
+
+    def test_removed_member_cannot_tag_with_their_old_project(self, docs):
+        ProjectMember.objects.create(project=docs["man"], member=docs["ana"], role=15, is_active=False)
+        page = docs["pages"]["deploy"]
+        response = client_for(docs["ana"]).patch(
+            self.url(docs["wiki"], page), {"labels": [str(docs["labels"]["rastro"].id)]}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_guest_cannot_change_tags(self, docs):
+        page = docs["pages"]["deploy"]
+        response = client_for(docs["gil"]).patch(self.url(docs["wiki"], page), {"labels": []}, format="json")
+        assert response.status_code == 403
+        assert PageLabel.objects.filter(page=page).count() == 1
 
 
 @pytest.fixture
@@ -254,3 +314,15 @@ class TestMCPDocs:
         assert "não existe" in mcp.fails(
             "update_page", **self.ws(), project="WIKI", page_id=str(page.id), labels=["pap"]
         )
+
+    def test_pagination_archived_subpages_and_deleted_tags(self, mcp, docs):
+        first = mcp("list_pages", **self.ws(), limit=2)
+        assert len(first["pages"]) == 2 and first["total"] == 3 and first["next_offset"] == 2
+        assert len(mcp("list_pages", **self.ws(), limit=2, offset=2)["pages"]) == 1
+        archived = docs["pages"]["checkout"]
+        archived.archived_at = archived.created_at
+        archived.save()
+        assert self.listed(mcp) == ["Deploy", "Notas do Gil"]
+        docs["labels"]["pap_wiki"].delete()
+        assert "não existe" not in str(mcp("list_pages", **self.ws(), label="PaP"))
+        assert self.listed(mcp, label="PaP") == []

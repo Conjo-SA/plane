@@ -16,6 +16,7 @@ from plane.utils.content_validator import (
     validate_html_content,
 )
 from plane.db.models import (
+    ProjectMember,
     Page,
     PageLabel,
     Label,
@@ -23,6 +24,14 @@ from plane.db.models import (
     Project,
     PageVersion,
 )
+
+
+def visible_labels_q(user_id, prefix=""):
+    """Labels a user can see: workspace labels and labels of non-archived projects they are an active member of."""
+    member_projects = ProjectMember.objects.filter(
+        member_id=user_id, is_active=True, project__archived_at__isnull=True
+    ).values("project_id")
+    return Q(**{f"{prefix}project__isnull": True}) | Q(**{f"{prefix}project_id__in": member_projects})
 
 
 class PageSerializer(BaseSerializer):
@@ -62,7 +71,11 @@ class PageSerializer(BaseSerializer):
         read_only_fields = ["workspace", "owned_by"]
 
     def validate_labels(self, labels):
-        """Page tags must be labels of the page's workspace, from projects the author is an active member of."""
+        """Page tags must be labels of the page's workspace that the author can see.
+
+        Tags already on the page are kept even when the author cannot see them (a label of a project they are
+        not in): they are neither a reason to refuse the update nor removed by it (see `update`).
+        """
         if self.instance is not None:
             workspace_id = self.instance.workspace_id
         else:
@@ -70,18 +83,16 @@ class PageSerializer(BaseSerializer):
                 Project.objects.filter(pk=self.context.get("project_id")).values_list("workspace_id", flat=True).first()
             )
         user_id = self.context.get("user_id") or self.context.get("owned_by_id")
-        allowed = Label.objects.filter(workspace_id=workspace_id)
-        if user_id is not None:
-            allowed = allowed.filter(
-                Q(project__isnull=True)
-                | Q(
-                    project__project_projectmember__member_id=user_id,
-                    project__project_projectmember__is_active=True,
-                    project__archived_at__isnull=True,
-                )
-            )
-        allowed_ids = set(allowed.filter(pk__in=[label.id for label in labels]).values_list("id", flat=True))
-        if workspace_id is None or any(label.id not in allowed_ids for label in labels):
+        if workspace_id is None or user_id is None:
+            raise serializers.ValidationError("Etiqueta inválida para esta página")
+        allowed_ids = set(
+            Label.objects.filter(workspace_id=workspace_id, pk__in=[label.id for label in labels])
+            .filter(visible_labels_q(user_id))
+            .values_list("id", flat=True)
+        )
+        if self.instance is not None:
+            allowed_ids |= set(PageLabel.objects.filter(page=self.instance).values_list("label_id", flat=True))
+        if any(label.id not in allowed_ids for label in labels):
             raise serializers.ValidationError("Etiqueta inválida para esta página")
         return labels
 
@@ -135,6 +146,11 @@ class PageSerializer(BaseSerializer):
     def update(self, instance, validated_data):
         labels = validated_data.pop("labels", None)
         if labels is not None:
+            # Tags the author cannot see stay on the page: they could not have removed them on purpose.
+            hidden = Label.objects.filter(page_labels__page=instance, page_labels__deleted_at__isnull=True).exclude(
+                visible_labels_q(self.context.get("user_id"))
+            )
+            labels = list(dict.fromkeys([*labels, *hidden]))
             PageLabel.objects.filter(page=instance).delete()
             PageLabel.objects.bulk_create(
                 [
