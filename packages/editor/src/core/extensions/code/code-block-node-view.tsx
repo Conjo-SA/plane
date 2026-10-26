@@ -6,15 +6,18 @@
 
 import { CopyIcon } from "@plane/propel/icons";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import type { Editor } from "@tiptap/react";
 import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
 import ts from "highlight.js/lib/languages/typescript";
 import { common, createLowlight } from "lowlight";
 import { CheckIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 // plane utils
 import { cn } from "@plane/utils";
+// local imports
+import { MermaidDiagram, MermaidFullscreen, MermaidToolbar, useMermaidDiagram } from "./mermaid-diagram";
 // types
 import type { TCodeBlockAttributes } from "./types";
 import { ECodeBlockAttributeNames } from "./types";
@@ -25,9 +28,65 @@ lowlight.register("ts", ts);
 
 type Props = {
   node: ProseMirrorNode;
+  editor: Editor;
+  getPos: () => number | undefined;
 };
 
-export function CodeBlockComponent({ node }: Props) {
+// Conjo: a `mermaid` code block shows the diagram; the code stays in the document and shows up to be edited
+function MermaidCodeBlock({ node, editor, getPos }: Props) {
+  const attrs = node.attrs as TCodeBlockAttributes;
+  const code = node.textContent;
+  const [showCode, setShowCode] = useState(() => editor.isEditable && !code.trim());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const diagram = useMermaidDiagram(code);
+
+  // the cursor entering the block (arrow keys, search) shows the code, so nobody types into a hidden block
+  useEffect(() => {
+    const handleSelection = () => {
+      const pos = getPos();
+      if (!editor.isEditable || pos === undefined) return;
+      const { from, to } = editor.state.selection;
+      if (from > pos && to < pos + node.nodeSize) setShowCode(true);
+    };
+    editor.on("selectionUpdate", handleSelection);
+    return () => {
+      editor.off("selectionUpdate", handleSelection);
+    };
+  }, [editor, getPos, node.nodeSize]);
+
+  return (
+    <NodeViewWrapper key={attrs[ECodeBlockAttributeNames.ID]} className="code-block mermaid-code-block my-2">
+      <div contentEditable={false} className="mb-1 flex items-center justify-between select-none">
+        <span className="font-mono rounded-sm px-1.5 py-0.5 text-caption-sm-regular text-tertiary uppercase">
+          mermaid
+        </span>
+        <MermaidToolbar
+          showCode={showCode}
+          canFullscreen={!!diagram.svg}
+          onToggleCode={() => setShowCode((value) => !value)}
+          onFullscreen={() => setIsFullscreen(true)}
+        />
+      </div>
+      {!showCode && (
+        <div contentEditable={false} className="mermaid-breakout">
+          <MermaidDiagram {...diagram} />
+        </div>
+      )}
+      <pre className={cn("rounded-lg bg-layer-3 p-4 text-primary", { hidden: !showCode })}>
+        <NodeViewContent as="code" className="whitespace-pre-wrap" />
+      </pre>
+      {isFullscreen && diagram.svg && <MermaidFullscreen svg={diagram.svg} onClose={() => setIsFullscreen(false)} />}
+    </NodeViewWrapper>
+  );
+}
+
+export function CodeBlockComponent(props: Props) {
+  if ((props.node.attrs as TCodeBlockAttributes)[ECodeBlockAttributeNames.LANGUAGE] === "mermaid")
+    return <MermaidCodeBlock {...props} />;
+  return <PlainCodeBlock node={props.node} />;
+}
+
+function PlainCodeBlock({ node }: Pick<Props, "node">) {
   const [copied, setCopied] = useState(false);
   // derived values
   const attrs = node.attrs as TCodeBlockAttributes;
