@@ -38,11 +38,47 @@ const renderDiagram = async (code: string, dark: boolean) => {
   const id = `conjo-mermaid-${++renderCount}`;
   try {
     const { svg } = await mermaid.render(id, code);
-    return svg;
+    return sanitizeSvg(svg);
   } finally {
     document.getElementById(id)?.remove();
     document.getElementById(`d${id}`)?.remove();
   }
+};
+
+// Elements that would load something from outside (tracking pixels, frames) or navigate away
+const BLOCKED_ELEMENTS = ["img", "image", "iframe", "object", "embed", "video", "audio", "source", "link", "script"];
+const EXTERNAL_CSS_URL = /url\(\s*(['"]?)(?!#)[^)]*\1\s*\)/gi;
+
+/**
+ * Defense in depth on top of mermaid's own DOMPurify pass: labels may still carry harmless-looking
+ * HTML such as <img src="https://…">, which would make every viewer's browser fetch it.
+ */
+const sanitizeSvg = (svg: string) => {
+  // the HTML parser (not XML): labels inside <foreignObject> are HTML, e.g. an unclosed <br>
+  const template = document.createElement("template");
+  template.innerHTML = svg;
+  const root = template.content.firstElementChild;
+  if (!root || root.nodeName.toLowerCase() !== "svg" || template.content.childElementCount !== 1) return "";
+  root.querySelectorAll(BLOCKED_ELEMENTS.join(",")).forEach((element) => element.remove());
+  // links keep their text
+  root.querySelectorAll("a").forEach((link) => link.replaceWith(...Array.from(link.childNodes)));
+  root.querySelectorAll("*").forEach((element) => {
+    for (const attribute of Array.from(element.attributes)) {
+      const name = attribute.name.toLowerCase();
+      if (name.startsWith("on") || name === "href" || name === "xlink:href" || name === "src") {
+        // markers and gradients reference ids inside the same SVG
+        if ((name === "href" || name === "xlink:href") && attribute.value.startsWith("#")) continue;
+        element.removeAttribute(attribute.name);
+      } else if (name === "style" && EXTERNAL_CSS_URL.test(attribute.value)) {
+        element.setAttribute("style", attribute.value.replace(EXTERNAL_CSS_URL, "none"));
+      }
+      EXTERNAL_CSS_URL.lastIndex = 0;
+    }
+  });
+  root.querySelectorAll("style").forEach((style) => {
+    style.textContent = (style.textContent ?? "").replace(EXTERNAL_CSS_URL, "none");
+  });
+  return root.outerHTML;
 };
 
 const getSvgWidth = (svg: string) => {
