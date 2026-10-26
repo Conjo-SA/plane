@@ -5,6 +5,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -68,16 +69,16 @@ export const DocsList = observer(function DocsList({ workspaceSlug }: Props) {
 
   const projectOptions = useMemo(() => {
     const ids = new Set((pages ?? []).flatMap((page) => page.project_ids));
-    return Array.from(ids)
+    const projects = Array.from(ids)
       .map((id) => getProjectById(id))
-      .filter((project) => !!project)
-      .toSorted((a, b) => a.name.localeCompare(b.name));
+      .filter((project) => !!project);
+    return sortBy(projects, (project) => project.name.toLowerCase());
   }, [pages, getProjectById]);
 
   const tagOptions = useMemo(() => {
     const names = new Map<string, string>();
     (pages ?? []).forEach((page) => tagNames(page).forEach((name) => names.set(name.toLowerCase(), name)));
-    return Array.from(names.entries()).toSorted((a, b) => a[1].localeCompare(b[1]));
+    return sortBy(Array.from(names.entries()), ([key]) => key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, getLabelById]);
 
@@ -107,9 +108,8 @@ export const DocsList = observer(function DocsList({ workspaceSlug }: Props) {
         names.forEach((name) => add(name.toLowerCase(), name, page));
       }
     });
-    return Array.from(map.values()).toSorted((a, b) =>
-      a.key === NO_TAG ? 1 : b.key === NO_TAG ? -1 : a.title.localeCompare(b.title)
-    );
+    // "Sem etiqueta" goes last
+    return sortBy(Array.from(map.values()), [(group) => group.key === NO_TAG, (group) => group.title.toLowerCase()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visiblePages, groupBy, getProjectById, getLabelById]);
 
