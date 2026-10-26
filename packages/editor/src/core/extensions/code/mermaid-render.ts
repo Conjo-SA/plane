@@ -33,6 +33,8 @@ const SVG_ELEMENTS = [
   "polygon",
   "text",
   "tspan",
+  // journey and timeline wrap their texts in <switch>
+  "switch",
   "foreignobject",
   "title",
   "desc",
@@ -120,8 +122,9 @@ export const sanitizeSvg = (svg: string) => {
         if (!attribute.value.trim().startsWith("#")) element.removeAttribute(attribute.name);
       } else if (BLOCKED_ATTRIBUTE.test(attributeName)) {
         element.removeAttribute(attribute.name);
-      } else if (attributeName !== "style" && CSS_FETCH.test(attribute.value)) {
-        // presentation attributes such as fill="url(https://…)"
+      } else if (attributeName !== "style" && (attribute.value.includes("\\") || CSS_FETCH.test(attribute.value))) {
+        // presentation attributes such as fill="url(https://…)"; mermaid never writes CSS escapes in them,
+        // and an escape (u\72l(…)) would hide a url() from the check
         element.removeAttribute(attribute.name);
       }
     }
@@ -164,6 +167,11 @@ export const renderDiagram = async (code: string, dark: boolean) => {
       "altFontFamily",
     ],
   });
+  // the flowchart image shape (A@{ img: "https://…" }) is fetched while mermaid lays it out, before any filtering
+  const diagram = await mermaid.mermaidAPI.getDiagramFromText(code);
+  const vertices = (diagram.db as { getVertices?: () => Map<string, { img?: string }> }).getVertices?.();
+  if (vertices && Array.from(vertices.values()).some((vertex) => vertex.img))
+    throw new Error("Diagramas não podem ter imagens: o navegador de cada leitor buscaria a imagem fora do Tasks.");
   const id = `conjo-mermaid-${++renderCount}`;
   try {
     const { svg } = await mermaid.render(id, code);
