@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+# Django imports
+from django.db.models import Q
+
 # Third party imports
 from rest_framework import serializers
 import base64
@@ -57,6 +60,30 @@ class PageSerializer(BaseSerializer):
             "project_ids",
         ]
         read_only_fields = ["workspace", "owned_by"]
+
+    def validate_labels(self, labels):
+        """Page tags must be labels of the page's workspace, from projects the author is an active member of."""
+        if self.instance is not None:
+            workspace_id = self.instance.workspace_id
+        else:
+            workspace_id = (
+                Project.objects.filter(pk=self.context.get("project_id")).values_list("workspace_id", flat=True).first()
+            )
+        user_id = self.context.get("user_id") or self.context.get("owned_by_id")
+        allowed = Label.objects.filter(workspace_id=workspace_id)
+        if user_id is not None:
+            allowed = allowed.filter(
+                Q(project__isnull=True)
+                | Q(
+                    project__project_projectmember__member_id=user_id,
+                    project__project_projectmember__is_active=True,
+                    project__archived_at__isnull=True,
+                )
+            )
+        allowed_ids = set(allowed.filter(pk__in=[label.id for label in labels]).values_list("id", flat=True))
+        if workspace_id is None or any(label.id not in allowed_ids for label in labels):
+            raise serializers.ValidationError("Etiqueta inválida para esta página")
+        return labels
 
     def create(self, validated_data):
         labels = validated_data.pop("labels", None)
