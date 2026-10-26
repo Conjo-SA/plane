@@ -40,8 +40,10 @@ from plane.db.models import (
     Label,
     Module,
     Page,
+    PageLabel,
     Project,
     ProjectMember,
+    ProjectPage,
     State,
     User,
     Workspace,
@@ -355,6 +357,12 @@ def _serialize_label(label):
 
 
 def _serialize_page(page):
+    page_labels = getattr(page, "active_page_labels", None)
+    if page_labels is None:
+        page_labels = PageLabel.objects.filter(page=page, label__deleted_at__isnull=True).select_related("label")
+    project_pages = getattr(page, "active_project_pages", None)
+    if project_pages is None:
+        project_pages = ProjectPage.objects.filter(page=page).select_related("project")
     return {
         "id": str(page.id),
         "name": page.name,
@@ -362,9 +370,24 @@ def _serialize_page(page):
         "is_locked": page.is_locked,
         "is_archived": page.archived_at is not None,
         "owned_by_id": str(page.owned_by_id),
+        "labels": [{"id": str(pl.label_id), "name": pl.label.name} for pl in page_labels],
+        "projects": [pp.project.identifier for pp in project_pages],
         "created_at": page.created_at.isoformat() if page.created_at else None,
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
+
+
+def page_prefetch(queryset):
+    return queryset.prefetch_related(
+        Prefetch(
+            "page_labels",
+            queryset=PageLabel.objects.filter(label__deleted_at__isnull=True).select_related("label"),
+            to_attr="active_page_labels",
+        ),
+        Prefetch(
+            "project_pages", queryset=ProjectPage.objects.select_related("project"), to_attr="active_project_pages"
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1634,21 +1657,119 @@ def create_label(workspace_slug, project, name, color=None, description=""):
 
 def _visible_pages(project_instance):
     """Public pages of the project and the bot's own: people's private pages stay private, as in the app."""
-    return Page.objects.filter(projects__id=project_instance.id).filter(Q(access=0) | Q(owned_by=_mcp_actor()))
+    return Page.objects.filter(
+        project_pages__project_id=project_instance.id, project_pages__deleted_at__isnull=True
+    ).filter(Q(access=0) | Q(owned_by=_mcp_actor()))
+
+
+def _visible_workspace_pages(workspace):
+    """Pages of every non-archived project of the workspace, with the same visibility as `_visible_pages`."""
+    return Page.objects.filter(
+        workspace=workspace,
+        project_pages__deleted_at__isnull=True,
+        project_pages__project__archived_at__isnull=True,
+        project_pages__project__deleted_at__isnull=True,
+    ).filter(Q(access=0) | Q(owned_by=_mcp_actor()))
+
+
+def _get_tag_name(workspace, label):
+    """A tag is a label name: the same name in different projects is the same tag."""
+    if _is_uuid(label):
+        name = Label.objects.filter(workspace=workspace, pk=label).values_list("name", flat=True).first()
+    else:
+        name = _clean_text(label, "label", MAX_NAME_LENGTH, required=True)
+        if not Label.objects.filter(workspace=workspace, name__iexact=name).exists():
+            name = None
+    if name is None:
+        raise MCPToolError(f"A etiqueta '{label}' não existe no workspace")
+    return name
+
+
+def _resolve_page_labels(project_instance, labels):
+    """Labels by UUID or name, from the whole workspace; by name, the page's own project wins."""
+    if labels is None:
+        return None
+    if not isinstance(labels, list):
+        raise MCPToolError("'labels' deve ser uma lista de nomes ou UUIDs de etiquetas")
+    if len(labels) > MAX_LIST_ITEMS:
+        raise MCPToolError(f"'labels' aceita no máximo {MAX_LIST_ITEMS} itens")
+    queryset = Label.objects.filter(workspace_id=project_instance.workspace_id)
+    resolved = []
+    for value in labels:
+        if _is_uuid(value):
+            label = queryset.filter(pk=value).first()
+        else:
+            name = _clean_text(value, "labels", MAX_NAME_LENGTH, required=True)
+            matches = queryset.filter(name__iexact=name)
+            label = matches.filter(project=project_instance).first() or matches.order_by("created_at").first()
+        if label is None:
+            raise MCPToolError(f"A etiqueta '{value}' não existe no workspace")
+        if label not in resolved:
+            resolved.append(label)
+    return resolved
+
+
+def _set_page_labels(page, labels, actor):
+    PageLabel.objects.filter(page=page).delete()
+    PageLabel.objects.bulk_create(
+        [
+            PageLabel(page=page, label=label, workspace_id=page.workspace_id, created_by=actor, updated_by=actor)
+            for label in labels
+        ]
+    )
 
 
 @register_tool(
     name="list_pages",
-    description="Lista as páginas públicas de um projeto (páginas privadas de outras pessoas não aparecem).",
+    description=(
+        "Lista as páginas públicas de um projeto ou, sem 'project', do workspace inteiro (a documentação). "
+        "Filtra por etiqueta (tag: o mesmo nome em projetos diferentes conta como a mesma tag) e por título; "
+        "pagina com limit/offset. "
+        "Páginas privadas de outras pessoas não aparecem."
+    ),
     input_schema={
         "type": "object",
-        "properties": {**_WORKSPACE_SLUG_PROPERTY, **_PROJECT_PROPERTY},
-        "required": ["workspace_slug", "project"],
+        "properties": {
+            **_WORKSPACE_SLUG_PROPERTY,
+            "project": {
+                "type": "string",
+                "maxLength": 100,
+                "description": "UUID ou identificador do projeto, ex.: 'MAN'. Sem ele, lista todos os projetos",
+            },
+            "label": {"type": "string", "maxLength": MAX_NAME_LENGTH, "description": "Nome ou UUID da etiqueta"},
+            "search": {"type": "string", "maxLength": MAX_NAME_LENGTH, "description": "Parte do título"},
+            "limit": _limit_property(50, 200),
+            "offset": {"type": "integer", "minimum": 0, "description": "Pula esta quantidade (paginação)"},
+        },
+        "required": ["workspace_slug"],
         "additionalProperties": False,
     },
     category="pages",
 )
-def list_pages(workspace_slug, project):
-    project_instance = _get_project(workspace_slug, project)
-    pages = _visible_pages(project_instance).filter(archived_at__isnull=True).order_by("-created_at").distinct()
-    return {"pages": [_serialize_page(page) for page in pages]}
+def list_pages(workspace_slug, project=None, label=None, search=None, limit=50, offset=0):
+    limit = _limit(limit, 50, 200)
+    try:
+        offset = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        raise MCPToolError("'offset' deve ser um número inteiro")
+    if project:
+        pages = _visible_pages(_get_project(workspace_slug, project))
+    else:
+        pages = _visible_workspace_pages(_get_workspace(workspace_slug))
+    pages = pages.filter(archived_at__isnull=True)
+    if label:
+        name = _get_tag_name(_get_workspace(workspace_slug), label)
+        pages = pages.filter(
+            page_labels__label__name__iexact=name,
+            page_labels__deleted_at__isnull=True,
+            page_labels__label__deleted_at__isnull=True,
+        )
+    if search:
+        pages = pages.filter(name__icontains=_clean_text(search, "search", MAX_NAME_LENGTH))
+    pages = pages.order_by("-updated_at").distinct()
+    total = pages.count()
+    return {
+        "pages": [_serialize_page(page) for page in page_prefetch(pages[offset : offset + limit])],
+        "total": total,
+        "next_offset": offset + limit if offset + limit < total else None,
+    }

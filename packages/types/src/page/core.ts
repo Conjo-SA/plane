@@ -37,6 +37,17 @@ export type TPageFiltersSortKey = "name" | "created_at" | "updated_at" | "opened
 
 export type TPageFiltersSortBy = "asc" | "desc";
 
+// Conjo: a page of the workspace documentation (pages of every project, browsed by project and by tag)
+export type TWorkspaceDocPage = Pick<
+  TPage,
+  "id" | "name" | "access" | "owned_by" | "is_locked" | "archived_at" | "logo_props" | "is_favorite"
+> & {
+  created_at: string;
+  updated_at: string;
+  project_ids: string[];
+  label_ids: string[];
+};
+
 export type TPageFilterProps = {
   created_at?: string[] | null;
   created_by?: string[] | null;

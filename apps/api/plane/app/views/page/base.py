@@ -36,8 +36,10 @@ from plane.app.serializers import (
     PageDetailSerializer,
     PageBinaryUpdateSerializer,
 )
+from plane.app.serializers.page import visible_labels_q
 from plane.db.models import (
     Page,
+    PageLabel,
     PageLog,
     UserFavorite,
     ProjectMember,
@@ -113,7 +115,13 @@ class PageViewSet(BaseViewSet):
                     ArrayAgg(
                         "page_labels__label_id",
                         distinct=True,
-                        filter=~Q(page_labels__label_id__isnull=True),
+                        filter=Q(
+                            page_labels__label_id__isnull=False,
+                            page_labels__deleted_at__isnull=True,
+                            page_labels__label__deleted_at__isnull=True,
+                        )
+                        # tags from projects the user is not in stay hidden
+                        & visible_labels_q(self.request.user.id, prefix="page_labels__label__"),
                     ),
                     Value([], output_field=ArrayField(UUIDField())),
                 ),
@@ -179,7 +187,9 @@ class PageViewSet(BaseViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            serializer = PageDetailSerializer(page, data=request.data, partial=True)
+            serializer = PageDetailSerializer(
+                page, data=request.data, partial=True, context={"user_id": request.user.id}
+            )
             page_description = page.description_html
             if serializer.is_valid():
                 serializer.save()
@@ -637,3 +647,89 @@ class PageDuplicateEndpoint(BaseAPIView):
         )
         serializer = PageDetailSerializer(page)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class WorkspacePagesEndpoint(BaseAPIView):
+    """Documentação: pages of every project the user can see, to browse by project and by tag.
+
+    Same visibility as each project's page list: active membership in a non-archived project, public pages
+    or the user's own, and guests only see their own pages unless the project lets guests see everything.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def get(self, request, slug):
+        memberships = ProjectMember.objects.filter(
+            workspace__slug=slug,
+            member=request.user,
+            is_active=True,
+            project__archived_at__isnull=True,
+            project__deleted_at__isnull=True,
+        )
+        full_project_ids = list(
+            memberships.filter(Q(role__gt=ROLE.GUEST.value) | Q(project__guest_view_all_features=True)).values_list(
+                "project_id", flat=True
+            )
+        )
+        own_project_ids = list(memberships.values_list("project_id", flat=True))
+
+        pages = (
+            Page.objects.filter(workspace__slug=slug, parent__isnull=True, archived_at__isnull=True)
+            .filter(
+                Q(
+                    project_pages__project_id__in=full_project_ids,
+                    project_pages__deleted_at__isnull=True,
+                    access=Page.PUBLIC_ACCESS,
+                )
+                | Q(
+                    project_pages__project_id__in=own_project_ids,
+                    project_pages__deleted_at__isnull=True,
+                    owned_by=request.user,
+                )
+            )
+            .annotate(
+                is_favorite=Exists(
+                    UserFavorite.objects.filter(
+                        user=request.user,
+                        entity_type="page",
+                        entity_identifier=OuterRef("pk"),
+                        workspace__slug=slug,
+                    )
+                )
+            )
+            .distinct()
+            .order_by("-updated_at")
+        )
+        page_list = list(
+            pages.values(
+                "id",
+                "name",
+                "access",
+                "owned_by",
+                "is_locked",
+                "archived_at",
+                "logo_props",
+                "is_favorite",
+                "created_at",
+                "updated_at",
+            )
+        )
+        page_ids = [page["id"] for page in page_list]
+
+        # Only the projects the user can see: a page shared with another project does not reveal it.
+        project_ids = {}
+        for page_id, project_id in ProjectPage.objects.filter(
+            page_id__in=page_ids, project_id__in=own_project_ids
+        ).values_list("page_id", "project_id"):
+            project_ids.setdefault(page_id, []).append(project_id)
+        label_ids = {}
+        for page_id, label_id in (
+            PageLabel.objects.filter(page_id__in=page_ids, label__deleted_at__isnull=True)
+            .filter(visible_labels_q(request.user.id, prefix="label__"))
+            .values_list("page_id", "label_id")
+        ):
+            label_ids.setdefault(page_id, []).append(label_id)
+
+        for page in page_list:
+            page["project_ids"] = project_ids.get(page["id"], [])
+            page["label_ids"] = label_ids.get(page["id"], [])
+        return Response(page_list, status=status.HTTP_200_OK)

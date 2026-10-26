@@ -6,7 +6,7 @@
 
 // types
 import { API_BASE_URL } from "@plane/constants";
-import type { TDocumentPayload, TPage } from "@plane/types";
+import type { TDocumentPayload, TPage, TWorkspaceDocPage } from "@plane/types";
 // helpers
 // services
 import { APIService } from "@/services/api.service";
@@ -23,6 +23,24 @@ export class ProjectPageService extends APIService {
 
   async fetchAll(workspaceSlug: string, projectId: string): Promise<TPage[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  // Conjo: pages of every project the user can see, for the workspace documentation
+  async fetchWorkspacePages(workspaceSlug: string): Promise<TWorkspaceDocPage[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/pages/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  // Conjo: page tags are labels of any project of the workspace; replaces the current ones
+  async updateLabels(workspaceSlug: string, projectId: string, pageId: string, labelIds: string[]): Promise<TPage> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/`, { labels: labelIds })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

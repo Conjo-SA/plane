@@ -76,14 +76,17 @@ from plane.mcp.tools.handlers import (
     _serialize_issue,
     _serialize_label,
     _serialize_module,
+    _resolve_page_labels,
     _serialize_page,
     _serialize_state,
+    _set_page_labels,
     _serialize_user,
     _text_property,
     _uuid_list_property,
     _visible_pages,
     _workspace_user,
     issue_prefetch,
+    page_prefetch,
 )
 from plane.mcp.tools.registry import register_tool
 from plane.utils.issue_relation_mapper import get_actual_relation, get_inverse_relation
@@ -112,6 +115,14 @@ _CYCLE_ID = {"cycle_id": {"type": "string", "maxLength": 100, "description": "UU
 _MODULE_ID = {"module_id": {"type": "string", "maxLength": 100, "description": "UUID do módulo (list_modules)"}}
 _STATE_ID = {"state_id": {"type": "string", "maxLength": 100, "description": "UUID do estado (list_states)"}}
 _LABEL_ID = {"label_id": {"type": "string", "maxLength": 100, "description": "UUID da etiqueta (list_labels)"}}
+_PAGE_LABELS = {
+    "labels": {
+        "type": "array",
+        "items": {"type": "string", "maxLength": MAX_NAME_LENGTH},
+        "maxItems": MAX_LIST_ITEMS,
+        "description": "Etiquetas (tags) por nome ou UUID, de qualquer projeto do workspace; substitui as atuais",
+    }
+}
 _PAGE_ID = {"page_id": {"type": "string", "maxLength": 100, "description": "UUID da página (list_pages)"}}
 _WORK_ITEMS = {
     "work_items": _uuid_list_property("Identificadores (ex.: 'MAN-12') ou UUIDs dos itens, todos do projeto")
@@ -1191,7 +1202,7 @@ def delete_label(workspace_slug, project, label_id, confirm=False):
 
 
 def _get_page(project_instance, page_id):
-    page = _visible_pages(project_instance).filter(pk=page_id).first() if _is_uuid(page_id) else None
+    page = page_prefetch(_visible_pages(project_instance)).filter(pk=page_id).first() if _is_uuid(page_id) else None
     if page is None:
         raise MCPToolError(f"A página '{page_id}' não existe no projeto '{project_instance.identifier}'")
     return page
@@ -1224,12 +1235,13 @@ def retrieve_page(workspace_slug, project, page_id):
             "name": _name_property("Título da página"),
             "description_html": _html_property("Conteúdo em HTML"),
             "access": {"type": "string", "enum": ["public", "private"], "description": "Padrão: public"},
+            **_PAGE_LABELS,
         },
         ["workspace_slug", "project", "name"],
     ),
     category="pages",
 )
-def create_page(workspace_slug, project, name, description_html="", access="public"):
+def create_page(workspace_slug, project, name, description_html="", access="public", labels=None):
     from plane.db.models import Page
 
     name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
@@ -1237,6 +1249,7 @@ def create_page(workspace_slug, project, name, description_html="", access="publ
         raise MCPToolError("'access' deve ser public ou private")
     content = _clean_html(description_html)
     project_instance = _get_project(workspace_slug, project)
+    labels = _resolve_page_labels(project_instance, labels)
     actor = _mcp_actor()
     with transaction.atomic():
         page = Page(
@@ -1248,14 +1261,17 @@ def create_page(workspace_slug, project, name, description_html="", access="publ
         )
         page.save(created_by_id=actor.id)
         ProjectPage.objects.create(page=page, project=project_instance, workspace_id=project_instance.workspace_id)
+        if labels:
+            _set_page_labels(page, labels, actor)
     return {**_serialize_page(page), "description_html": page.description_html}
 
 
 @register_tool(
     name="update_page",
     description=(
-        "Renomeia uma página ou substitui o conteúdo (HTML sanitizado). Substituir o conteúdo descarta o "
-        "documento atual: não use enquanto alguém edita a página. Páginas bloqueadas ou arquivadas são recusadas."
+        "Renomeia uma página, troca as etiquetas ou substitui o conteúdo (HTML sanitizado). "
+        "Substituir o conteúdo descarta o documento atual: não use enquanto alguém edita a página. "
+        "Páginas bloqueadas ou arquivadas são recusadas."
     ),
     input_schema=_schema(
         {
@@ -1264,13 +1280,15 @@ def create_page(workspace_slug, project, name, description_html="", access="publ
             **_PAGE_ID,
             "name": _name_property("Novo título"),
             "description_html": _html_property("Novo conteúdo em HTML (substitui o atual)"),
+            **_PAGE_LABELS,
         },
         ["workspace_slug", "project", "page_id"],
     ),
     category="pages",
 )
-def update_page(workspace_slug, project, page_id, name=None, description_html=None):
-    page = _get_page(_get_project(workspace_slug, project), page_id)
+def update_page(workspace_slug, project, page_id, name=None, description_html=None, labels=None):
+    project_instance = _get_project(workspace_slug, project)
+    page = _get_page(project_instance, page_id)
     if page.is_locked:
         raise MCPToolError("Esta página está bloqueada")
     if page.archived_at is not None:
@@ -1285,7 +1303,12 @@ def update_page(workspace_slug, project, page_id, name=None, description_html=No
         page.description_binary = None
         page.description_json = {}
         fields += ["description_html", "description_binary", "description_json"]
-    page.save(update_fields=fields)
+    labels = _resolve_page_labels(project_instance, labels)
+    with transaction.atomic():
+        page.save(update_fields=fields)
+        if labels is not None:
+            _set_page_labels(page, labels, _mcp_actor())
+    page = _get_page(project_instance, page.id)
     return {**_serialize_page(page), "description_html": page.description_html}
 
 
