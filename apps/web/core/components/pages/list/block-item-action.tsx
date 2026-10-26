@@ -20,6 +20,7 @@ import type { EPageStoreType } from "@/hooks/store";
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PageActions } from "../dropdowns";
+import { PageLabelsControl } from "../labels";
 
 type Props = {
   page: TPageInstance;
@@ -41,6 +42,8 @@ export const BlockItemAction = observer(function BlockItemAction(props: Props) {
 
   return (
     <>
+      {/* Conjo: page tags */}
+      <PageLabelsControl page={page} className="cursor-default" />
       {/* page details */}
       <div className="cursor-default">
         <Tooltip tooltipHeading="Proprietário" tooltipContent={ownerDetails?.display_name}>

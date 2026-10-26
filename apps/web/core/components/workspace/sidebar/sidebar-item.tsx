@@ -54,6 +54,7 @@ export const SidebarItemBase = observer(function SidebarItemBase({
     "your_work",
     "stickies",
     "drafts",
+    "docs",
     "clients",
     ...(additionalStaticItems || []),
   ];

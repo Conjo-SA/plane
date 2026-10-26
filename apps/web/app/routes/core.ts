@@ -105,6 +105,11 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
         ]),
 
+        // Conjo: documentation (pages of every project, by project and by tag)
+        layout("./(all)/[workspaceSlug]/(projects)/docs/layout.tsx", [
+          route(":workspaceSlug/docs", "./(all)/[workspaceSlug]/(projects)/docs/page.tsx"),
+        ]),
+
         // Conjo: clients (CRM and hour packages)
         layout("./(all)/[workspaceSlug]/(projects)/clients/layout.tsx", [
           route(":workspaceSlug/clients", "./(all)/[workspaceSlug]/(projects)/clients/page.tsx"),
