@@ -7,7 +7,10 @@
     table-layout: fixed;
     margin: 0.5rem 0 0 0;
     @apply relative border border-subtle;
-    width: 100%;
+    /* Conjo: the editor writes the sum of the column widths inline (150px each by default), which left tables
+       narrower than the page. With a fixed layout the table is as wide as the larger of this width and that sum:
+       columns keep their proportions across the whole width and the table only scrolls when they add up to more. */
+    width: 100% !important;
 
     td,
     th {
