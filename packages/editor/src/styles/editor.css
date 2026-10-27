@@ -506,3 +506,14 @@ span[data-name][data-type="emoji"] img {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Conjo: Mermaid diagrams use the page width (up to 1152px), even when the text column is narrow.
+   Only inside the page editor, which declares the `page-content` container. */
+@container page-content (min-width: 0px) {
+  .mermaid-breakout {
+    position: relative;
+    left: 50%;
+    width: max(100%, min(1152px, calc(100cqw - 8rem)));
+    transform: translateX(-50%);
+  }
+}

@@ -76,7 +76,9 @@ export const CodeBlock = Node.create<CodeBlockOptions>({
         default: null,
         parseHTML: (element) => {
           const { languageClassPrefix } = this.options;
-          const classNames = [...(element.firstElementChild?.classList || [])];
+          // Conjo: the server converts HTML with zeed-dom, which has neither firstElementChild nor classList
+          const codeElement = element.firstElementChild ?? element.querySelector?.("code");
+          const classNames = (codeElement?.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
           const languages = classNames
             .filter((className) => className.startsWith(languageClassPrefix))
             .map((className) => className.replace(languageClassPrefix, ""));

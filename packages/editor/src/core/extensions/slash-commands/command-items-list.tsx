@@ -20,12 +20,14 @@ import {
   ListTodo,
   MessageSquareText,
   MinusSquare,
+  Network,
   Smile,
   Table,
   TextQuote,
 } from "lucide-react";
 // constants
 import { COLORS_LIST } from "@/constants/common";
+import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers
 import {
   insertTableCommand,
@@ -187,6 +189,28 @@ export const getSlashCommandFilteredSections =
             icon: <Code2 className="size-3.5" />,
             command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
           },
+          // Conjo: Mermaid diagram (code block rendered as an image)
+          {
+            commandKey: "code",
+            key: "mermaid",
+            title: "Diagrama (Mermaid)",
+            description: "Fluxograma, sequência ou arquitetura em Mermaid.",
+            searchTerms: ["mermaid", "diagrama", "diagram", "fluxograma", "flowchart", "sequencia", "arquitetura"],
+            icon: <Network className="size-3.5" />,
+            command: ({ editor, range }) =>
+              editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                  type: CORE_EXTENSIONS.CODE_BLOCK,
+                  attrs: { language: "mermaid" },
+                  content: [
+                    { type: "text", text: 'flowchart LR\n  A["Início"] --> B{"Decisão?"}\n  B -->|"sim"| C["Fim"]' },
+                  ],
+                })
+                .run(),
+          },
           {
             commandKey: "callout",
             key: "callout",
@@ -326,9 +350,9 @@ export const getSlashCommandFilteredSections =
       }
     });
 
-    const filteredSlashSections = SLASH_COMMAND_SECTIONS.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => {
+    // the sections are built on every call, so they can be filtered in place
+    for (const section of SLASH_COMMAND_SECTIONS) {
+      section.items = section.items.filter((item) => {
         if (typeof query !== "string") return;
 
         const lowercaseQuery = normalize(query);
@@ -337,8 +361,8 @@ export const getSlashCommandFilteredSections =
           normalize(item.description).includes(lowercaseQuery) ||
           item.searchTerms.some((t) => normalize(t).includes(lowercaseQuery))
         );
-      }),
-    }));
+      });
+    }
 
-    return filteredSlashSections.filter((s) => s.items.length !== 0);
+    return SLASH_COMMAND_SECTIONS.filter((s) => s.items.length !== 0);
   };

@@ -238,7 +238,12 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       className="vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200"
       variant={ERowVariant.HUGGING}
     >
-      <div id="page-content-container" className="relative w-full flex-shrink-0">
+      <div
+        id="page-content-container"
+        className="relative w-full flex-shrink-0"
+        // Conjo: Mermaid diagrams size themselves against this container (see .mermaid-breakout)
+        style={{ containerType: "inline-size", containerName: "page-content" }}
+      >
         {/* table of content */}
         {!isNavigationPaneOpen && (
           <div className="page-summary-container absolute top-[64px] right-0 z-[5] h-full">
