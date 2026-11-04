@@ -545,8 +545,8 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
             <h2 style={{ ...h2, fontSize: 13 }}>Como as horas são contadas</h2>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
               <b style={{ color: EVO }}>Evolução</b> é tudo o que acrescenta ou muda funcionalidade a pedido do cliente
-              e é debitado do pacote contratado, depois de orçamento aprovado. Conta o total de horas aprovado, na data
-              da aprovação. Os lançamentos desse trabalho aparecem com &quot;—&quot; porque já estão no orçamento.
+              e é debitado do pacote contratado, depois de orçamento aprovado. Conta o total de horas aprovado, uma única
+              vez. Os lançamentos desse trabalho aparecem com &quot;—&quot; porque já estão no orçamento.
             </p>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
               <b style={{ color: MAN }}>Manutenção</b> é a correção de bugs: erro, falha ou comportamento inesperado do

@@ -396,3 +396,55 @@ class TestReportApprovedEstimate:
             data = session_client.get(url(workspace, client_), SEPT).json()
         assert data["package"]["used_in_period"] == "10.00"
         assert data["totals"]["evolution_hours"] == "10.00"
+
+    def _debited(self, issue, hours, moment, on, client):
+        make_contract(client, starts_on=datetime.date(2026, 7, 1))
+        budget = approve(issue, hours, moment)
+        billing.debit_for_estimate(issue, budget.estimated_hours, on=on, budget=budget)
+        return budget
+
+    def test_reversed_debit_does_not_count(self, session_client, workspace, client_, report_data):
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            budget = self._debited(report_data["evo"], "10", SEPT_10, datetime.date(2026, 9, 10), client_)
+            debit = HourLedgerEntry.objects.get(budget=budget, kind="debit")
+            billing.reverse_debit(debit, on=datetime.date(2026, 9, 20))
+            data = session_client.get(url(workspace, client_), SEPT).json()
+        assert D(data["package"]["used_in_period"]) == 0
+        # Nothing was paid, so the logged hours are back and no estimate row is left.
+        assert data["totals"]["evolution_hours"] == "3.00"
+        assert "Orçamento aprovado" not in [r["description"] for r in data["rows"]]
+        assert all(r["budgeted"] is False for r in data["rows"])
+
+    def test_only_the_reversed_estimate_leaves(self, session_client, workspace, client_, report_data):
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            first = self._debited(report_data["evo"], "10", SEPT_10, datetime.date(2026, 9, 10), client_)
+            second = approve(report_data["evo"], "2", SEPT_10)
+            billing.debit_for_estimate(
+                report_data["evo"], second.estimated_hours, on=datetime.date(2026, 9, 10), budget=second
+            )
+            billing.reverse_debit(HourLedgerEntry.objects.get(budget=first, kind="debit"))
+            data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "2.00"
+        work = [r for r in data["rows"] if r["kind"] == "evolution" and r["description"] != "Orçamento aprovado"]
+        assert work and all(r["budgeted"] is True for r in work)
+
+    def test_debit_redone_later_moves_the_hours_to_its_date(self, session_client, workspace, client_, report_data):
+        make_contract(client_, starts_on=datetime.date(2026, 7, 1))
+        approve(report_data["man"], "10", SEPT_10)
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            billing.change_work_kind(report_data["man"], "evolution")
+            september = session_client.get(url(workspace, client_), SEPT).json()
+            october = session_client.get(url(workspace, client_), OCT).json()
+        assert D(september["package"]["used_in_period"]) == 0
+        assert D(october["package"]["used_in_period"]) == 10
+        assert october["totals"]["evolution_hours"] == "10.00"
+        assert september["totals"]["evolution_hours"] == "3.00"
+
+    def test_excess_over_the_balance_still_reports_the_approved(self, session_client, workspace, client_, report_data):
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            self._debited(report_data["evo"], "100", SEPT_10, datetime.date(2026, 9, 10), client_)
+            data = session_client.get(url(workspace, client_), SEPT).json()
+        package = data["package"]
+        assert data["totals"]["evolution_hours"] == "100.00"
+        assert D(package["used_in_period"]) + D(package["excess_in_period"]) == D("100")
+        assert D(package["excess_in_period"]) > 0

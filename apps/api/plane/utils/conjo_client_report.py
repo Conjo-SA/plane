@@ -15,9 +15,10 @@ statement. Rules:
   team can classify them and issue the report again.
 - The member who logged the time is not exposed; the report is signed by the contract owner.
 - Evolution with an approved estimate counts the approved hours, because that is what the client pays:
-  each estimate enters on its approval date (the date of the package debit), and the time logged on the
-  item stays only as the description of the work, adding no hours. A maintenance item is not debited, so
-  it keeps the logged hours. The logged hours of those items stay on the card and in ``time_report``.
+  each estimate enters on the date of its open package debit (the approval date when the client has no
+  package), and the time logged on the item stays only as the description of the work, adding no hours.
+  An estimate whose debit was reversed is no longer paid, so it does not count. A maintenance item is
+  not debited, so it keeps the logged hours. The logged hours stay on the card and in ``time_report``.
 """
 
 # Python imports
@@ -143,6 +144,7 @@ def build_client_report(client, start, end, visible_project_ids):
     """The report payload. ``visible_project_ids``: projects whose items the issuer may see."""
     from plane.db.models import (
         ClientLabel,
+        HourLedgerEntry,
         IntakePortalBudget,
         IssueLabel,
         IssueWorkKind,
@@ -180,7 +182,24 @@ def build_client_report(client, start, end, visible_project_ids):
     # does not mark the kind when the client has no package).
     for budget in approved:
         kinds.setdefault(budget.issue_id, "evolution")
-    budgeted = {budget.issue_id for budget in approved if kinds[budget.issue_id] == "evolution"}
+
+    # An approved estimate is final, so a reversal only shows in the statement. Without any debit (no
+    # package) it counts from its approval; with debits, only an open one keeps it paid.
+    debited, debit_dates = set(), {}
+    for budget_id, occurred_on, reversal_id in (
+        HourLedgerEntry.objects.filter(budget_id__in=[b.id for b in approved], kind=HourLedgerEntry.DEBIT)
+        .order_by("created_at")
+        .values_list("budget_id", "occurred_on", "reversals__id")
+    ):
+        debited.add(budget_id)
+        if reversal_id is None:
+            debit_dates[budget_id] = occurred_on
+    estimates = [
+        (budget, debit_dates.get(budget.id) or billing.local_date(budget.approved_at or budget.created_at))
+        for budget in approved
+        if kinds[budget.issue_id] == "evolution" and (budget.id in debit_dates or budget.id not in debited)
+    ]
+    budgeted = {budget.issue_id for budget, _ in estimates}
 
     reported = [
         {
@@ -194,13 +213,12 @@ def build_client_report(client, start, end, visible_project_ids):
         for log in logs
         if kinds.get(log.issue_id) in REPORTED_KINDS
     ]
-    for budget in approved:
-        approved_on = billing.local_date(budget.approved_at or budget.created_at)
-        if budget.issue_id in budgeted and start <= approved_on <= end:
+    for budget, counted_on in estimates:
+        if start <= counted_on <= end:
             reported.append(
                 {
                     "id": budget.id,
-                    "date": approved_on,
+                    "date": counted_on,
                     "issue": budget.issue,
                     "minutes": budget.estimated_hours * 60,
                     "description": APPROVED_ESTIMATE,
