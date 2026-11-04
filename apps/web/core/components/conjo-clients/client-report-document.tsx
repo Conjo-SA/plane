@@ -397,7 +397,9 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
                 <Tag kind={item.kind} />
                 <span style={{ fontSize: 13.5, fontWeight: 800, overflowWrap: "anywhere" }}>{item.title}</span>
               </div>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: SOFT_INK }}>{hoursText(item.hours)}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: SOFT_INK }}>
+                {item.budgeted ? "Em orçamento aprovado" : hoursText(item.hours)}
+              </span>
               {item.summary && (
                 <span style={{ gridColumn: "1 / -1", fontSize: 12, lineHeight: 1.45, color: "#4A4A45" }}>
                   {item.summary}
@@ -469,7 +471,7 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
                     {row.description ? ` ${row.description}` : ""}
                   </td>
                   <td style={{ padding: "8px 0 8px 6px", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>
-                    {hoursText(row.hours)}
+                    {row.budgeted ? "—" : hoursText(row.hours)}
                   </td>
                 </tr>
               ))}
@@ -543,7 +545,8 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
             <h2 style={{ ...h2, fontSize: 13 }}>Como as horas são contadas</h2>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
               <b style={{ color: EVO }}>Evolução</b> é tudo o que acrescenta ou muda funcionalidade a pedido do cliente
-              e é debitado do pacote contratado, depois de orçamento aprovado.
+              e é debitado do pacote contratado, depois de orçamento aprovado. Conta o total de horas aprovado, na data
+              da aprovação. Os lançamentos desse trabalho aparecem com &quot;—&quot; porque já estão no orçamento.
             </p>
             <p style={{ fontSize: 11.5, lineHeight: 1.5, color: SOFT_INK }}>
               <b style={{ color: MAN }}>Manutenção</b> é a correção de bugs: erro, falha ou comportamento inesperado do
@@ -553,7 +556,7 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
         </section>
 
         <Footer>
-          <span>Gerado pelo Tasks em {issued}. Cada linha corresponde a um lançamento de horas do chamado.</span>
+          <span>Gerado pelo Tasks em {issued}. Cada linha corresponde a um lançamento do chamado ou a um orçamento aprovado.</span>
         </Footer>
       </article>
     </div>

@@ -163,7 +163,17 @@ class TestReportContent:
     def test_rows_do_not_expose_the_member(self, session_client, workspace, client_, report_data, create_user):
         data = session_client.get(url(workspace, client_), SEPT).json()
         assert create_user.email not in str(data)
-        assert set(data["rows"][0]) == {"id", "date", "key", "kind", "title", "description", "minutes", "hours"}
+        assert set(data["rows"][0]) == {
+            "id",
+            "date",
+            "key",
+            "kind",
+            "title",
+            "description",
+            "minutes",
+            "hours",
+            "budgeted",
+        }
 
     def test_systems_highlights_and_next_steps(self, session_client, workspace, client_, report_data):
         data = session_client.get(url(workspace, client_), SEPT).json()
@@ -257,3 +267,132 @@ class TestReportPeriod:
     def test_single_day_period(self, session_client, workspace, client_, report_data):
         data = session_client.get(url(workspace, client_), {"from": "2026-09-04", "to": "2026-09-04"}).json()
         assert data["totals"]["minutes"] == 120
+
+
+def approve(issue, hours, moment, status="APPROVED"):
+    return IntakePortalBudget.objects.create(
+        issue=issue, project_id=issue.project_id, estimated_hours=D(hours), status=status, approved_at=moment
+    )
+
+
+SEPT_10 = datetime.datetime(2026, 9, 10, 15, tzinfo=datetime.timezone.utc)
+OCT_10 = datetime.datetime(2026, 10, 10, 15, tzinfo=datetime.timezone.utc)
+OCT = {"from": "2026-10-01", "to": "2026-10-31"}
+
+
+@pytest.mark.contract
+class TestReportApprovedEstimate:
+    """The client pays the approved hours: evolution with an approved estimate reports them (MAN-406)."""
+
+    def test_counts_the_approved_hours_and_not_the_logged_ones(self, session_client, workspace, client_, report_data):
+        approve(report_data["evo"], "10", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_minutes"] == 600
+        assert data["totals"]["evolution_hours"] == "10.00"
+        assert data["totals"]["hours"] == "11.50"
+        assert data["by_kind"][0]["hours"] == "10.00"
+        assert {s["name"]: s["hours"] for s in data["by_system"]}["Geral"] == "10.00"
+        assert data["highlights"][0]["hours"] == "10.00" and data["highlights"][0]["budgeted"] is False
+
+    def test_logs_stay_as_description_without_hours(self, session_client, workspace, client_, report_data):
+        approve(report_data["evo"], "10", SEPT_10)
+        rows = session_client.get(url(workspace, client_), SEPT).json()["rows"]
+        evolution = [r for r in rows if r["kind"] == "evolution"]
+        assert [(r["date"], r["description"], r["hours"], r["budgeted"]) for r in evolution] == [
+            ("2026-09-04", "Modelo de mensagem aprovado", "0.00", True),
+            ("2026-09-06", "Confirmação pela resposta", "0.00", True),
+            ("2026-09-10", "Orçamento aprovado", "10.00", False),
+        ]
+
+    def test_logged_more_than_approved_still_reports_the_approved(
+        self, session_client, workspace, client_, report_data
+    ):
+        approve(report_data["evo"], "1.5", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "1.50"
+
+    def test_each_estimate_enters_once_on_its_approval_date(self, session_client, workspace, client_, report_data):
+        approve(report_data["evo"], "10", SEPT_10)
+        approve(report_data["evo"], "2", OCT_10)
+        september = session_client.get(url(workspace, client_), SEPT).json()
+        october = session_client.get(url(workspace, client_), OCT).json()
+        assert september["totals"]["evolution_hours"] == "10.00"
+        assert october["totals"]["evolution_hours"] == "2.00"
+
+    def test_period_after_the_approval_adds_no_hours(self, session_client, workspace, client_, report_data):
+        approve(report_data["evo"], "10", SEPT_10)
+        data = session_client.get(url(workspace, client_), OCT).json()
+        assert data["totals"]["evolution_minutes"] == 0
+        assert [(r["description"], r["budgeted"]) for r in data["rows"]] == [("Fora do período", True)]
+        assert data["highlights"][0]["budgeted"] is True
+        assert data["totals"]["items"] == 1
+
+    def test_approval_without_logs_in_the_period_enters(self, session_client, workspace, project, client_, report_data):
+        issue = kind(make_issue(project, "Painel novo"), "evolution")
+        approve(issue, "4", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "7.00"
+        assert "Painel novo" in [r["title"] for r in data["rows"]]
+
+    def test_period_follows_the_billing_timezone(self, session_client, workspace, project, client_):
+        issue = kind(make_issue(project, "Painel novo"), "evolution")
+        # 01/10 at 01:00 UTC is still 30/09 in São Paulo, the date of the debit.
+        approve(issue, "4", datetime.datetime(2026, 10, 1, 1, tzinfo=datetime.timezone.utc))
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "4.00"
+
+    def test_hours_that_fall_between_minutes_stay_exact(self, session_client, workspace, project, client_):
+        issue = kind(make_issue(project, "Painel novo"), "evolution")
+        approve(issue, "1.01", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "1.01"
+        assert data["totals"]["evolution_minutes"] == 61
+
+    @pytest.mark.parametrize("status", ["PENDING", "REJECTED", "CANCELLED"])
+    def test_estimate_not_approved_changes_nothing(self, session_client, workspace, client_, report_data, status):
+        approve(report_data["evo"], "10", SEPT_10, status=status)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "3.00"
+        assert all(r["budgeted"] is False for r in data["rows"])
+
+    def test_maintenance_keeps_the_logged_hours(self, session_client, workspace, client_, report_data):
+        approve(report_data["man"], "10", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["maintenance_hours"] == "1.50"
+
+    def test_internal_with_estimate_stays_out(self, session_client, workspace, client_, report_data):
+        approve(report_data["internal"], "10", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["hours"] == "4.50"
+        assert "sigilosa" not in str(data)
+
+    def test_approved_without_kind_is_an_evolution(self, session_client, workspace, client_, report_data):
+        approve(report_data["loose"], "2", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "5.00"
+        assert not [w for w in data["warnings"] if w["type"] == "unclassified"]
+
+    def test_estimate_of_another_client_stays_out(self, session_client, workspace, project, client_, report_data):
+        other = Client.objects.create(workspace=workspace, name="Outro cliente")
+        issue = kind(make_issue(project, "Chamado de outro cliente"), "evolution")
+        IssueClient.objects.create(issue=issue, client=other, project_id=issue.project_id)
+        approve(issue, "50", SEPT_10)
+        data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["evolution_hours"] == "3.00"
+        assert "outro cliente" not in str(data).lower()
+
+    def test_member_without_the_project_does_not_see_the_estimate(self, workspace, project, client_, report_data):
+        approve(report_data["evo"], "10", SEPT_10)
+        api = api_for(workspace, "membro3@x.com", 15)
+        data = api.get(url(workspace, client_), SEPT).json()
+        assert data["totals"]["minutes"] == 0 and data["rows"] == []
+
+    def test_matches_the_package_debit(self, session_client, workspace, client_, report_data):
+        make_contract(client_, starts_on=datetime.date(2026, 7, 1))
+        moment = datetime.date(2026, 9, 10)
+        budget = approve(report_data["evo"], "10", SEPT_10)
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            billing.debit_for_estimate(report_data["evo"], budget.estimated_hours, on=moment, budget=budget)
+            data = session_client.get(url(workspace, client_), SEPT).json()
+        assert data["package"]["used_in_period"] == "10.00"
+        assert data["totals"]["evolution_hours"] == "10.00"

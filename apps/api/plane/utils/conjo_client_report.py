@@ -14,12 +14,16 @@ statement. Rules:
   They are listed in ``warnings`` (shown only to whoever issues the report, never printed) so the
   team can classify them and issue the report again.
 - The member who logged the time is not exposed; the report is signed by the contract owner.
+- Evolution with an approved estimate counts the approved hours, because that is what the client pays:
+  each estimate enters on its approval date (the date of the package debit), and the time logged on the
+  item stays only as the description of the work, adding no hours. A maintenance item is not debited, so
+  it keeps the logged hours. The logged hours of those items stay on the card and in ``time_report``.
 """
 
 # Python imports
 import datetime
 from collections import OrderedDict
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 # Module imports
 from plane.utils import conjo_billing as billing
@@ -33,6 +37,7 @@ MAX_NEXT_STEPS = 6
 SUMMARY_CHARS = 320
 NO_SYSTEM = "Geral"
 OTHER_SYSTEMS = "Outros"
+APPROVED_ESTIMATE = "Orçamento aprovado"
 
 
 def report_number(client, start, end):
@@ -51,6 +56,11 @@ def report_number(client, start, end):
 
 def _hours(minutes):
     return str(billing.hours_of(minutes))
+
+
+def _minutes(minutes):
+    """Whole minutes for the payload; an estimate can fall between minutes (1.01 h = 60.6 min)."""
+    return int(Decimal(minutes).to_integral_value(ROUND_HALF_UP))
 
 
 def _summary(descriptions):
@@ -153,10 +163,52 @@ def build_client_report(client, start, end, visible_project_ids):
         .select_related("issue__project", "issue__state")
         .order_by("logged_on", "created_at")
     )
-    issue_ids = {log.issue_id for log in logs}
+    approved = list(
+        IntakePortalBudget.objects.filter(
+            workspace_id=client.workspace_id,
+            issue_id__in=client_issue_ids,
+            project_id__in=visible,
+            issue__project_id__in=visible,
+            status="APPROVED",
+        )
+        .select_related("issue__project", "issue__state")
+        .order_by("approved_at", "created_at")
+    )
+    issue_ids = {log.issue_id for log in logs} | {budget.issue_id for budget in approved}
     kinds = dict(IssueWorkKind.objects.filter(issue_id__in=issue_ids).values_list("issue_id", "kind"))
+    # An approved estimate is an evolution unless the team said otherwise (same rule as the debit, which
+    # does not mark the kind when the client has no package).
+    for budget in approved:
+        kinds.setdefault(budget.issue_id, "evolution")
+    budgeted = {budget.issue_id for budget in approved if kinds[budget.issue_id] == "evolution"}
 
-    reported = [log for log in logs if kinds.get(log.issue_id) in REPORTED_KINDS]
+    reported = [
+        {
+            "id": log.id,
+            "date": log.logged_on,
+            "issue": log.issue,
+            "minutes": 0 if log.issue_id in budgeted else log.minutes,
+            "description": log.description,
+            "budgeted": log.issue_id in budgeted,
+        }
+        for log in logs
+        if kinds.get(log.issue_id) in REPORTED_KINDS
+    ]
+    for budget in approved:
+        approved_on = billing.local_date(budget.approved_at or budget.created_at)
+        if budget.issue_id in budgeted and start <= approved_on <= end:
+            reported.append(
+                {
+                    "id": budget.id,
+                    "date": approved_on,
+                    "issue": budget.issue,
+                    "minutes": budget.estimated_hours * 60,
+                    "description": APPROVED_ESTIMATE,
+                    "budgeted": False,
+                }
+            )
+    reported.sort(key=lambda entry: entry["date"])
+
     unclassified = OrderedDict()
     for log in logs:
         if log.issue_id not in kinds:
@@ -164,7 +216,7 @@ def build_client_report(client, start, end, visible_project_ids):
             item["minutes"] += log.minutes
 
     # Systems: the work item's labels, except the ones that identify a client on a shared board.
-    reported_ids = {log.issue_id for log in reported}
+    reported_ids = {entry["issue"].id for entry in reported}
     client_label_ids = set(
         ClientLabel.objects.filter(workspace_id=client.workspace_id).values_list("label_id", flat=True)
     )
@@ -180,17 +232,18 @@ def build_client_report(client, start, end, visible_project_ids):
     totals = {kind: 0 for kind in REPORTED_KINDS}
     systems = {}
     items = OrderedDict()
-    for log in reported:
-        kind = kinds[log.issue_id]
-        totals[kind] += log.minutes
-        system = systems.setdefault(issue_system.get(log.issue_id, NO_SYSTEM), {"evolution": 0, "maintenance": 0})
-        system[kind] += log.minutes
+    for entry in reported:
+        issue_id = entry["issue"].id
+        kind = kinds[issue_id]
+        totals[kind] += entry["minutes"]
+        system = systems.setdefault(issue_system.get(issue_id, NO_SYSTEM), {"evolution": 0, "maintenance": 0})
+        system[kind] += entry["minutes"]
         item = items.setdefault(
-            log.issue_id, {"issue": log.issue, "kind": kind, "minutes": 0, "descriptions": [], "entries": 0}
+            issue_id, {"issue": entry["issue"], "kind": kind, "minutes": 0, "descriptions": [], "entries": 0}
         )
-        item["minutes"] += log.minutes
+        item["minutes"] += entry["minutes"]
         item["entries"] += 1
-        item["descriptions"].append(log.description)
+        item["descriptions"].append(entry["description"])
 
     def key(issue):
         return f"{issue.project.identifier}-{issue.sequence_id}"
@@ -214,7 +267,7 @@ def build_client_report(client, start, end, visible_project_ids):
         by_kind.append(
             {
                 "kind": kind,
-                "minutes": totals[kind],
+                "minutes": _minutes(totals[kind]),
                 "hours": _hours(totals[kind]),
                 "items": len(kind_items),
                 "done_items": sum(1 for i in kind_items if is_done(i["issue"])),
@@ -302,11 +355,11 @@ def build_client_report(client, start, end, visible_project_ids):
         "contract": {"name": contract.name} if contract else None,
         "owner": _owner(contract),
         "totals": {
-            "minutes": total_minutes,
+            "minutes": _minutes(total_minutes),
             "hours": _hours(total_minutes),
-            "evolution_minutes": totals["evolution"],
+            "evolution_minutes": _minutes(totals["evolution"]),
             "evolution_hours": _hours(totals["evolution"]),
-            "maintenance_minutes": totals["maintenance"],
+            "maintenance_minutes": _minutes(totals["maintenance"]),
             "maintenance_hours": _hours(totals["maintenance"]),
             "items": len(items),
             "done_items": sum(1 for i in items.values() if is_done(i["issue"])),
@@ -316,10 +369,10 @@ def build_client_report(client, start, end, visible_project_ids):
         "by_system": [
             {
                 "name": name,
-                "minutes": minutes["evolution"] + minutes["maintenance"],
+                "minutes": _minutes(minutes["evolution"] + minutes["maintenance"]),
                 "hours": _hours(minutes["evolution"] + minutes["maintenance"]),
-                "evolution_minutes": minutes["evolution"],
-                "maintenance_minutes": minutes["maintenance"],
+                "evolution_minutes": _minutes(minutes["evolution"]),
+                "maintenance_minutes": _minutes(minutes["maintenance"]),
             }
             for name, minutes in ranked_systems
         ],
@@ -328,8 +381,10 @@ def build_client_report(client, start, end, visible_project_ids):
                 "key": key(item["issue"]),
                 "title": item["issue"].name,
                 "kind": item["kind"],
-                "minutes": item["minutes"],
+                "minutes": _minutes(item["minutes"]),
                 "hours": _hours(item["minutes"]),
+                # Work on an estimate approved in another period: its hours are not in this one.
+                "budgeted": item["issue"].id in budgeted and not item["minutes"],
                 "summary": _summary(item["descriptions"]),
                 "done": is_done(item["issue"]),
             }
@@ -337,16 +392,17 @@ def build_client_report(client, start, end, visible_project_ids):
         ],
         "rows": [
             {
-                "id": str(log.id),
-                "date": log.logged_on.isoformat(),
-                "key": key(log.issue),
-                "kind": kinds[log.issue_id],
-                "title": log.issue.name,
-                "description": " ".join(str(log.description or "").split()),
-                "minutes": log.minutes,
-                "hours": _hours(log.minutes),
+                "id": str(entry["id"]),
+                "date": entry["date"].isoformat(),
+                "key": key(entry["issue"]),
+                "kind": kinds[entry["issue"].id],
+                "title": entry["issue"].name,
+                "description": " ".join(str(entry["description"] or "").split()),
+                "minutes": _minutes(entry["minutes"]),
+                "hours": _hours(entry["minutes"]),
+                "budgeted": entry["budgeted"],
             }
-            for log in reported[:MAX_ROWS]
+            for entry in reported[:MAX_ROWS]
         ],
         "next_steps": next_steps[: MAX_NEXT_STEPS * 2],
         "warnings": warnings,

@@ -317,6 +317,8 @@ export type TClientReport = {
     hours: string;
     summary: string;
     done: boolean;
+    /** Work on an estimate approved in another period: its hours are not in this one. */
+    budgeted: boolean;
   }[];
   rows: {
     id: string;
@@ -327,6 +329,8 @@ export type TClientReport = {
     description: string;
     minutes: number;
     hours: string;
+    /** Work covered by an approved estimate: it adds no hours (the estimate has its own row). */
+    budgeted: boolean;
   }[];
   next_steps: (
     | { type: "in_progress"; key: string; title: string }
