@@ -183,11 +183,14 @@ def build_client_report(client, start, end, visible_project_ids):
     for budget in approved:
         kinds.setdefault(budget.issue_id, "evolution")
 
-    # An approved estimate is final, so a reversal only shows in the statement. Without any debit (no
-    # package) it counts from its approval; with debits, only an open one keeps it paid.
+    # An approved estimate is final, so a reversal only shows in the statement. Without any debit of this
+    # client (no package) it counts from its approval; with debits, only an open one keeps it paid. Debits
+    # of a previous client of the item say nothing about this one.
     debited, debit_dates = set(), {}
     for budget_id, occurred_on, reversal_id in (
-        HourLedgerEntry.objects.filter(budget_id__in=[b.id for b in approved], kind=HourLedgerEntry.DEBIT)
+        HourLedgerEntry.objects.filter(
+            budget_id__in=[b.id for b in approved], kind=HourLedgerEntry.DEBIT, contract__client_id=client.id
+        )
         .order_by("created_at")
         .values_list("budget_id", "occurred_on", "reversals__id")
     ):

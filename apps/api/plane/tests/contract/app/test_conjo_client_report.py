@@ -449,3 +449,26 @@ class TestReportApprovedEstimate:
         assert data["totals"]["evolution_hours"] == "100.00"
         assert D(package["used_in_period"]) + D(package["excess_in_period"]) == D("100")
         assert D(package["excess_in_period"]) > 0
+
+    def test_debit_reversed_and_redone_uses_the_new_date(self, session_client, workspace, client_, report_data):
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            self._debited(report_data["evo"], "10", SEPT_10, datetime.date(2026, 9, 10), client_)
+            billing.change_work_kind(report_data["evo"], "maintenance")
+            billing.change_work_kind(report_data["evo"], "evolution")
+            september = session_client.get(url(workspace, client_), SEPT).json()
+            october = session_client.get(url(workspace, client_), OCT).json()
+        assert september["totals"]["evolution_hours"] == "0.00"
+        assert october["totals"]["evolution_hours"] == "10.00"
+        assert "Orçamento aprovado" in [r["description"] for r in october["rows"]]
+
+    def test_debit_of_the_previous_client_does_not_decide(self, session_client, workspace, client_, report_data):
+        other = Client.objects.create(workspace=workspace, name="Cliente novo")
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            self._debited(report_data["evo"], "10", SEPT_10, datetime.date(2026, 9, 10), client_)
+            # New client without a package: the old debit is reversed and nothing is debited again.
+            IssueClient.objects.create(issue=report_data["evo"], client=other, project_id=report_data["evo"].project_id)
+            billing.resync_issue_client(report_data["evo"])
+            new_client = session_client.get(url(workspace, other), SEPT).json()
+            old_client = session_client.get(url(workspace, client_), SEPT).json()
+        assert new_client["totals"]["evolution_hours"] == "10.00"
+        assert "Lembrete" not in str(old_client["rows"])
