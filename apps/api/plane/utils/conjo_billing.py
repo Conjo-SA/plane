@@ -814,6 +814,74 @@ def resync_issue_client(issue, on=None):
     return open_debit(issue)
 
 
+# Marks a reversal made because the project changed client: only these debits are redone on the new
+# client. A reversal made by hand (a courtesy, for example) must stay reversed.
+PROJECT_MOVE_NOTE = "O cliente do projeto mudou: horas devolvidas a este pacote"
+
+
+def _debit_can_follow_project(debit, on):
+    """Only a debit still in force moves. What already expired stays as the history of who consumed it.
+
+    The reversal skips expired lots, so moving such a debit would give little back and charge the new
+    package in full. The same goes for a contract no longer active: its hours would return out of reach.
+    """
+    from plane.db.models import HourLedgerEntry
+
+    contract = debit.contract
+    if active_contract(contract.client, on) != contract:
+        return False
+    lot_ids = [allocation.get("lot") for allocation in debit.allocations or []]
+    lots = HourLedgerEntry.objects.filter(pk__in=lot_ids)
+    if len(lots) != len(set(lot_ids)):
+        return False
+    return not any(lot.expires_on and lot.expires_on < on for lot in lots)
+
+
+def _move_issue_debits(issue, on):
+    from plane.db.models import HourLedgerEntry, IssueWorkKind
+
+    if work_kind(issue) in (IssueWorkKind.MAINTENANCE, IssueWorkKind.INTERNAL):
+        return
+    target = contract_for_issue(issue, on)
+    for debit in list(open_debits(issue)):
+        if (target is None or debit.contract_id != target.id) and _debit_can_follow_project(debit, on):
+            reverse_debit(debit, note=PROJECT_MOVE_NOTE, on=on)
+    if target is None:
+        return
+    for budget in approved_budgets(issue):
+        latest = (
+            HourLedgerEntry.objects.filter(issue_id=issue.id, budget_id=budget.id, kind=HourLedgerEntry.DEBIT)
+            .order_by("-created_at")
+            .first()
+        )
+        if latest is not None and latest.reversals.filter(note=PROJECT_MOVE_NOTE).exists():
+            debit_for_estimate(issue, budget.estimated_hours, budget.approved_by_email or "", on=on, budget=budget)
+
+
+@transaction.atomic
+def resync_projects_client(project_ids, on=None):
+    """After projects change client: the open debits of their work items follow them.
+
+    A project moves in two steps (out of the old client, then into the new one), so the first step gives
+    the hours back with ``PROJECT_MOVE_NOTE`` and the second debits those same estimates again. Estimates
+    never charged and debits reversed by hand are left alone. Work items with their own client
+    (``IssueClient``) do not depend on the project.
+    """
+    from plane.db.models import HourLedgerEntry, Issue, IssueClient
+
+    if not project_ids:
+        return
+    on = on or today()
+    debited = HourLedgerEntry.objects.filter(kind=HourLedgerEntry.DEBIT, issue__project_id__in=project_ids).values(
+        "issue_id"
+    )
+    issues = Issue.objects.filter(id__in=debited, project_id__in=project_ids).exclude(
+        id__in=IssueClient.objects.values("issue_id")
+    )
+    for issue in issues:
+        _move_issue_debits(issue, on)
+
+
 def portal_package(project_id, email):
     """Package numbers for the public portal, only for a contact registered on the client.
 

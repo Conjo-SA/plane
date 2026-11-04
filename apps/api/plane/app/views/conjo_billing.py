@@ -627,11 +627,16 @@ def set_client_projects(client, raw_ids):
         names = ", ".join(f"{link.project.identifier} ({link.client.name})" for link in taken)
         return f"Projeto já ligado a outro cliente: {names}."
     with transaction.atomic():
-        ClientProject.objects.filter(client=client).exclude(project__in=projects).delete()
+        removed = ClientProject.objects.filter(client=client).exclude(project__in=projects)
+        changed = set(removed.values_list("project_id", flat=True))
+        removed.delete()
         existing = set(ClientProject.objects.filter(client=client).values_list("project_id", flat=True))
         for project in projects:
             if project.id not in existing:
                 ClientProject.objects.create(client=client, project=project, workspace_id=client.workspace_id)
+                changed.add(project.id)
+        # The debits follow the project to its new client, in the same transaction as the change.
+        billing.resync_projects_client(changed)
     return None
 
 
