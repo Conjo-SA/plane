@@ -66,6 +66,9 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         issues = (
             Issue.objects.filter(
                 issue_intake__intake_id=intake_id,
+                # Só os pedidos do próprio visitante, sem os excluídos (MAN-360).
+                issue_intake__created_by=request.user,
+                issue_intake__deleted_at__isnull=True,
                 workspace_id=project_deploy_board.workspace_id,
                 project_id=project_deploy_board.project_id,
             )
@@ -254,11 +257,13 @@ class IntakeIssuePublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Só o pedido do próprio visitante (MAN-360); de outra pessoa responde 404.
         intake_issue = IntakeIssue.objects.get(
             pk=pk,
             workspace_id=project_deploy_board.workspace_id,
             project_id=project_deploy_board.project_id,
             intake_id=intake_id,
+            created_by=request.user,
         )
         issue = Issue.objects.get(
             pk=intake_issue.issue_id,

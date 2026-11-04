@@ -276,6 +276,8 @@ class IssueCommentPublicViewSet(BaseViewSet):
                     .filter(workspace_id=project_deploy_board.workspace_id)
                     .filter(project_id=project_deploy_board.project_id)
                     .filter(issue_id=self.kwargs.get("issue_id"))
+                    # Sem comentários de chamado arquivado, em rascunho ou em triagem (MAN-360).
+                    .filter(issue__in=Issue.issue_objects.filter(project_id=project_deploy_board.project_id))
                     .filter(access="EXTERNAL")
                     .select_related("project")
                     .select_related("workspace")
@@ -611,6 +613,11 @@ class IssueVotePublicViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Só voto a favor ou contra, como no modelo; o campo não valida sozinho (MAN-360).
+        vote = request.data.get("vote", 1)
+        if type(vote) is not int or vote not in (-1, 1):
+            return Response({"error": "Voto inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
         # O chamado da URL tem de ser do projeto publicado (MAN-333).
         issue = get_board_issue(project_deploy_board, issue_id)
         issue_vote, _ = IssueVote.objects.get_or_create(
@@ -627,7 +634,7 @@ class IssueVotePublicViewSet(BaseViewSet):
             _ = ProjectPublicMember.objects.get_or_create(
                 project_id=project_deploy_board.project_id, member=request.user
             )
-        issue_vote.vote = request.data.get("vote", 1)
+        issue_vote.vote = vote
         issue_vote.save()
         issue_activity.delay(
             type="issue_vote.activity.created",
