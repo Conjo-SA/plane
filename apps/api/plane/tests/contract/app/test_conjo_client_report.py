@@ -437,7 +437,8 @@ class TestReportApprovedEstimate:
             october = session_client.get(url(workspace, client_), OCT).json()
         assert D(september["package"]["used_in_period"]) == 0
         assert D(october["package"]["used_in_period"]) == 10
-        assert october["totals"]["evolution_hours"] == "10.00"
+        # October also has the 10h logged on the other evolution item of the fixture.
+        assert october["totals"]["evolution_hours"] == "20.00"
         assert september["totals"]["evolution_hours"] == "3.00"
 
     def test_excess_over_the_balance_still_reports_the_approved(self, session_client, workspace, client_, report_data):
