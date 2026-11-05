@@ -7,6 +7,7 @@ import uuid
 
 # Django imports
 from django.conf import settings
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 
@@ -31,6 +32,25 @@ def board_comment_exists(deploy_board, comment_id, user):
     if not is_valid_uuid(str(comment_id)):
         return False
     return board_comments(deploy_board).filter(pk=comment_id, actor=user).exists()
+
+
+def own_comment_asset(deploy_board, pk, user, manager=FileAsset.objects):
+    """Imagem de comentário enviada pelo próprio visitante neste board (MAN-360).
+
+    Imagem de descrição de chamado e imagem de outra pessoa levantam ``FileAsset.DoesNotExist``,
+    que a view devolve como 404. Depois de vinculada, o comentário ainda tem de ser público e do
+    próprio visitante; a imagem recém-enviada ainda não tem comentário.
+    """
+    asset = manager.get(
+        pk=pk,
+        workspace_id=deploy_board.workspace_id,
+        project_id=deploy_board.project_id,
+        created_by=user,
+        entity_type=FileAsset.EntityTypeContext.COMMENT_DESCRIPTION,
+    )
+    if asset.comment_id and not board_comment_exists(deploy_board, asset.comment_id, user):
+        raise FileAsset.DoesNotExist
+    return asset
 
 
 class EntityAssetEndpoint(BaseAPIView):
@@ -99,8 +119,8 @@ class EntityAssetEndpoint(BaseAPIView):
         entity_type = request.data.get("entity_type", "")
         entity_identifier = request.data.get("entity_identifier")
 
-        # Check if the entity type is allowed
-        if entity_type not in FileAsset.EntityTypeContext.values:
+        # O board só envia imagem de comentário; descrição de chamado não muda por aqui (MAN-360).
+        if entity_type != FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
             return Response(
                 {"error": "Tipo de entidade inválido.", "status": False},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -166,8 +186,8 @@ class EntityAssetEndpoint(BaseAPIView):
         if not deploy_board:
             return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
-        # get the asset id — scope to project to prevent cross-project IDOR
-        asset = FileAsset.objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
+        # Só a imagem do próprio visitante, deste projeto (MAN-360).
+        asset = own_comment_asset(deploy_board, pk, request.user)
         # get the storage metadata
         asset.is_uploaded = True
         # get the storage metadata
@@ -186,8 +206,8 @@ class EntityAssetEndpoint(BaseAPIView):
         # Check if the project is published
         if not deploy_board:
             return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
-        # Get the asset
-        asset = FileAsset.objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
+        # Só a imagem do próprio visitante, deste projeto (MAN-360).
+        asset = own_comment_asset(deploy_board, pk, request.user)
         # Check deleted assets
         asset.is_deleted = True
         asset.deleted_at = timezone.now()
@@ -206,8 +226,8 @@ class AssetRestoreEndpoint(BaseAPIView):
         if not deploy_board:
             return Response({"error": "O projeto não está publicado"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get the asset — scope to project to prevent cross-project IDOR
-        asset = FileAsset.all_objects.get(id=pk, workspace=deploy_board.workspace, project_id=deploy_board.project_id)
+        # Só a imagem do próprio visitante, deste projeto (MAN-360).
+        asset = own_comment_asset(deploy_board, pk, request.user, manager=FileAsset.all_objects)
         asset.is_deleted = False
         asset.deleted_at = None
         asset.save(update_fields=["is_deleted", "deleted_at"])
@@ -243,7 +263,10 @@ class EntityBulkAssetEndpoint(BaseAPIView):
         # Só imagens de comentário que o próprio visitante enviou neste projeto. Ids que
         # não casam (de terceiros, de descrição ou imagens já apagadas no editor) ficam
         # intactos; o editor do board manda também os ids de imagens que o visitante removeu.
+        # Imagem já vinculada a outro comentário fica nele: mover abriria a de um comentário
+        # interno para a edição pelo board (MAN-360).
         FileAsset.objects.filter(
+            Q(comment_id__isnull=True) | Q(comment_id=entity_id),
             id__in=set(asset_ids),
             workspace=deploy_board.workspace,
             project_id=deploy_board.project_id,
