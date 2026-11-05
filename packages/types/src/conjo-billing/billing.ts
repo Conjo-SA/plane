@@ -273,6 +273,7 @@ export type TClientReportPackage = {
   used_in_period: string;
   balance: string;
   excess_in_period: string;
+  excess_returned_in_period: string;
   valid_until: string | null;
   next_expiry: string | null;
 };

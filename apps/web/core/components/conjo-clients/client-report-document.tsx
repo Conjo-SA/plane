@@ -311,6 +311,9 @@ export function ClientReportDocument({ report }: { report: TClientReport }) {
                 {toHours(pkg.excess_in_period) > 0 && (
                   <Legend color="#C2410C">Além do pacote {hoursText(pkg.excess_in_period)}</Legend>
                 )}
+                {toHours(pkg.excess_returned_in_period) > 0 && (
+                  <Legend color="#15803D">Excedente devolvido {hoursText(pkg.excess_returned_in_period)}</Legend>
+                )}
               </div>
             </>
           ) : (

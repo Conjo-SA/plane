@@ -450,6 +450,32 @@ class TestReportApprovedEstimate:
         assert D(package["used_in_period"]) + D(package["excess_in_period"]) == D("100")
         assert D(package["excess_in_period"]) > 0
 
+    def test_cancelled_excess_is_a_return_not_a_charge(self, session_client, workspace, client_, report_data):
+        """MAN-407: excess exported in September and reversed in October."""
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
+            budget = self._debited(report_data["evo"], "100", SEPT_10, datetime.date(2026, 9, 10), client_)
+            charged = HourLedgerEntry.objects.get(budget=budget, kind="excess")
+            HourLedgerEntry.objects.filter(pk=charged.pk).update(exported_at=SEPT_10)
+            billing.reverse_debit(HourLedgerEntry.objects.get(budget=budget, kind="debit"))
+            september = session_client.get(url(workspace, client_), SEPT).json()["package"]
+            october = session_client.get(url(workspace, client_), OCT).json()["package"]
+        assert D(september["excess_in_period"]) == charged.hours
+        assert D(september["excess_returned_in_period"]) == 0
+        assert D(october["excess_in_period"]) == 0
+        assert D(october["excess_returned_in_period"]) == charged.hours
+
+    def test_excess_charged_and_returned_in_the_same_period_shows_both(
+        self, session_client, workspace, client_, report_data
+    ):
+        with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 9, 20)):
+            budget = self._debited(report_data["evo"], "100", SEPT_10, datetime.date(2026, 9, 10), client_)
+            charged = HourLedgerEntry.objects.get(budget=budget, kind="excess")
+            HourLedgerEntry.objects.filter(pk=charged.pk).update(exported_at=SEPT_10)
+            billing.reverse_debit(HourLedgerEntry.objects.get(budget=budget, kind="debit"))
+            package = session_client.get(url(workspace, client_), SEPT).json()["package"]
+        assert D(package["excess_in_period"]) == charged.hours
+        assert D(package["excess_returned_in_period"]) == charged.hours
+
     def test_debit_reversed_and_redone_uses_the_new_date(self, session_client, workspace, client_, report_data):
         with mock.patch("plane.utils.conjo_billing.today", return_value=datetime.date(2026, 10, 5)):
             self._debited(report_data["evo"], "10", SEPT_10, datetime.date(2026, 9, 10), client_)

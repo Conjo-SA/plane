@@ -118,7 +118,11 @@ def _package(contract, start, end):
         ),
         ZERO,
     )
-    excess = sum((e.hours for e in entries if e.occurred_on >= start and e.kind == HourLedgerEntry.EXCESS), ZERO)
+    # An excess entry is positive when charged and negative when a reversal cancels one already exported.
+    # They stay apart so that hours going back to the client never read as a charge.
+    excess = [e.hours for e in entries if e.occurred_on >= start and e.kind == HourLedgerEntry.EXCESS]
+    excess_charged = sum((hours for hours in excess if hours > 0), ZERO)
+    excess_returned = -sum((hours for hours in excess if hours < 0), ZERO)
     # Lots still valid after the period make up what the client can use (a lot is written off on its
     # expiry date, so one expiring on the last day is already out of the balance).
     lots = [e for e in entries if e.expires_on and e.expires_on > end and e.hours > 0]
@@ -134,7 +138,8 @@ def _package(contract, start, end):
         "used_before": str(previous),
         "used_in_period": str(used),
         "balance": str(balance),
-        "excess_in_period": str(abs(excess)),
+        "excess_in_period": str(excess_charged),
+        "excess_returned_in_period": str(excess_returned),
         "valid_until": max(lot.expires_on for lot in lots).isoformat() if lots else None,
         "next_expiry": min(lot.expires_on for lot in lots).isoformat() if lots else None,
     }
