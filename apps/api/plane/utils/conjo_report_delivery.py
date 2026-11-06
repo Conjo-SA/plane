@@ -25,6 +25,7 @@ from uuid import uuid4
 # Django imports
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.html import escape
 
@@ -43,6 +44,8 @@ CATCH_UP_DAYS = 3
 MAX_ATTEMPTS = 4
 RETRY_MINUTES = 15
 STUCK_AFTER = datetime.timedelta(hours=1)
+# A row still waiting this long lost its queue message (broker down, retry lost): queue it again.
+LOST_AFTER = datetime.timedelta(hours=2)
 
 RETRY = "retry"
 
@@ -83,19 +86,37 @@ def release_stuck(now=None):
     from plane.db.models import ClientReportDelivery
 
     now = now or timezone.now()
-    stuck = list(
-        ClientReportDelivery.objects.filter(
-            status=ClientReportDelivery.SENDING, updated_at__lt=now - STUCK_AFTER
-        ).select_related("client")
-    )
-    for delivery in stuck:
-        _finish(
-            delivery,
-            ClientReportDelivery.FAILED,
-            "O envio foi interrompido e não dá para saber se o e-mail saiu. Confira com o cliente antes de reenviar.",
-            alert=True,
-        )
-    return stuck
+    stuck = Q(status=ClientReportDelivery.SENDING, updated_at__lt=now - STUCK_AFTER)
+    released = []
+    for delivery_id in ClientReportDelivery.objects.filter(stuck).values_list("id", flat=True):
+        with transaction.atomic():
+            # Checked again under the lock: a slow worker may have finished meanwhile.
+            delivery = (
+                ClientReportDelivery.objects.select_for_update()
+                .select_related("client")
+                .filter(stuck, pk=delivery_id)
+                .first()
+            )
+            if delivery is None:
+                continue
+            _finish(
+                delivery,
+                ClientReportDelivery.FAILED,
+                "O envio foi interrompido e não dá para saber se o e-mail saiu. Confira com o cliente antes de "
+                "reenviar.",
+            )
+        alert_team(delivery, delivery.reason)
+        released.append(delivery)
+    return released
+
+
+def lost_pending(now=None):
+    """Ids of rows (monthly or by hand) waiting longer than a queue message can take."""
+    from plane.db.models import ClientReportDelivery
+
+    now = now or timezone.now()
+    rows = ClientReportDelivery.objects.filter(status=ClientReportDelivery.PENDING, updated_at__lt=now - LOST_AFTER)
+    return [str(pk) for pk in rows.values_list("id", flat=True)]
 
 
 def schedule_monthly(today=None):

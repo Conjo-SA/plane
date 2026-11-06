@@ -10,6 +10,8 @@ import datetime
 from decimal import Decimal
 
 # Django imports
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse
@@ -49,6 +51,7 @@ from plane.utils.uuid import is_valid_uuid
 from plane.utils.conjo_timeline import TYPES, build_timeline
 from plane.utils.conjo_client_report import build_client_report, parse_period
 from plane.utils import conjo_report_delivery as report_delivery
+from plane.utils.exception_logger import log_exception
 from plane.utils.conjo_state_timeline import build_state_timeline
 
 NOT_FOUND = {"error": "Não encontrado."}
@@ -532,6 +535,11 @@ def _contact_error(contact):
         return "Informe o nome do contato."
     if contact.receives_report and not contact.email:
         return "Informe o e-mail de quem recebe o relatório."
+    if contact.email:
+        try:
+            validate_email(contact.email)
+        except ValidationError:
+            return "E-mail inválido."
     return None
 
 
@@ -1066,7 +1074,15 @@ class ClientReportDeliveriesEndpoint(BaseAPIView):
         if not report_delivery.report_recipients(client):
             return _error("Marque ao menos um contato com e-mail para receber o relatório.")
         delivery = report_delivery.request_manual(client, start, end, request.user)
-        transaction.on_commit(lambda: deliver_client_report.delay(str(delivery.id)))
+
+        def queue():
+            # A row that could not be queued is queued again by the daily task.
+            try:
+                deliver_client_report.delay(str(delivery.id))
+            except Exception as e:
+                log_exception(e)
+
+        transaction.on_commit(queue)
         return Response(_delivery(delivery), status=status.HTTP_202_ACCEPTED)
 
 

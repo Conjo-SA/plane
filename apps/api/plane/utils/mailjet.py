@@ -161,7 +161,20 @@ class EmailDeliveryError(Exception):
         self.uncertain = uncertain
 
 
-RETRYABLE_HTTP = {429, 500, 502, 503, 504}
+# Answers that say the message was not taken. A 500/502/504 can come after Mailjet accepted it.
+RETRYABLE_HTTP = {429, 503}
+
+
+def _not_connected(error):
+    """True when the request never reached Mailjet (DNS failure, refused or timed out connection)."""
+    if isinstance(error, requests.ConnectTimeout):
+        return True
+    from urllib3.exceptions import MaxRetryError, NewConnectionError
+
+    reason = error.args[0] if error.args else None
+    if isinstance(reason, MaxRetryError):
+        reason = reason.reason
+    return isinstance(reason, NewConnectionError)
 
 
 def send_email_with_attachments(to_emails, subject, html_content, attachments=(), reply_to=None):
@@ -199,13 +212,16 @@ def _attachments_with_mailjet(to_emails, subject, html_content, text_content, at
             MAILJET_API_URL, json={"Messages": [message]}, auth=(api_key, api_secret), timeout=MAILJET_TIMEOUT * 2
         )
     except requests.ConnectionError as e:
-        raise EmailDeliveryError(f"Mailjet fora do ar: {e}", retryable=True) from e
+        if _not_connected(e):
+            raise EmailDeliveryError(f"Mailjet fora do ar: {e}", retryable=True) from e
+        raise EmailDeliveryError(f"Conexão com o Mailjet caiu; o e-mail pode ter saído: {e}", uncertain=True) from e
     except requests.Timeout as e:
         raise EmailDeliveryError("Mailjet não respondeu a tempo; o e-mail pode ter saído.", uncertain=True) from e
     if response.status_code >= 400:
         raise EmailDeliveryError(
             f"Mailjet recusou ({response.status_code}): {response.text[:500]}",
             retryable=response.status_code in RETRYABLE_HTTP,
+            uncertain=response.status_code >= 500 and response.status_code not in RETRYABLE_HTTP,
         )
     logger.info(f"Report e-mail sent to {len(to_emails)} recipient(s) via Mailjet.")
     return "mailjet"
@@ -238,6 +254,8 @@ def _attachments_with_smtp(to_emails, subject, html_content, text_content, attac
     try:
         # Opening the connection (DNS, TLS, login) sends nothing, so a failure there can be retried.
         connection.open()
+    except smtplib.SMTPAuthenticationError as e:
+        raise EmailDeliveryError(f"Servidor de e-mail recusou o login: {e}") from e
     except (OSError, smtplib.SMTPException) as e:
         raise EmailDeliveryError(f"Servidor de e-mail indisponível: {e}", retryable=True) from e
     try:
@@ -251,6 +269,10 @@ def _attachments_with_smtp(to_emails, subject, html_content, text_content, attac
     except (socket.timeout, smtplib.SMTPServerDisconnected, OSError) as e:
         raise EmailDeliveryError(f"Conexão caiu durante o envio; o e-mail pode ter saído: {e}", uncertain=True) from e
     finally:
-        connection.close()
+        try:
+            connection.close()
+        except Exception:
+            # The message already went out; a failed QUIT changes nothing.
+            pass
     logger.info(f"Report e-mail sent to {len(to_emails)} recipient(s) via SMTP.")
     return "smtp"

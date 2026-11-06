@@ -17,10 +17,16 @@ def send_monthly_client_reports():
     """Daily: on the first business day (and a few days after, to catch up) queue the monthly reports."""
     try:
         delivery.release_stuck()
-        for delivery_id in delivery.schedule_monthly():
-            deliver_client_report.delay(delivery_id)
+        queue = delivery.schedule_monthly() + delivery.lost_pending()
     except Exception as e:
         log_exception(e)
+        return
+    # Queuing a row twice is harmless (only a pending row is sent); one failure must not hold back the rest.
+    for delivery_id in dict.fromkeys(queue):
+        try:
+            deliver_client_report.delay(delivery_id)
+        except Exception as e:
+            log_exception(e)
 
 
 @shared_task(bind=True, max_retries=delivery.MAX_ATTEMPTS)

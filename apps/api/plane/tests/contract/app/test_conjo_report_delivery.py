@@ -34,6 +34,7 @@ SEPT = (datetime.date(2026, 9, 1), datetime.date(2026, 9, 30))
 FIRST_BUSINESS_DAY_OF_OCT = datetime.date(2026, 10, 1)
 LIVE = override_settings(CONJO_REPORT_MODE="live", CONJO_REPORT_TEST_EMAIL="")
 TEST = override_settings(CONJO_REPORT_MODE="test", CONJO_REPORT_TEST_EMAIL="teste@conjosa.com.br")
+OUTSIDE_WINDOW = mock.patch("plane.utils.conjo_report_delivery.billing.today", return_value=datetime.date(2026, 10, 20))
 
 
 @pytest.fixture(autouse=True)
@@ -341,3 +342,124 @@ class TestTasks:
         with mock.patch.object(task, "retry", side_effect=Retry()) as retry, pytest.raises(Retry):
             task(str(row.id))
         retry.assert_called_once_with(countdown=delivery.RETRY_MINUTES * 60)
+
+
+@pytest.mark.unit
+class TestPdfText:
+    def test_clean_keeps_punctuation_and_drops_missing_glyphs(self):
+        from plane.utils.conjo_client_report_pdf import clean
+
+        assert clean("Corrigir login (tela X ) , depois deploy . 🚀 ok") == "Corrigir login (tela X), depois deploy. ok"
+        assert clean(None) == ""
+
+    def test_pdf_with_a_huge_description(self):
+        from plane.utils.conjo_client_report_pdf import render_client_report_pdf as render
+
+        row = {
+            "id": "1",
+            "date": "2026-09-02",
+            "key": "EXM-1",
+            "kind": "maintenance",
+            "title": "Título",
+            "description": "palavra " * 3000,
+            "minutes": 60,
+            "hours": "1.00",
+            "budgeted": False,
+        }
+        report = {
+            "number": "RA-2026-09-ABCDEF",
+            "issued_on": "2026-10-01",
+            "period": {"from": "2026-09-01", "to": "2026-09-30"},
+            "client": {"id": "x", "name": "Cliente", "legal_name": ""},
+            "contract": None,
+            "owner": "Conjo SA",
+            "totals": {
+                "minutes": 60,
+                "hours": "1.00",
+                "evolution_minutes": 0,
+                "evolution_hours": "0",
+                "maintenance_minutes": 60,
+                "maintenance_hours": "1.00",
+                "items": 1,
+                "done_items": 0,
+            },
+            "package": None,
+            "by_kind": [],
+            "by_system": [],
+            "highlights": [],
+            "rows": [row],
+            "next_steps": [],
+            "warnings": [],
+        }
+        assert render(report).startswith(b"%PDF")
+
+
+@pytest.mark.unit
+class TestMailjetFailures:
+    def send(self, effect=None, status=200):
+        from plane.utils import mailjet
+
+        response = mock.Mock(status_code=status, text="erro")
+        with (
+            mock.patch.object(mailjet, "is_mailjet_configured", return_value=True),
+            mock.patch.object(mailjet, "get_mailjet_configuration", return_value=("k", "s", "a@b.c", "X")),
+            mock.patch.object(mailjet.requests, "post", side_effect=effect, return_value=response),
+        ):
+            return mailjet.send_email_with_attachments(["c@d.e"], "Assunto", "<p>oi</p>")
+
+    def test_connection_never_made_is_retried(self):
+        import requests
+        from urllib3.exceptions import MaxRetryError, NewConnectionError
+
+        refused = requests.ConnectionError(MaxRetryError(None, "/", NewConnectionError(None, "refused")))
+        with pytest.raises(EmailDeliveryError) as error:
+            self.send(refused)
+        assert error.value.retryable and not error.value.uncertain
+
+    def test_connection_dropped_after_sending_is_uncertain(self):
+        import requests
+
+        with pytest.raises(EmailDeliveryError) as error:
+            self.send(requests.ConnectionError("Connection aborted.", ConnectionResetError()))
+        assert error.value.uncertain and not error.value.retryable
+
+    @pytest.mark.parametrize(
+        "status,retryable,uncertain", [(429, True, False), (502, False, True), (400, False, False)]
+    )
+    def test_http_answers(self, status, retryable, uncertain):
+        with pytest.raises(EmailDeliveryError) as error:
+            self.send(status=status)
+        assert (error.value.retryable, error.value.uncertain) == (retryable, uncertain)
+
+
+@pytest.mark.contract
+class TestLostRows:
+    def test_a_pending_row_that_lost_its_queue_message_is_queued_again(self, ready):
+        from plane.bgtasks import conjo_report_task
+
+        row = auto_row(ready)
+        ClientReportDelivery.objects.filter(pk=row.pk).update(
+            trigger=ClientReportDelivery.MANUAL, updated_at=timezone.now() - datetime.timedelta(hours=3)
+        )
+        with OUTSIDE_WINDOW, mock.patch.object(conjo_report_task.deliver_client_report, "delay") as queued:
+            conjo_report_task.send_monthly_client_reports()
+        queued.assert_called_once_with(str(row.id))
+
+    def test_one_queue_failure_does_not_hold_back_the_others(self, ready, workspace):
+        from plane.bgtasks import conjo_report_task
+
+        rows = [auto_row(ready), auto_row(ready, (datetime.date(2026, 8, 1), datetime.date(2026, 8, 31)))]
+        ClientReportDelivery.objects.update(updated_at=timezone.now() - datetime.timedelta(hours=3))
+        with (
+            OUTSIDE_WINDOW,
+            mock.patch.object(
+                conjo_report_task.deliver_client_report, "delay", side_effect=[Exception("broker"), None]
+            ) as queued,
+        ):
+            conjo_report_task.send_monthly_client_reports()
+        assert queued.call_count == len(rows)
+
+    def test_invalid_contact_email_is_refused(self, session_client, workspace, client_):
+        url = f"/api/workspaces/{workspace.slug}/clients/{client_.id}/contacts/"
+        response = session_client.post(url, {"name": "X", "email": "não-é-email", "receives_report": True})
+        assert response.status_code == 400

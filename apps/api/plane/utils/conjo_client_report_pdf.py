@@ -59,6 +59,8 @@ SIDE = 14
 CONTENT_W = PAGE_W - 2 * SIDE
 FOOTER_H = 16
 PX = 0.2646  # one CSS pixel in millimetres
+# Longest description of a detail row: a row must fit on one page (the PDF does not split rows).
+MAX_ROW_TEXT = 1500
 PT = 0.75  # one CSS pixel in points
 
 
@@ -137,7 +139,7 @@ def _glyphs():
 def clean(text):
     glyphs = _glyphs()
     text = "".join(ch for ch in str(text or "") if ord(ch) in glyphs or ch.isspace())
-    return re.sub(r" ([.,;:!?)])", r"", " ".join(text.split()))
+    return re.sub(r" ([.,;:!?)])", r"\1", " ".join(text.split()))
 
 
 # --------------------------------------------------------------------------- #
@@ -502,8 +504,11 @@ def _detail_pages(pdf, report):
         what_w = widths[3] - 12 * PX
         title = clean(row["title"])
         title = title if title.endswith((".", "!", "?")) else f"{title}."
+        description = clean(row.get("description"))
+        if len(description) > MAX_ROW_TEXT:
+            description = description[:MAX_ROW_TEXT].rsplit(" ", 1)[0] + "…"
         title_h = pdf.lines(0, 0, what_w, title, 11.5, "bold", leading=1.45, draw=False)
-        desc_h = pdf.lines(0, 0, what_w, row.get("description"), 11.5, leading=1.45, draw=False)
+        desc_h = pdf.lines(0, 0, what_w, description, 11.5, leading=1.45, draw=False)
         row_h = pad + max(title_h + desc_h, 18 * PX) + pad
         if y + row_h > pdf.bottom:
             y = _detail_header(pdf, report, client_name, period)
@@ -518,7 +523,7 @@ def _detail_pages(pdf, report):
         x += widths[2]
         pdf.lines(x + 6 * PX, y + pad, what_w, title, 11.5, "bold", leading=1.45)
         if desc_h:
-            pdf.lines(x + 6 * PX, y + pad + title_h, what_w, row["description"], 11.5, leading=1.45)
+            pdf.lines(x + 6 * PX, y + pad + title_h, what_w, description, 11.5, leading=1.45)
         hours = "—" if row.get("budgeted") else hours_text(row["hours"])
         pdf.text_at(PAGE_W - SIDE - widths[4], y + pad, widths[4], hours, 11.5, "bold", align="R")
         y += row_h
