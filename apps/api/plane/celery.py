@@ -49,6 +49,10 @@ app.conf.beat_schedule = {
         "task": "plane.bgtasks.conjo_billing_task.refresh_hour_packages",
         "schedule": crontab(hour=3, minute=5),  # UTC 03:05 (00:05 in Brasília): credits and expirations
     },
+    "conjo-client-reports-daily": {
+        "task": "plane.bgtasks.conjo_report_task.send_monthly_client_reports",
+        "schedule": crontab(hour=11, minute=0),  # UTC 11:00 (08:00 in Brasília): monthly report e-mails
+    },
     "conjo-github-sync-hourly": {
         "task": "plane.bgtasks.conjo_github_task.sync_github_history",
         "schedule": crontab(minute=17),  # Every hour: recover webhooks GitHub never delivered

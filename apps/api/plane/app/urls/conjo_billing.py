@@ -19,6 +19,7 @@ from plane.app.views.conjo_billing import (
     ClientListEndpoint,
     ClientOptionsEndpoint,
     ClientProjectsEndpoint,
+    ClientReportDeliveriesEndpoint,
     ClientReportEndpoint,
     ClientTimelineEndpoint,
     ClientTimelineNoteDetailEndpoint,
@@ -66,6 +67,7 @@ urlpatterns = [
         f"{CLIENT}/ledger/<uuid:entry_id>/reverse/", ClientLedgerReverseEndpoint.as_view(), name="client-ledger-reverse"
     ),
     path(f"{CLIENT}/report/", ClientReportEndpoint.as_view(), name="client-report"),
+    path(f"{CLIENT}/report/deliveries/", ClientReportDeliveriesEndpoint.as_view(), name="client-report-deliveries"),
     path(f"{CLIENT}/timeline/", ClientTimelineEndpoint.as_view(), name="client-timeline"),
     path(f"{CLIENT}/timeline/notes/", ClientTimelineNotesEndpoint.as_view(), name="client-timeline-notes"),
     path(

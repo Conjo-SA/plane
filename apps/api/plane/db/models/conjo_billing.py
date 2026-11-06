@@ -13,6 +13,7 @@
 - ``HourLedgerEntry``: the package statement (credits, debits, expirations, reversals, adjustments and
   excess hours). Credits are lots: debits consume the lot that expires first.
 - ``ClientTimelineNote``: meetings, calls, e-mails and notes on the client's timeline.
+- ``ClientReportDelivery``: each e-mail of the activity report (the monthly one and manual resends).
 """
 
 # Django imports
@@ -80,6 +81,8 @@ class Client(ClientBaseModel):
     document = models.CharField(max_length=32, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     is_active = models.BooleanField(default=True)
+    # The previous month's activity report goes by e-mail on the first business day (CONJO-52).
+    monthly_report_enabled = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Client"
@@ -98,6 +101,7 @@ class ClientContact(ClientBaseModel):
     phone = models.CharField(max_length=64, blank=True, default="")
     role = models.CharField(max_length=128, blank=True, default="")
     can_approve = models.BooleanField(default=False)
+    receives_report = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "ClientContact"
@@ -288,3 +292,57 @@ class ClientTimelineNote(ClientBaseModel):
 
     def __str__(self):
         return f"{self.kind} <{self.client_id}>"
+
+
+class ClientReportDelivery(ClientBaseModel):
+    """One e-mail of the activity report: who got it, for which period, and how it went.
+
+    The monthly delivery of a client and period is unique (``trigger`` auto), which is the lock that keeps
+    a worker restart or a second run from sending it twice. A manual send is a new row each time.
+    """
+
+    PENDING = "pending"
+    SENDING = "sending"
+    SENT = "sent"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    STATUS_CHOICES = (
+        (PENDING, "Na fila"),
+        (SENDING, "Enviando"),
+        (SENT, "Enviado"),
+        (FAILED, "Falhou"),
+        (SKIPPED, "Não enviado"),
+    )
+    AUTO = "auto"
+    MANUAL = "manual"
+    TRIGGER_CHOICES = ((AUTO, "Mensal"), (MANUAL, "Manual"))
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="report_deliveries")
+    period_start = models.DateField()
+    period_end = models.DateField()
+    number = models.CharField(max_length=64, blank=True, default="")
+    trigger = models.CharField(max_length=10, choices=TRIGGER_CHOICES, default=AUTO)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
+    # Who the report was meant for, and where it actually went (a test address outside production).
+    recipients = models.JSONField(default=list, blank=True)
+    delivered_to = models.JSONField(default=list, blank=True)
+    test_mode = models.BooleanField(default=False)
+    reason = models.TextField(blank=True, default="")
+    attempts = models.PositiveSmallIntegerField(default=0)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "ClientReportDelivery"
+        verbose_name_plural = "ClientReportDeliveries"
+        db_table = "conjo_client_report_deliveries"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["client", "period_start", "period_end"],
+                condition=models.Q(trigger="auto", deleted_at__isnull=True),
+                name="conjo_report_delivery_unique_auto",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.number or self.period_start} {self.status} <{self.client_id}>"

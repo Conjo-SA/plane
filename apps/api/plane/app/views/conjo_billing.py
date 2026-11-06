@@ -27,6 +27,7 @@ from plane.utils.realtime import publish_project_event
 from plane.db.models import (
     Client,
     ClientContact,
+    ClientReportDelivery,
     ClientContract,
     ClientLabel,
     ClientProject,
@@ -47,6 +48,7 @@ from plane.utils import conjo_billing as billing
 from plane.utils.uuid import is_valid_uuid
 from plane.utils.conjo_timeline import TYPES, build_timeline
 from plane.utils.conjo_client_report import build_client_report, parse_period
+from plane.utils import conjo_report_delivery as report_delivery
 from plane.utils.conjo_state_timeline import build_state_timeline
 
 NOT_FOUND = {"error": "Não encontrado."}
@@ -390,6 +392,7 @@ def _contact(contact):
         "phone": contact.phone,
         "role": contact.role,
         "can_approve": contact.can_approve,
+        "receives_report": contact.receives_report,
     }
 
 
@@ -417,6 +420,7 @@ def _client(client, detail=False):
         "legal_name": client.legal_name,
         "document": client.document,
         "is_active": client.is_active,
+        "monthly_report_enabled": client.monthly_report_enabled,
         "package": billing.package_summary(contract) if contract else None,
         "project_ids": [str(p) for p in client.client_projects.values_list("project_id", flat=True)],
         "labels": [
@@ -455,7 +459,8 @@ def _client(client, detail=False):
     return data
 
 
-CLIENT_FIELDS = ("name", "legal_name", "document", "notes", "is_active")
+CLIENT_FIELDS = ("name", "legal_name", "document", "notes", "is_active", "monthly_report_enabled")
+CLIENT_FLAGS = ("is_active", "monthly_report_enabled")
 
 
 class ClientListEndpoint(BaseAPIView):
@@ -495,7 +500,7 @@ class ClientDetailEndpoint(BaseAPIView):
         for field in CLIENT_FIELDS:
             if field in request.data:
                 value = request.data[field]
-                setattr(client, field, bool(value) if field == "is_active" else (value or "").strip())
+                setattr(client, field, bool(value) if field in CLIENT_FLAGS else (value or "").strip())
         if not client.name:
             return _error("Informe o nome do cliente.")
         client.save()
@@ -510,15 +515,24 @@ class ClientDetailEndpoint(BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-CONTACT_FIELDS = ("name", "email", "phone", "role", "can_approve")
+CONTACT_FIELDS = ("name", "email", "phone", "role", "can_approve", "receives_report")
+CONTACT_FLAGS = ("can_approve", "receives_report")
 
 
 def _apply_contact(contact, data):
     for field in CONTACT_FIELDS:
         if field in data:
             value = data[field]
-            setattr(contact, field, bool(value) if field == "can_approve" else (value or "").strip())
+            setattr(contact, field, bool(value) if field in CONTACT_FLAGS else (value or "").strip())
     return contact
+
+
+def _contact_error(contact):
+    if not contact.name:
+        return "Informe o nome do contato."
+    if contact.receives_report and not contact.email:
+        return "Informe o e-mail de quem recebe o relatório."
+    return None
 
 
 class ClientContactsEndpoint(BaseAPIView):
@@ -528,8 +542,8 @@ class ClientContactsEndpoint(BaseAPIView):
         if client is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         contact = _apply_contact(ClientContact(client=client, workspace_id=client.workspace_id), request.data)
-        if not contact.name:
-            return _error("Informe o nome do contato.")
+        if _contact_error(contact):
+            return _error(_contact_error(contact))
         contact.save()
         return Response(_contact(contact), status=status.HTTP_201_CREATED)
 
@@ -541,8 +555,8 @@ class ClientContactDetailEndpoint(BaseAPIView):
         if contact is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         _apply_contact(contact, request.data)
-        if not contact.name:
-            return _error("Informe o nome do contato.")
+        if _contact_error(contact):
+            return _error(_contact_error(contact))
         contact.save()
         return Response(_contact(contact))
 
@@ -1000,6 +1014,60 @@ class ClientReportEndpoint(BaseAPIView):
             return _error("Período inválido: informe as datas no formato AAAA-MM-DD, com até um ano.")
         visible = _visible_project_ids(request.user, slug, billing.client_project_ids(client))
         return Response(build_client_report(client, start, end, visible))
+
+
+def _delivery(delivery):
+    return {
+        "id": str(delivery.id),
+        "period": {"from": delivery.period_start.isoformat(), "to": delivery.period_end.isoformat()},
+        "number": delivery.number,
+        "trigger": delivery.trigger,
+        "status": delivery.status,
+        "recipients": delivery.recipients,
+        "delivered_to": delivery.delivered_to,
+        "test_mode": delivery.test_mode,
+        "reason": delivery.reason,
+        "attempts": delivery.attempts,
+        "sent_at": delivery.sent_at.isoformat() if delivery.sent_at else None,
+        "created_at": delivery.created_at.isoformat(),
+        "created_by": _user(delivery.created_by),
+    }
+
+
+class ClientReportDeliveriesEndpoint(BaseAPIView):
+    """The report e-mails of the client (monthly and by hand) and a send by hand for a period (CONJO-52)."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug, client_id):
+        client = _get_client(slug, client_id)
+        if client is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        deliveries = ClientReportDelivery.objects.filter(client=client).select_related("created_by")[:50]
+        return Response(
+            {
+                "live": report_delivery.is_live(),
+                "recipients": report_delivery.report_recipients(client),
+                "deliveries": [_delivery(d) for d in deliveries],
+            }
+        )
+
+    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, client_id):
+        from plane.bgtasks.conjo_report_task import deliver_client_report
+
+        client = _get_client(slug, client_id)
+        if client is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        start, end = parse_period(request.data)
+        if start is None:
+            return _error("Período inválido: informe as datas no formato AAAA-MM-DD, com até um ano.")
+        if end >= billing.today():
+            return _error("Só dá para enviar o relatório de um período já encerrado.")
+        if not report_delivery.report_recipients(client):
+            return _error("Marque ao menos um contato com e-mail para receber o relatório.")
+        delivery = report_delivery.request_manual(client, start, end, request.user)
+        transaction.on_commit(lambda: deliver_client_report.delay(str(delivery.id)))
+        return Response(_delivery(delivery), status=status.HTTP_202_ACCEPTED)
 
 
 # --------------------------------------------------------------------------- #

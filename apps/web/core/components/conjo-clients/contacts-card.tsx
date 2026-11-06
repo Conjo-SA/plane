@@ -85,6 +85,11 @@ export function ContactsCard({ workspaceSlug, client, isAdmin, onChanged }: Prop
                   aprova
                 </span>
               )}
+              {contact.receives_report && (
+                <span className="rounded-full bg-layer-3 px-2 py-0.5 text-11 font-semibold text-secondary">
+                  relatório
+                </span>
+              )}
               {isAdmin && (
                 <span className="flex items-center gap-0.5">
                   <button
@@ -139,9 +144,23 @@ export function ContactsCard({ workspaceSlug, client, isAdmin, onChanged }: Prop
   );
 }
 
-type TContactForm = { name: string; role: string; email: string; phone: string; can_approve: boolean };
+type TContactForm = {
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  can_approve: boolean;
+  receives_report: boolean;
+};
 
-const emptyContact: TContactForm = { name: "", role: "", email: "", phone: "", can_approve: false };
+const emptyContact: TContactForm = {
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  can_approve: false,
+  receives_report: false,
+};
 
 function ContactModal(props: {
   isOpen: boolean;
@@ -165,6 +184,7 @@ function ContactModal(props: {
             email: contact.email,
             phone: contact.phone,
             can_approve: contact.can_approve,
+            receives_report: contact.receives_report,
           }
         : emptyContact
     );
@@ -195,7 +215,7 @@ function ContactModal(props: {
       title={contact ? "Editar contato" : "Novo contato"}
       submitLabel={contact ? "Salvar" : "Adicionar contato"}
       isSubmitting={isSubmitting}
-      submitDisabled={!form.name.trim()}
+      submitDisabled={!form.name.trim() || (form.receives_report && !form.email.trim())}
       onClose={onClose}
       onSubmit={handleSubmit}
     >
@@ -249,6 +269,20 @@ function ContactModal(props: {
           <span className="text-12 text-tertiary">
             A aprovação de um orçamento debita as horas estimadas do pacote. O e-mail é usado para identificar quem
             aprova.
+          </span>
+        </span>
+      </label>
+      <label htmlFor="contact-receives-report" className="flex items-start gap-2 text-13 text-primary">
+        <Checkbox
+          id="contact-receives-report"
+          checked={form.receives_report}
+          onChange={(e) => setForm({ ...form, receives_report: e.target.checked })}
+          containerClassName="mt-0.5"
+        />
+        <span className="flex flex-col">
+          Recebe o relatório mensal
+          <span className="text-12 text-tertiary">
+            O relatório de atividades do mês anterior chega por e-mail, em PDF, no primeiro dia útil. Precisa de e-mail.
           </span>
         </span>
       </label>
