@@ -14,7 +14,9 @@ for any period (a resend). Each e-mail is a ``ClientReportDelivery`` row:
   check whether it arrived, and a manual send is a new row.
 - A failure where nothing went out is retried; one where the provider may have taken the message is not.
 - Items without a kind block the report (the client would get hours missing); the team is told.
-- Outside production (``CONJO_REPORT_MODE`` other than ``live``) the e-mail goes only to the test address.
+- Until ``CONJO_REPORT_MODE`` is ``live`` (test mode, also how production is checked before going
+  live) every e-mail goes only to the test address and the monthly run does not happen: a monthly
+  row sent to the test address would keep that month from ever reaching the client.
 """
 
 # Python imports
@@ -124,7 +126,7 @@ def schedule_monthly(today=None):
     from plane.db.models import Client, ClientReportDelivery
 
     today = today or billing.today()
-    if not monthly_due(today):
+    if not is_live() or not monthly_due(today):
         return []
     start, end = previous_month(today)
     pending = []

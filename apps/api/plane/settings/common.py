@@ -647,8 +647,9 @@ if ENABLE_DRF_SPECTACULAR:
 CONJO_PAINEL_SEGREDO = os.environ.get("CONJO_PAINEL_SEGREDO", "")
 
 # ConjoSA: relatório do mês anterior por e-mail no primeiro dia útil (CONJO-52).
-# "live" envia aos contatos do cliente; qualquer outro valor (o padrão, para homologação e cópias do banco)
-# manda tudo só para CONJO_REPORT_TEST_EMAIL, e sem ele nada sai.
+# "live" envia aos contatos do cliente e liga o envio mensal automático. Qualquer outro valor (o padrão;
+# serve para conferir em produção antes de ligar e para cópias do banco) manda tudo só para
+# CONJO_REPORT_TEST_EMAIL pelo "Enviar agora", sem envio mensal; sem o endereço, nada sai.
 CONJO_REPORT_MODE = (os.environ.get("CONJO_REPORT_MODE") or "test").strip().lower()
 CONJO_REPORT_TEST_EMAIL = (os.environ.get("CONJO_REPORT_TEST_EMAIL") or "").strip()
 # Para onde vão as respostas do cliente e a sala do chat que recebe os avisos de falha.

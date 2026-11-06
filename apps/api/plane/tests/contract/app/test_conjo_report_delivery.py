@@ -104,6 +104,7 @@ class TestBusinessDays:
 
 @pytest.mark.contract
 class TestSchedule:
+    @LIVE
     def test_creates_the_monthly_row_once(self, ready):
         first = delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT)
         again = delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT + datetime.timedelta(days=1))
@@ -111,21 +112,25 @@ class TestSchedule:
         row = ClientReportDelivery.objects.get()
         assert (row.period_start, row.period_end, row.trigger) == (*SEPT, ClientReportDelivery.AUTO)
 
+    @LIVE
     def test_nothing_outside_the_window(self, ready):
         assert delivery.schedule_monthly(datetime.date(2026, 10, 20)) == []
         assert not ClientReportDelivery.objects.exists()
 
+    @LIVE
     def test_only_active_clients_with_the_report_on(self, ready, workspace):
         Client.objects.create(workspace=workspace, name="Sem relatório")
         Client.objects.create(workspace=workspace, name="Inativo", is_active=False, monthly_report_enabled=True)
         delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT)
         assert list(ClientReportDelivery.objects.values_list("client_id", flat=True)) == [ready.id]
 
+    @LIVE
     def test_a_row_already_handled_is_not_queued_again(self, ready):
         row = auto_row(ready)
         ClientReportDelivery.objects.filter(pk=row.pk).update(status=ClientReportDelivery.SENT)
         assert delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT) == []
 
+    @LIVE
     def test_a_row_stuck_in_sending_fails_and_is_never_resent(self, ready, no_chat):
         row = auto_row(ready)
         ClientReportDelivery.objects.filter(pk=row.pk).update(
@@ -136,6 +141,11 @@ class TestSchedule:
         assert row.status == ClientReportDelivery.FAILED
         assert no_chat.called
         assert delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT) == []
+
+    @TEST
+    def test_test_mode_never_creates_monthly_rows(self, ready):
+        assert delivery.schedule_monthly(FIRST_BUSINESS_DAY_OF_OCT) == []
+        assert not ClientReportDelivery.objects.exists()
 
 
 @pytest.mark.contract
@@ -319,6 +329,7 @@ class TestDeliveriesEndpoint:
 
 @pytest.mark.contract
 class TestTasks:
+    @LIVE
     def test_daily_task_queues_the_pending_rows(self, ready):
         from plane.bgtasks import conjo_report_task
 

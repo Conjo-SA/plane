@@ -129,7 +129,8 @@ export function ReportDeliveriesCard({ workspaceSlug, client, isAdmin, onChanged
 
       {data && !data.live && (
         <p className="rounded-md bg-warning-subtle px-3 py-2 text-12 text-primary">
-          Ambiente de teste: os e-mails vão só para o endereço de teste, nunca para o cliente.
+          Modo de teste: &quot;Enviar agora&quot; manda só para o endereço de teste, nunca para o cliente, e o
+          envio mensal automático está parado.
         </p>
       )}
 
