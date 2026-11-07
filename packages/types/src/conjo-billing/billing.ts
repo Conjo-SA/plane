@@ -96,6 +96,8 @@ export type TClientContact = {
   phone: string;
   role: string;
   can_approve: boolean;
+  /** Gets the monthly activity report by e-mail. */
+  receives_report: boolean;
 };
 
 export type TClientContract = {
@@ -137,6 +139,8 @@ export type TClientListItem = {
   legal_name: string;
   document: string;
   is_active: boolean;
+  /** The previous month's report goes by e-mail on the first business day. */
+  monthly_report_enabled: boolean;
   package: TPackageSummary | null;
   project_ids: string[];
   labels: TClientLabel[];
@@ -152,7 +156,9 @@ export type TClient = TClientListItem & {
 };
 
 export type TClientCreate = Pick<TClient, "name"> & Partial<Pick<TClient, "legal_name" | "document" | "notes">>;
-export type TClientUpdate = Partial<Pick<TClient, "name" | "legal_name" | "document" | "notes" | "is_active">>;
+export type TClientUpdate = Partial<
+  Pick<TClient, "name" | "legal_name" | "document" | "notes" | "is_active" | "monthly_report_enabled">
+>;
 export type TClientContactInput = Partial<Omit<TClientContact, "id">> & { name?: string };
 
 export type THourLedgerKind = "credit" | "debit" | "expiration" | "reversal" | "adjustment" | "excess";
@@ -282,6 +288,34 @@ export type TClientReportWarning = {
   type: "unclassified" | "partial" | "truncated";
   message: string;
   items: { id: string; project_id: string; key: string; title: string; hours: string }[];
+};
+
+export type TClientReportDeliveryStatus = "pending" | "sending" | "sent" | "failed" | "skipped";
+
+/** One e-mail of the activity report (the monthly one or a send by hand). */
+export type TClientReportDelivery = {
+  id: string;
+  period: { from: string; to: string };
+  number: string;
+  trigger: "auto" | "manual";
+  status: TClientReportDeliveryStatus;
+  /** Contacts the report was meant for. */
+  recipients: string[];
+  /** Where it actually went (the test address outside production). */
+  delivered_to: string[];
+  test_mode: boolean;
+  reason: string;
+  attempts: number;
+  sent_at: string | null;
+  created_at: string;
+  created_by: { id: string; display_name: string; avatar_url: string } | null;
+};
+
+export type TClientReportDeliveries = {
+  /** False outside production: every e-mail goes only to the test address. */
+  live: boolean;
+  recipients: string[];
+  deliveries: TClientReportDelivery[];
 };
 
 export type TClientReport = {

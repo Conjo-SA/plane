@@ -42,6 +42,10 @@ slack-sdk==3.27.1
 scout-apm==3.5.3
 # xlsx generation
 openpyxl==3.1.2
+# pdf generation (Conjo: monthly client report by e-mail)
+fpdf2==2.8.9
+Pillow==12.3.0
+fonttools==4.67.0
 # logging
 python-json-logger==4.0.0
 # html parser

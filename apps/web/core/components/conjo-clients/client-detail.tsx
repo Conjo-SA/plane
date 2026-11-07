@@ -23,6 +23,7 @@ import { ContractProjectsCard } from "./contract-projects-card";
 import { clientKey, clientsKey, conjoBillingService, formatMonthYear, getErrorMessage } from "./helpers";
 import { NoteModal } from "./note-modal";
 import { PackageBalanceCard } from "./package-balance-card";
+import { ReportDeliveriesCard } from "./report-deliveries-card";
 import { ClientTimeline } from "./timeline";
 
 type Props = { workspaceSlug: string; clientId: string };
@@ -144,6 +145,7 @@ export const ClientDetail = observer(function ClientDetail({ workspaceSlug, clie
           />
           <ContactsCard workspaceSlug={workspaceSlug} client={client} isAdmin={isAdmin} onChanged={refresh} />
           <ContractProjectsCard workspaceSlug={workspaceSlug} client={client} isAdmin={isAdmin} onChanged={refresh} />
+          <ReportDeliveriesCard workspaceSlug={workspaceSlug} client={client} isAdmin={isAdmin} onChanged={refresh} />
         </aside>
 
         <div className="w-full min-w-0 flex-[999_1_560px]">

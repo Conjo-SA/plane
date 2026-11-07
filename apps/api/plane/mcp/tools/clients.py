@@ -446,12 +446,25 @@ def create_client(workspace_slug, name, legal_name="", document="", notes=""):
             "name": _name_property("Novo nome"),
             **_CLIENT_FIELDS,
             "is_active": {"type": "boolean", "description": "false desativa, true reativa"},
+            "monthly_report_enabled": {
+                "type": "boolean",
+                "description": "true envia o relatório do mês anterior por e-mail no primeiro dia útil",
+            },
         },
         ["workspace_slug", "client"],
     ),
     category="clients",
 )
-def update_client(workspace_slug, client, name=None, legal_name=None, document=None, notes=None, is_active=None):
+def update_client(
+    workspace_slug,
+    client,
+    name=None,
+    legal_name=None,
+    document=None,
+    notes=None,
+    is_active=None,
+    monthly_report_enabled=None,
+):
     instance = _get_client(workspace_slug, client)
     if name is not None:
         name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
@@ -470,6 +483,8 @@ def update_client(workspace_slug, client, name=None, legal_name=None, document=N
         instance.notes = _clean_text(notes, "notes")
     if is_active is not None:
         instance.is_active = bool(is_active)
+    if monthly_report_enabled is not None:
+        instance.monthly_report_enabled = bool(monthly_report_enabled)
     instance.save()
     return billing_views._client(instance, detail=True)
 
@@ -481,6 +496,10 @@ _CONTACT_FIELDS = {
     "can_approve": {
         "type": "boolean",
         "description": "true permite aprovar orçamentos no portal (aprovar debita o pacote do cliente)",
+    },
+    "receives_report": {
+        "type": "boolean",
+        "description": "true envia a este contato o relatório mensal de atividades por e-mail",
     },
 }
 
@@ -497,12 +516,16 @@ _CONTACT_FIELDS = {
     ),
     category="clients",
 )
-def add_client_contact(workspace_slug, client, name, email="", phone="", role="", can_approve=False):
+def add_client_contact(
+    workspace_slug, client, name, email="", phone="", role="", can_approve=False, receives_report=False
+):
     instance = _get_client(workspace_slug, client)
     name = _clean_text(name, "name", MAX_NAME_LENGTH, required=True)
     email = _clean_email(email)
     if can_approve and not email:
         raise MCPToolError("Quem aprova orçamentos precisa de e-mail (é com ele que entra no portal)")
+    if receives_report and not email:
+        raise MCPToolError("Quem recebe o relatório precisa de e-mail")
     if email and ClientContact.objects.filter(client=instance, email__iexact=email).exists():
         raise MCPToolError(f"'{email}' já é contato deste cliente")
     contact = ClientContact(
@@ -513,6 +536,7 @@ def add_client_contact(workspace_slug, client, name, email="", phone="", role=""
         phone=_clean_text(phone, "phone", 64),
         role=_clean_text(role, "role", 128),
         can_approve=bool(can_approve),
+        receives_report=bool(receives_report),
     )
     contact.save(created_by_id=_mcp_actor().id)
     return billing_views._contact(contact)
@@ -549,7 +573,15 @@ _CONTACT_REF = {"contact": {"type": "string", "maxLength": 254, "description": "
     category="clients",
 )
 def update_client_contact(
-    workspace_slug, client, contact, name=None, email=None, phone=None, role=None, can_approve=None
+    workspace_slug,
+    client,
+    contact,
+    name=None,
+    email=None,
+    phone=None,
+    role=None,
+    can_approve=None,
+    receives_report=None,
 ):
     instance = _get_client(workspace_slug, client)
     row = _contact_of(instance, contact)
@@ -566,8 +598,12 @@ def update_client_contact(
         row.role = _clean_text(role, "role", 128)
     if can_approve is not None:
         row.can_approve = bool(can_approve)
+    if receives_report is not None:
+        row.receives_report = bool(receives_report)
     if row.can_approve and not row.email:
         raise MCPToolError("Quem aprova orçamentos precisa de e-mail (é com ele que entra no portal)")
+    if row.receives_report and not row.email:
+        raise MCPToolError("Quem recebe o relatório precisa de e-mail")
     row.save()
     return billing_views._contact(row)
 

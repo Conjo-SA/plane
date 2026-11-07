@@ -28,6 +28,8 @@ import type {
   TProjectClientSummary,
   TClientNoteCreate,
   TClientReport,
+  TClientReportDeliveries,
+  TClientReportDelivery,
   TClientTimelineType,
   TWorkKind,
 } from "@plane/types";
@@ -238,6 +240,19 @@ export class ConjoBillingService extends APIService {
     params?: { from?: string; to?: string }
   ): Promise<TClientReport> {
     return this.call(this.get(`${this.clientUrl(workspaceSlug, clientId)}/report/`, { params }));
+  }
+
+  async getReportDeliveries(workspaceSlug: string, clientId: string): Promise<TClientReportDeliveries> {
+    return this.call(this.get(`${this.clientUrl(workspaceSlug, clientId)}/report/deliveries/`));
+  }
+
+  /** Sends the report of a closed period by e-mail now, to the contacts marked to receive it. */
+  async sendReport(
+    workspaceSlug: string,
+    clientId: string,
+    period: { from: string; to: string }
+  ): Promise<TClientReportDelivery> {
+    return this.call(this.post(`${this.clientUrl(workspaceSlug, clientId)}/report/deliveries/`, period));
   }
 
   // Timeline

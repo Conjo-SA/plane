@@ -367,6 +367,7 @@ CELERY_IMPORTS = (
     "plane.bgtasks.conjo_chat_task",
     "plane.bgtasks.conjo_github_task",
     "plane.bgtasks.conjo_billing_task",
+    "plane.bgtasks.conjo_report_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))
@@ -644,3 +645,13 @@ if ENABLE_DRF_SPECTACULAR:
 
 # ConjoSA: segredo do painel de acessos (plane/conjo_painel). Vazio desliga as rotas.
 CONJO_PAINEL_SEGREDO = os.environ.get("CONJO_PAINEL_SEGREDO", "")
+
+# ConjoSA: relatório do mês anterior por e-mail no primeiro dia útil (CONJO-52).
+# "live" envia aos contatos do cliente e liga o envio mensal automático. Qualquer outro valor (o padrão;
+# serve para conferir em produção antes de ligar e para cópias do banco) manda tudo só para
+# CONJO_REPORT_TEST_EMAIL pelo "Enviar agora", sem envio mensal; sem o endereço, nada sai.
+CONJO_REPORT_MODE = (os.environ.get("CONJO_REPORT_MODE") or "test").strip().lower()
+CONJO_REPORT_TEST_EMAIL = (os.environ.get("CONJO_REPORT_TEST_EMAIL") or "").strip()
+# Para onde vão as respostas do cliente e a sala do chat que recebe os avisos de falha.
+CONJO_REPORT_REPLY_TO = (os.environ.get("CONJO_REPORT_REPLY_TO") or "").strip()
+CONJO_REPORT_ALERT_ROOM = (os.environ.get("CONJO_REPORT_ALERT_ROOM") or "").strip()
