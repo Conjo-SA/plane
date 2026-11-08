@@ -297,7 +297,7 @@ export type TClientReportDelivery = {
   id: string;
   period: { from: string; to: string };
   number: string;
-  trigger: "auto" | "manual";
+  trigger: "auto" | "manual" | "exhausted";
   status: TClientReportDeliveryStatus;
   /** Contacts the report was meant for. */
   recipients: string[];

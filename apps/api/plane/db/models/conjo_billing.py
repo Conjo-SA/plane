@@ -315,7 +315,8 @@ class ClientReportDelivery(ClientBaseModel):
     )
     AUTO = "auto"
     MANUAL = "manual"
-    TRIGGER_CHOICES = ((AUTO, "Mensal"), (MANUAL, "Manual"))
+    EXHAUSTED = "exhausted"
+    TRIGGER_CHOICES = ((AUTO, "Mensal"), (MANUAL, "Manual"), (EXHAUSTED, "Pacote esgotado"))
 
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="report_deliveries")
     period_start = models.DateField()
@@ -341,7 +342,12 @@ class ClientReportDelivery(ClientBaseModel):
                 fields=["client", "period_start", "period_end"],
                 condition=models.Q(trigger="auto", deleted_at__isnull=True),
                 name="conjo_report_delivery_unique_auto",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["client", "period_start", "period_end"],
+                condition=models.Q(trigger="exhausted", deleted_at__isnull=True),
+                name="conjo_report_delivery_unique_exhausted",
+            ),
         ]
 
     def __str__(self):

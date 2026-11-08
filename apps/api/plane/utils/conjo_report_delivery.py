@@ -5,8 +5,9 @@
 """Conjo: the activity report by e-mail (CONJO-52).
 
 On the first business day of the month every active client with the monthly report turned on gets the
-previous month's report, as a PDF, at the contacts marked to receive it. A person can also send it by hand
-for any period (a resend). Each e-mail is a ``ClientReportDelivery`` row:
+previous month's report, as a PDF, at the contacts marked to receive it. On the day their hour package
+runs out they also get the report of the month so far. A person can also send it by hand for any period
+(a resend). Each e-mail is a ``ClientReportDelivery`` row:
 
 - The monthly row of a client and period is unique and only a ``pending`` row is sent, after being moved
   to ``sending`` under a row lock. A worker restart, a second beat run or a retry never sends it twice.
@@ -22,6 +23,8 @@ for any period (a resend). Each e-mail is a ``ClientReportDelivery`` row:
 # Python imports
 import datetime
 import logging
+import os
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from uuid import uuid4
 
 # Django imports
@@ -32,10 +35,12 @@ from django.utils import timezone
 from django.utils.html import escape
 
 # Module imports
+from plane.license.utils.instance_value import get_configuration_value
 from plane.utils import conjo_billing as billing
 from plane.utils.conjo_business_days import first_business_day
 from plane.utils.conjo_client_report import build_client_report
-from plane.utils.conjo_client_report_pdf import hours_text, period_text, render_client_report_pdf
+from plane.utils.conjo_client_report_pdf import period_text, render_client_report_pdf
+from plane.utils.conjo_report_email import inline_images, report_email
 from plane.utils.exception_logger import log_exception
 from plane.utils.mailjet import EmailDeliveryError, send_email_with_attachments
 
@@ -48,6 +53,10 @@ RETRY_MINUTES = 15
 STUCK_AFTER = datetime.timedelta(hours=1)
 # A row still waiting this long lost its queue message (broker down, retry lost): queue it again.
 LOST_AFTER = datetime.timedelta(hours=2)
+
+# How far back a debit can be and still count as the one that emptied the package (the daily run or two
+# may have been missed). A report created after that debit means it was already handled.
+EXHAUSTED_LOOKBACK = datetime.timedelta(days=2)
 
 RETRY = "retry"
 
@@ -65,6 +74,29 @@ def monthly_due(today):
 
 def is_live():
     return settings.CONJO_REPORT_MODE == "live"
+
+
+def hour_rate():
+    """Value of one hour, from the instance settings; ``None`` when it is empty or invalid."""
+    (raw,) = get_configuration_value([{"key": "CONJO_HOUR_RATE", "default": os.environ.get("CONJO_HOUR_RATE", "")}])
+    raw = str(raw or "").strip()
+    if "," in raw:
+        raw = raw.replace(".", "").replace(",", ".")
+    try:
+        rate = Decimal(raw)
+    except InvalidOperation:
+        return None
+    return rate if rate.is_finite() and rate > 0 else None
+
+
+def report_value(report):
+    """Evolution hours at the hour rate. Maintenance is included in the contract, so it has no value."""
+    rate = hour_rate()
+    hours = Decimal(str(report["totals"]["evolution_hours"]))
+    if rate is None or hours <= 0:
+        return None
+    total = (hours * rate).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    return {"hours": str(hours), "hour_rate": str(rate), "total": str(total)}
 
 
 def report_recipients(client):
@@ -148,6 +180,55 @@ def schedule_monthly(today=None):
     return pending
 
 
+def schedule_exhausted(now=None):
+    """Rows for the clients whose package ran out; returns the ids waiting to be sent.
+
+    A debit that took hours (a debit with no hours left is only excess) and an empty balance mean the
+    package ran out. Runs only in live mode, for the same reason as the monthly run.
+    """
+    from plane.db.models import ClientContract, ClientReportDelivery, HourLedgerEntry
+
+    if not is_live():
+        return []
+    now = now or timezone.now()
+    today = billing.local_date(now)
+    debits = HourLedgerEntry.objects.filter(
+        kind=HourLedgerEntry.DEBIT, hours__lt=0, created_at__gt=now - EXHAUSTED_LOOKBACK
+    )
+    contracts = ClientContract.objects.filter(
+        is_active=True,
+        client__is_active=True,
+        client__monthly_report_enabled=True,
+        pk__in=debits.values("contract_id"),
+    ).select_related("client")
+    pending = []
+    for contract in contracts:
+        if billing.balance(contract, today) > 0:
+            continue
+        last_debit = debits.filter(contract=contract).order_by("-created_at").first()
+        already_handled = ClientReportDelivery.objects.filter(
+            client=contract.client,
+            trigger=ClientReportDelivery.EXHAUSTED,
+            created_at__gte=last_debit.created_at,
+        )
+        if already_handled.exists():
+            continue
+        try:
+            with transaction.atomic():
+                delivery, _ = ClientReportDelivery.objects.get_or_create(
+                    client=contract.client,
+                    period_start=billing.month_start(today),
+                    period_end=today,
+                    trigger=ClientReportDelivery.EXHAUSTED,
+                    defaults={"workspace_id": contract.workspace_id},
+                )
+        except IntegrityError:
+            continue
+        if delivery.status == ClientReportDelivery.PENDING:
+            pending.append(str(delivery.id))
+    return pending
+
+
 def request_manual(client, start, end, user):
     """A send by hand (also a resend); always a new row."""
     from plane.db.models import ClientReportDelivery
@@ -203,7 +284,7 @@ def deliver(delivery_id):
         return None
     client = delivery.client
     try:
-        if delivery.trigger == Delivery.AUTO and not (client.is_active and client.monthly_report_enabled):
+        if delivery.trigger != Delivery.MANUAL and not (client.is_active and client.monthly_report_enabled):
             return _finish(delivery, Delivery.SKIPPED, "Envio mensal desligado para o cliente.")
         recipients = report_recipients(client)
         if not recipients:
@@ -251,7 +332,10 @@ def deliver(delivery_id):
                 number=delivery.number,
                 recipients=recipients,
             )
-        subject, html = report_email(report, recipients if test_mode else None)
+        report["value"] = report_value(report)
+        subject, html = report_email(
+            report, recipients if test_mode else None, exhausted=delivery.trigger == Delivery.EXHAUSTED
+        )
         pdf = render_client_report_pdf(report)
         send_email_with_attachments(
             to,
@@ -259,6 +343,7 @@ def deliver(delivery_id):
             html,
             [(f"Relatorio-{report['number']}.pdf", "application/pdf", pdf)],
             reply_to=settings.CONJO_REPORT_REPLY_TO or None,
+            inline=inline_images(),
         )
     except EmailDeliveryError as e:
         if e.retryable and delivery.attempts < MAX_ATTEMPTS:
@@ -292,60 +377,8 @@ def deliver(delivery_id):
 
 
 # --------------------------------------------------------------------------- #
-# Messages
+# Team alerts
 # --------------------------------------------------------------------------- #
-
-
-def report_email(report, test_recipients=None):
-    """Subject and HTML body. ``test_recipients``: who would get it in production (shown in a banner)."""
-    client = report["client"].get("legal_name") or report["client"]["name"]
-    period = period_text(report["period"]["from"], report["period"]["to"])
-    totals, pkg = report["totals"], report["package"]
-    subject = f"Relatório de atividades: {report['client']['name']}, {period.split(' (')[0]}"
-    if test_recipients is not None:
-        subject = f"[TESTE] {subject}"
-    rows = [
-        ("Horas no período", hours_text(totals["hours"])),
-        ("Evolução", hours_text(totals["evolution_hours"])),
-        ("Manutenção (incluída no contrato)", hours_text(totals["maintenance_hours"])),
-        ("Chamados concluídos", f"{totals['done_items']} de {totals['items']}"),
-    ]
-    if pkg:
-        balance = hours_text(pkg["balance"])
-        if pkg.get("valid_until"):
-            balance += f" (válido até {datetime.date.fromisoformat(pkg['valid_until']):%d/%m/%Y})"
-        rows.append(("Saldo do pacote de horas", balance))
-    table = "".join(
-        f'<tr><td style="padding:6px 12px 6px 0;color:#6b6b66;">{escape(label)}</td>'
-        f'<td style="padding:6px 0;font-weight:700;text-align:right;">{escape(value)}</td></tr>'
-        for label, value in rows
-    )
-    banner = ""
-    if test_recipients is not None:
-        banner = (
-            '<p style="background:#fff4e5;border:1px solid #f5c26b;border-radius:8px;padding:10px 12px;'
-            'font-size:13px;margin:0 0 20px;">Envio de teste (fora de produção). Em produção este e-mail iria '
-            f"para: {escape(', '.join(test_recipients))}.</p>"
-        )
-    reply = "<p>Qualquer dúvida, é só responder este e-mail.</p>" if settings.CONJO_REPORT_REPLY_TO else ""
-    html = (
-        "<div style=\"font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#141414;line-height:1.6;"
-        'max-width:560px;margin:0 auto;padding:24px;">'
-        f"{banner}"
-        "<p>Olá,</p>"
-        f"<p>Segue o relatório de atividades de <b>{escape(client)}</b> referente a {escape(period)}.</p>"
-        f'<table style="border-collapse:collapse;font-size:14px;margin:16px 0;">{table}</table>'
-        "<p>O relatório completo, com o detalhamento de cada atividade, está no PDF anexo "
-        f"(nº {escape(report['number'])}).</p>"
-        f"{reply}"
-        "<p>Equipe Conjo SA</p>"
-        '<hr style="border:none;border-top:1px solid #ececec;margin:24px 0;" />'
-        '<p style="font-size:12px;color:#8a8a84;margin:0;">Você recebe este relatório todo mês por ser contato '
-        "de "
-        f"{escape(report['client']['name'])} na Conjo SA.</p>"
-        "</div>"
-    )
-    return subject, html
 
 
 def _alert_room(client):

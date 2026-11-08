@@ -87,6 +87,13 @@ def hours_text(value):
     return f"{_number(value)} h"
 
 
+def brl(value):
+    """``"3000.5"`` → ``"R$ 3.000,50"``."""
+    number = Decimal(str(value)).quantize(Decimal("0.01"))
+    whole, _, cents = f"{number:.2f}".partition(".")
+    return f"R$ {int(whole):,}".replace(",", ".") + f",{cents}"
+
+
 def _date(value):
     return datetime.date.fromisoformat(str(value)[:10])
 
@@ -320,7 +327,28 @@ def _summary_page(pdf, report):
         ky += pdf.text_at(x + pad, ky, kpi_w - 2 * pad, label, 11.5, "bold", ink) + 1
         ky += pdf.text_at(x + pad, ky, kpi_w - 2 * pad, value, 26, "heavy") + 1
         pdf.lines(x + pad, ky, kpi_w - 2 * pad, note, 11, color=MUTED, leading=1.35)
-    y += kpi_h + 22 * PX
+    y += kpi_h + 12 * PX
+
+    # Value of the evolution hours (only when the hour rate is configured).
+    value = report.get("value")
+    if value:
+        band_h = 56 * PX
+        pdf.box(SIDE, y, CONTENT_W, band_h, "#13304D", radius=12 * PX)
+        pdf.text_at(SIDE + pad, y + 10 * PX, CONTENT_W / 2, "Valor das horas de evolução", 13, "bold", "#FFFFFF")
+        detail = f"{hours_text(value['hours'])} × {brl(value['hour_rate'])} por hora"
+        pdf.text_at(SIDE + pad, y + 30 * PX, CONTENT_W / 2, detail, 11.5, color="#B9C9EE")
+        pdf.text_at(
+            SIDE + CONTENT_W / 2,
+            y + 14 * PX,
+            CONTENT_W / 2 - pad,
+            brl(value["total"]),
+            24,
+            "heavy",
+            "#FFFFFF",
+            align="R",
+        )
+        y += band_h + 10 * PX
+    y += 10 * PX
 
     # Hour package.
     pkg = report.get("package")

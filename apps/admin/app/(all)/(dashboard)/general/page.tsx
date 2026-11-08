@@ -5,17 +5,21 @@
  */
 
 import { observer } from "mobx-react";
+import useSWR from "swr";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 // hooks
 import { useInstance } from "@/hooks/store";
 // local imports
 import { GeneralConfigurationForm } from "./form";
+import { HourRateForm } from "./hour-rate-form";
 // types
 import type { Route } from "./+types/page";
 
 function GeneralPage() {
-  const { instance, instanceAdmins } = useInstance();
+  const { instance, instanceAdmins, formattedConfig, fetchInstanceConfigurations } = useInstance();
+
+  useSWR("INSTANCE_CONFIGURATIONS", () => fetchInstanceConfigurations());
 
   return (
     <PageWrapper
@@ -25,7 +29,10 @@ function GeneralPage() {
           "Altere o nome da sua instância e os e-mails dos administradores. Ative ou desative a telemetria da instância.",
       }}
     >
-      {instance && instanceAdmins && <GeneralConfigurationForm instance={instance} instanceAdmins={instanceAdmins} />}
+      <div className="space-y-10">
+        {instance && instanceAdmins && <GeneralConfigurationForm instance={instance} instanceAdmins={instanceAdmins} />}
+        {formattedConfig && <HourRateForm config={formattedConfig} />}
+      </div>
     </PageWrapper>
   );
 }

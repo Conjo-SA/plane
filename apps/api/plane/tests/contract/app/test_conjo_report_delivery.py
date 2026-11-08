@@ -8,6 +8,7 @@
 # ruff: noqa: F401, F811
 
 import datetime
+from decimal import Decimal
 from unittest import mock
 
 import pytest
@@ -19,9 +20,11 @@ from plane.db.models import (
     ClientContact,
     ClientProject,
     ClientReportDelivery,
+    HourLedgerEntry,
     IssueWorkKind,
     WorkspaceMember,
 )
+from plane.utils import conjo_billing as billing
 from plane.utils import conjo_report_delivery as delivery
 from plane.utils.conjo_business_days import easter, first_business_day, is_business_day
 from plane.utils.conjo_client_report_pdf import render_client_report_pdf
@@ -474,3 +477,183 @@ class TestLostRows:
         url = f"/api/workspaces/{workspace.slug}/clients/{client_.id}/contacts/"
         response = session_client.post(url, {"name": "X", "email": "não-é-email", "receives_report": True})
         assert response.status_code == 400
+
+
+RATE = "plane.utils.conjo_report_delivery.get_configuration_value"
+
+
+@pytest.mark.unit
+class TestHourValue:
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [("150", "150"), ("150.50", "150.50"), ("1.500,50", "1500.50"), ("150,5", "150.5")],
+    )
+    def test_rate_formats(self, raw, expected):
+        with mock.patch(RATE, return_value=(raw,)):
+            assert delivery.hour_rate() == Decimal(expected)
+
+    @pytest.mark.parametrize("raw", ["", None, "abc", "0", "-10", "NaN", "Infinity"])
+    def test_empty_or_invalid_rate_shows_no_value(self, raw):
+        with mock.patch(RATE, return_value=(raw,)):
+            assert delivery.hour_rate() is None
+            assert delivery.report_value({"totals": {"evolution_hours": "20.00"}}) is None
+
+    def test_only_evolution_hours_count(self):
+        report = {"totals": {"evolution_hours": "20.50", "maintenance_hours": "99.00", "hours": "119.50"}}
+        with mock.patch(RATE, return_value=("150.00",)):
+            assert delivery.report_value(report) == {"hours": "20.50", "hour_rate": "150.00", "total": "3075.00"}
+
+    def test_without_evolution_hours_there_is_no_value(self):
+        with mock.patch(RATE, return_value=("150",)):
+            assert delivery.report_value({"totals": {"evolution_hours": "0"}}) is None
+
+    def test_money_format(self):
+        from plane.utils.conjo_client_report_pdf import brl
+
+        assert brl("3000.5") == "R$ 3.000,50"
+        assert brl("1234567.89") == "R$ 1.234.567,89"
+        assert brl("150") == "R$ 150,00"
+
+
+@pytest.mark.contract
+class TestValueInTheEmail:
+    @LIVE
+    def test_value_goes_in_the_email_and_the_pdf(self, ready, sent):
+        reports = []
+        with (
+            mock.patch(RATE, return_value=("150.00",)),
+            mock.patch(
+                "plane.utils.conjo_report_delivery.render_client_report_pdf",
+                side_effect=lambda r: reports.append(r) or render_client_report_pdf(r),
+            ),
+        ):
+            assert delivery.deliver(auto_row(ready).id) == ClientReportDelivery.SENT
+        # report_data: 3 h of evolution in September.
+        html = sent.call_args.args[2]
+        assert "R$ 450,00" in html and "R$ 150,00" in html
+        assert reports[0]["value"]["total"] == "450.00"
+
+    @LIVE
+    def test_without_a_rate_nothing_about_money_is_shown(self, ready, sent):
+        with mock.patch(RATE, return_value=("",)):
+            assert delivery.deliver(auto_row(ready).id) == ClientReportDelivery.SENT
+        assert "R$" not in sent.call_args.args[2]
+
+    @LIVE
+    def test_logo_goes_inside_the_message(self, ready, sent):
+        with mock.patch(RATE, return_value=("",)):
+            delivery.deliver(auto_row(ready).id)
+        assert "cid:conjo-logo" in sent.call_args.args[2]
+        ((cid, filename, mimetype, content),) = sent.call_args.kwargs["inline"]
+        assert cid == "conjo-logo" and mimetype == "image/png" and content.startswith(b"\x89PNG")
+
+    def test_client_name_is_escaped(self):
+        from plane.utils.conjo_report_email import report_email
+
+        report = {
+            "number": "RA",
+            "period": {"from": "2026-09-01", "to": "2026-09-30"},
+            "client": {"name": "<b>X</b>", "legal_name": ""},
+            "totals": {"hours": "1", "evolution_hours": "1", "maintenance_hours": "0", "done_items": 0, "items": 1},
+            "package": None,
+        }
+        assert "<b>X</b>" not in report_email(report)[1]
+
+    def test_mailjet_receives_the_inline_image(self):
+        from plane.utils import mailjet
+
+        with (
+            mock.patch.object(mailjet, "is_mailjet_configured", return_value=True),
+            mock.patch.object(mailjet, "get_mailjet_configuration", return_value=("k", "s", "a@b.c", "X")),
+            mock.patch.object(mailjet.requests, "post", return_value=mock.Mock(status_code=200)) as post,
+        ):
+            mailjet.send_email_with_attachments(
+                ["c@d.e"], "A", "<p>o</p>", inline=[("conjo-logo", "l.png", "image/png", b"x")]
+            )
+        message = post.call_args.kwargs["json"]["Messages"][0]
+        assert message["InlinedAttachments"][0]["ContentID"] == "conjo-logo"
+
+
+NOW = timezone.make_aware(datetime.datetime(2026, 9, 18, 21, 0), datetime.timezone.utc)
+
+
+def empty_package(client, debit_at=NOW - datetime.timedelta(hours=3)):
+    """A package whose whole balance was taken by a debit at ``debit_at``."""
+    contract = make_contract(client, starts_on=datetime.date(2026, 9, 1), hours="10", months=1)
+    billing.ensure_monthly_credits(contract, NOW.date())
+    issue = kind(make_issue(ClientProject.objects.filter(client=client).first().project, "Grande"), "evolution")
+    debit = billing.debit_for_estimate(issue, billing.balance(contract, NOW.date()), "a@b.c", on=NOW.date())
+    HourLedgerEntry.objects.filter(pk=debit.pk).update(created_at=debit_at)
+    return contract
+
+
+@pytest.mark.contract
+class TestPackageExhausted:
+    @LIVE
+    def test_creates_one_row_with_the_month_so_far(self, ready):
+        empty_package(ready)
+        ids = delivery.schedule_exhausted(NOW)
+        assert len(ids) == 1
+        row = ClientReportDelivery.objects.get(trigger=ClientReportDelivery.EXHAUSTED)
+        assert (row.period_start, row.period_end) == (datetime.date(2026, 9, 1), datetime.date(2026, 9, 18))
+
+    @LIVE
+    def test_the_next_days_do_not_send_it_again(self, ready):
+        empty_package(ready)
+        delivery.schedule_exhausted(NOW)
+        ClientReportDelivery.objects.update(status=ClientReportDelivery.SENT)
+        assert delivery.schedule_exhausted(NOW + datetime.timedelta(days=1)) == []
+        assert ClientReportDelivery.objects.count() == 1
+
+    @LIVE
+    def test_debit_after_the_run_goes_on_the_next_run(self, ready):
+        empty_package(ready, debit_at=NOW + datetime.timedelta(hours=1))
+        assert delivery.schedule_exhausted(NOW + datetime.timedelta(days=1)) != []
+
+    @LIVE
+    def test_package_with_balance_left_does_not_fire(self, ready):
+        contract = make_contract(ready, starts_on=datetime.date(2026, 9, 1), hours="10", months=1)
+        billing.ensure_monthly_credits(contract, NOW.date())
+        issue = kind(make_issue(ClientProject.objects.filter(client=ready).first().project, "Pequeno"), "evolution")
+        debit = billing.debit_for_estimate(issue, "2", "a@b.c", on=NOW.date())
+        HourLedgerEntry.objects.filter(pk=debit.pk).update(created_at=NOW - datetime.timedelta(hours=1))
+        assert delivery.schedule_exhausted(NOW) == []
+
+    @LIVE
+    def test_debit_with_no_hours_left_does_not_fire_again(self, ready):
+        contract = empty_package(ready, debit_at=NOW - datetime.timedelta(days=10))
+        issue = kind(make_issue(ClientProject.objects.filter(client=ready).first().project, "Excede"), "evolution")
+        billing.debit_for_estimate(issue, "2", "a@b.c", on=NOW.date())
+        HourLedgerEntry.objects.filter(contract=contract, hours=0).update(created_at=NOW - datetime.timedelta(hours=1))
+        assert delivery.schedule_exhausted(NOW) == []
+
+    @LIVE
+    def test_client_with_the_report_off_does_not_fire(self, ready):
+        empty_package(ready)
+        Client.objects.filter(pk=ready.pk).update(monthly_report_enabled=False)
+        assert delivery.schedule_exhausted(NOW) == []
+
+    @TEST
+    def test_test_mode_does_not_fire(self, ready):
+        empty_package(ready)
+        assert delivery.schedule_exhausted(NOW) == []
+        assert not ClientReportDelivery.objects.exists()
+
+    @LIVE
+    def test_email_says_the_package_ran_out(self, ready, sent):
+        empty_package(ready)
+        (delivery_id,) = delivery.schedule_exhausted(NOW)
+        with mock.patch(RATE, return_value=("",)):
+            assert delivery.deliver(delivery_id) == ClientReportDelivery.SENT
+        _, subject, html, _ = sent.call_args.args
+        assert subject == "Pacote de horas esgotado: Cliente Exemplo"
+        assert "chegou ao fim" in html
+
+    @LIVE
+    def test_task_queues_the_rows(self, ready):
+        from plane.bgtasks import conjo_report_task
+
+        empty_package(ready, debit_at=timezone.now() - datetime.timedelta(hours=1))
+        with mock.patch.object(conjo_report_task.deliver_client_report, "delay") as queued:
+            conjo_report_task.send_exhausted_package_reports()
+        assert queued.call_count == 1
