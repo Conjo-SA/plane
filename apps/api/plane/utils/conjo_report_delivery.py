@@ -58,6 +58,8 @@ LOST_AFTER = datetime.timedelta(hours=2)
 # may have been missed). A report created after that debit means it was already handled.
 EXHAUSTED_LOOKBACK = datetime.timedelta(days=2)
 
+MAX_HOUR_RATE = Decimal("1000000")
+
 RETRY = "retry"
 
 
@@ -86,7 +88,10 @@ def hour_rate():
         rate = Decimal(raw)
     except InvalidOperation:
         return None
-    return rate if rate.is_finite() and rate > 0 else None
+    # More than two decimals is a typo ("1.500" meaning 1500), and a huge number too.
+    if not rate.is_finite() or not 0 < rate < MAX_HOUR_RATE or -rate.as_tuple().exponent > 2:
+        return None
+    return rate
 
 
 def report_value(report):
@@ -183,8 +188,10 @@ def schedule_monthly(today=None):
 def schedule_exhausted(now=None):
     """Rows for the clients whose package ran out; returns the ids waiting to be sent.
 
-    A debit that took hours (a debit with no hours left is only excess) and an empty balance mean the
-    package ran out. Runs only in live mode, for the same reason as the monthly run.
+    The package ran out when the balance is empty and the last thing that took hours from it was a debit
+    (one with no hours left is only excess). An expiration or an adjustment after it means the hours
+    ended some other way. The report covers the month of that debit, up to its day. Runs only in live
+    mode, for the same reason as the monthly run.
     """
     from plane.db.models import ClientContract, ClientReportDelivery, HourLedgerEntry
 
@@ -193,7 +200,7 @@ def schedule_exhausted(now=None):
     now = now or timezone.now()
     today = billing.local_date(now)
     debits = HourLedgerEntry.objects.filter(
-        kind=HourLedgerEntry.DEBIT, hours__lt=0, created_at__gt=now - EXHAUSTED_LOOKBACK
+        kind=HourLedgerEntry.DEBIT, hours__lt=0, reversals__isnull=True, created_at__gt=now - EXHAUSTED_LOOKBACK
     )
     contracts = ClientContract.objects.filter(
         is_active=True,
@@ -206,6 +213,12 @@ def schedule_exhausted(now=None):
         if billing.balance(contract, today) > 0:
             continue
         last_debit = debits.filter(contract=contract).order_by("-created_at").first()
+        if HourLedgerEntry.objects.filter(
+            contract=contract,
+            kind__in=[HourLedgerEntry.EXPIRATION, HourLedgerEntry.ADJUSTMENT],
+            created_at__gt=last_debit.created_at,
+        ).exists():
+            continue
         already_handled = ClientReportDelivery.objects.filter(
             client=contract.client,
             trigger=ClientReportDelivery.EXHAUSTED,
@@ -217,8 +230,8 @@ def schedule_exhausted(now=None):
             with transaction.atomic():
                 delivery, _ = ClientReportDelivery.objects.get_or_create(
                     client=contract.client,
-                    period_start=billing.month_start(today),
-                    period_end=today,
+                    period_start=billing.month_start(last_debit.occurred_on),
+                    period_end=last_debit.occurred_on,
                     trigger=ClientReportDelivery.EXHAUSTED,
                     defaults={"workspace_id": contract.workspace_id},
                 )

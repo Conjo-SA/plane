@@ -20,7 +20,7 @@ const normalizeRate = (raw: string): string | null => {
   const text = raw.trim();
   if (!text) return "";
   const plain = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
-  if (!/^\d+(\.\d{1,2})?$/.test(plain) || Number(plain) <= 0) return null;
+  if (!/^\d{1,6}(\.\d{1,2})?$/.test(plain) || Number(plain) <= 0) return null;
   return Number(plain).toFixed(2);
 };
 

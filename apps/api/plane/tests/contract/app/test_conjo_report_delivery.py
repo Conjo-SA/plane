@@ -492,7 +492,7 @@ class TestHourValue:
         with mock.patch(RATE, return_value=(raw,)):
             assert delivery.hour_rate() == Decimal(expected)
 
-    @pytest.mark.parametrize("raw", ["", None, "abc", "0", "-10", "NaN", "Infinity"])
+    @pytest.mark.parametrize("raw", ["", None, "abc", "0", "-10", "NaN", "sNaN", "Infinity", "1.500", "9" * 40])
     def test_empty_or_invalid_rate_shows_no_value(self, raw):
         with mock.patch(RATE, return_value=(raw,)):
             assert delivery.hour_rate() is None
@@ -626,6 +626,36 @@ class TestPackageExhausted:
         billing.debit_for_estimate(issue, "2", "a@b.c", on=NOW.date())
         HourLedgerEntry.objects.filter(contract=contract, hours=0).update(created_at=NOW - datetime.timedelta(hours=1))
         assert delivery.schedule_exhausted(NOW) == []
+
+    @LIVE
+    def test_expiration_after_the_debit_is_not_exhaustion(self, ready):
+        contract = make_contract(ready, starts_on=datetime.date(2026, 9, 1), hours="10", months=1)
+        billing.ensure_monthly_credits(contract, NOW.date())
+        issue = kind(make_issue(ClientProject.objects.filter(client=ready).first().project, "Parte"), "evolution")
+        debit = billing.debit_for_estimate(issue, "2", "a@b.c", on=NOW.date())
+        HourLedgerEntry.objects.filter(pk=debit.pk).update(created_at=NOW - datetime.timedelta(hours=5))
+        HourLedgerEntry.objects.filter(contract=contract, remaining__gt=0).update(remaining=0)
+        HourLedgerEntry.objects.create(
+            workspace_id=contract.workspace_id,
+            contract=contract,
+            kind=HourLedgerEntry.EXPIRATION,
+            hours=-8,
+            occurred_on=NOW.date(),
+        )
+        HourLedgerEntry.objects.filter(contract=contract, kind=HourLedgerEntry.EXPIRATION).update(
+            created_at=NOW - datetime.timedelta(hours=1)
+        )
+        assert delivery.schedule_exhausted(NOW) == []
+
+    @LIVE
+    def test_period_follows_the_day_of_the_debit(self, ready):
+        contract = empty_package(ready)
+        HourLedgerEntry.objects.filter(contract=contract, kind=HourLedgerEntry.DEBIT).update(
+            occurred_on=datetime.date(2026, 8, 31), created_at=NOW - datetime.timedelta(hours=20)
+        )
+        delivery.schedule_exhausted(NOW)
+        row = ClientReportDelivery.objects.get(trigger=ClientReportDelivery.EXHAUSTED)
+        assert (row.period_start, row.period_end) == (datetime.date(2026, 8, 1), datetime.date(2026, 8, 31))
 
     @LIVE
     def test_client_with_the_report_off_does_not_fire(self, ready):
