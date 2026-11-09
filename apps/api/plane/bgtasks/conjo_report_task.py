@@ -12,6 +12,15 @@ from plane.utils import conjo_report_delivery as delivery
 from plane.utils.exception_logger import log_exception
 
 
+def _queue(delivery_ids):
+    # Queuing a row twice is harmless (only a pending row is sent); one failure must not hold back the rest.
+    for delivery_id in dict.fromkeys(delivery_ids):
+        try:
+            deliver_client_report.delay(delivery_id)
+        except Exception as e:
+            log_exception(e)
+
+
 @shared_task
 def send_monthly_client_reports():
     """Daily: on the first business day (and a few days after, to catch up) queue the monthly reports."""
@@ -21,12 +30,18 @@ def send_monthly_client_reports():
     except Exception as e:
         log_exception(e)
         return
-    # Queuing a row twice is harmless (only a pending row is sent); one failure must not hold back the rest.
-    for delivery_id in dict.fromkeys(queue):
-        try:
-            deliver_client_report.delay(delivery_id)
-        except Exception as e:
-            log_exception(e)
+    _queue(queue)
+
+
+@shared_task
+def send_exhausted_package_reports():
+    """Daily, at the end of the working day: the report of the clients whose hour package ran out."""
+    try:
+        queue = delivery.schedule_exhausted()
+    except Exception as e:
+        log_exception(e)
+        return
+    _queue(queue)
 
 
 @shared_task(bind=True, max_retries=delivery.MAX_ATTEMPTS)

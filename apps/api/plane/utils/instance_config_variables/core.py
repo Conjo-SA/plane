@@ -291,6 +291,16 @@ unsplash_config_variables = [
     },
 ]
 
+# Conjo: value of one hour of work, shown in the client report e-mail (empty: no value is shown).
+conjo_config_variables = [
+    {
+        "key": "CONJO_HOUR_RATE",
+        "value": os.environ.get("CONJO_HOUR_RATE", ""),
+        "category": "CONJO",
+        "is_encrypted": False,
+    },
+]
+
 core_config_variables = [
     *authentication_config_variables,
     *workspace_management_config_variables,
@@ -302,4 +312,5 @@ core_config_variables = [
     *smtp_config_variables,
     *llm_config_variables,
     *unsplash_config_variables,
+    *conjo_config_variables,
 ]

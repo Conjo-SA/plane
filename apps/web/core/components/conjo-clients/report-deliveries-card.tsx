@@ -24,6 +24,12 @@ const STATUS: Record<TClientReportDeliveryStatus, { label: string; className: st
   skipped: { label: "Não enviado", className: "bg-warning-subtle text-warning-primary" },
 };
 
+const TRIGGER_LABEL: Record<TClientReportDelivery["trigger"], string> = {
+  auto: "Mensal",
+  manual: "Manual",
+  exhausted: "Pacote esgotado",
+};
+
 const deliveriesKey = (workspaceSlug: string, clientId: string) =>
   `CONJO_CLIENT_REPORT_DELIVERIES_${workspaceSlug}_${clientId}`;
 
@@ -104,7 +110,8 @@ export function ReportDeliveriesCard({ workspaceSlug, client, isAdmin, onChanged
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-12 text-tertiary">
-          No primeiro dia útil de cada mês, o relatório do mês anterior vai em PDF para os contatos marcados.
+          No primeiro dia útil de cada mês, o relatório do mês anterior vai em PDF para os contatos marcados. Se o
+          pacote esgotar, o relatório do mês até ali vai no mesmo dia.
         </p>
         <ToggleSwitch
           value={client.monthly_report_enabled}
@@ -174,7 +181,7 @@ function DeliveryRow({ delivery }: { delivery: TClientReportDelivery }) {
         </span>
       </div>
       <span className="text-11 text-tertiary">
-        {delivery.trigger === "auto" ? "Mensal" : "Manual"}
+        {TRIGGER_LABEL[delivery.trigger]}
         {delivery.created_by && ` por ${delivery.created_by.display_name}`} · {formatFullDate(when)} {formatTime(when)}
         {to.length > 0 && ` · ${delivery.test_mode ? "teste: " : ""}${to.join(", ")}`}
       </span>

@@ -88,7 +88,8 @@ export type TInstanceConfigurationKeys =
   | TInstanceEmailConfigurationKeys
   | TInstanceImageConfigurationKeys
   | TInstanceAuthenticationKeys
-  | TInstanceWorkspaceConfigurationKeys;
+  | TInstanceWorkspaceConfigurationKeys
+  | "CONJO_HOUR_RATE";
 
 export interface IInstanceConfiguration {
   id: string;

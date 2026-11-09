@@ -8,6 +8,7 @@ import logging
 import os
 import smtplib
 import socket
+from email.mime.image import MIMEImage
 
 # Django imports
 from django.core.mail import EmailMultiAlternatives, get_connection
@@ -177,8 +178,10 @@ def _not_connected(error):
     return isinstance(reason, NewConnectionError)
 
 
-def send_email_with_attachments(to_emails, subject, html_content, attachments=(), reply_to=None):
+def send_email_with_attachments(to_emails, subject, html_content, attachments=(), reply_to=None, inline=()):
     """One message to every address in ``to_emails`` with ``attachments`` (``(filename, mimetype, bytes)``).
+
+    ``inline``: images the body shows as ``cid:`` (``(content id, filename, mimetype, bytes)``).
 
     Mailjet first, SMTP when it is not configured (like ``send_transactional_email``). Raises
     ``EmailDeliveryError`` instead of swallowing the failure, because the caller records the outcome.
@@ -188,11 +191,11 @@ def send_email_with_attachments(to_emails, subject, html_content, attachments=()
         raise EmailDeliveryError("Nenhum destinatário.")
     text_content = generate_plain_text_from_html(html_content)
     if is_mailjet_configured():
-        return _attachments_with_mailjet(to_emails, subject, html_content, text_content, attachments, reply_to)
-    return _attachments_with_smtp(to_emails, subject, html_content, text_content, attachments, reply_to)
+        return _attachments_with_mailjet(to_emails, subject, html_content, text_content, attachments, reply_to, inline)
+    return _attachments_with_smtp(to_emails, subject, html_content, text_content, attachments, reply_to, inline)
 
 
-def _attachments_with_mailjet(to_emails, subject, html_content, text_content, attachments, reply_to):
+def _attachments_with_mailjet(to_emails, subject, html_content, text_content, attachments, reply_to, inline):
     api_key, api_secret, from_email, from_name = get_mailjet_configuration()
     message = {
         "From": {"Email": from_email, "Name": from_name},
@@ -205,6 +208,16 @@ def _attachments_with_mailjet(to_emails, subject, html_content, text_content, at
             for filename, mimetype, content in attachments
         ],
     }
+    if inline:
+        message["InlinedAttachments"] = [
+            {
+                "ContentType": mimetype,
+                "Filename": filename,
+                "ContentID": cid,
+                "Base64Content": base64.b64encode(content).decode(),
+            }
+            for cid, filename, mimetype, content in inline
+        ]
     if reply_to:
         message["ReplyTo"] = {"Email": reply_to}
     try:
@@ -227,7 +240,7 @@ def _attachments_with_mailjet(to_emails, subject, html_content, text_content, at
     return "mailjet"
 
 
-def _attachments_with_smtp(to_emails, subject, html_content, text_content, attachments, reply_to):
+def _attachments_with_smtp(to_emails, subject, html_content, text_content, attachments, reply_to, inline):
     host, user, password, port, use_tls, use_ssl, from_email = get_email_configuration()
     if not host:
         raise EmailDeliveryError("Nenhum servidor de e-mail configurado (Mailjet ou SMTP).")
@@ -251,6 +264,11 @@ def _attachments_with_smtp(to_emails, subject, html_content, text_content, attac
     msg.attach_alternative(html_content, "text/html")
     for filename, mimetype, content in attachments:
         msg.attach(filename, content, mimetype)
+    for cid, filename, mimetype, content in inline:
+        image = MIMEImage(content, _subtype=mimetype.split("/")[1])
+        image.add_header("Content-ID", f"<{cid}>")
+        image.add_header("Content-Disposition", "inline", filename=filename)
+        msg.attach(image)
     try:
         # Opening the connection (DNS, TLS, login) sends nothing, so a failure there can be retried.
         connection.open()
