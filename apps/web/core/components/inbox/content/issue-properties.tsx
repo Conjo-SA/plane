@@ -32,6 +32,7 @@ import { IssueLabel } from "@/components/issues/issue-detail/label";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 
 type Props = {
   workspaceSlug: string;
@@ -58,6 +59,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
     requesterName,
     requesterEmail,
   } = props;
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   const { t } = useTranslation();
 
   const router = useAppRouter();
@@ -213,25 +215,27 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
               </div>
             </div>
 
-            {/* Conjo: client of the request, checked or fixed during triage */}
-            <div className="flex min-h-8 items-center gap-2">
-              <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
-                <Building2 className="h-4 w-4 flex-shrink-0" />
-                <span>Cliente</span>
+            {/* Conjo: client of the request, checked or fixed during triage (Clients area, MAN-467) */}
+            {hasArea("clients") && (
+              <div className="flex min-h-8 items-center gap-2">
+                <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-13 text-tertiary">
+                  <Building2 className="h-4 w-4 flex-shrink-0" />
+                  <span>Cliente</span>
+                </div>
+                <div className="flex h-full min-h-8 w-3/5 flex-grow items-center">
+                  {issue?.id && (
+                    <IssueClientSelect
+                      className="w-full grow"
+                      workspaceSlug={workspaceSlug}
+                      projectId={projectId}
+                      issueId={issue.id}
+                      issueOperations={issueOperations}
+                      disabled={!isEditable}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex h-full min-h-8 w-3/5 flex-grow items-center">
-                {issue?.id && (
-                  <IssueClientSelect
-                    className="w-full grow"
-                    workspaceSlug={workspaceSlug}
-                    projectId={projectId}
-                    issueId={issue.id}
-                    issueOperations={issueOperations}
-                    disabled={!isEditable}
-                  />
-                )}
-              </div>
-            </div>
+            )}
 
             {/* duplicate to*/}
             {duplicateIssueDetails && (

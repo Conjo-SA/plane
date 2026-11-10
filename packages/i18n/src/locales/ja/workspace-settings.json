@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhook",
         "description": "プロジェクトイベントが発生したときに、外部サービスへの通知を自動化します。",

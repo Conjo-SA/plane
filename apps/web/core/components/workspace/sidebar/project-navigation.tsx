@@ -20,6 +20,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 
 export type TNavigationItem = {
   name: string;
@@ -46,6 +47,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar, toggleSidebar } = useAppTheme();
   const { getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   const {
     issue: { getIssueIdByIdentifier, getIssueById },
   } = useIssueDetail();
@@ -117,7 +119,8 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         href: `/${workspaceSlug}/projects/${projectId}/pages`,
         icon: PageIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: project?.page_view ?? false,
+        // Conjo (MAN-467): pages belong to the Docs area
+        shouldRender: (project?.page_view ?? false) && hasArea("docs"),
         sortOrder: 5,
       },
       {
@@ -131,7 +134,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         sortOrder: 6,
       },
     ],
-    [project]
+    [project, hasArea]
   );
 
   // memoized navigation items and adding additional navigation items

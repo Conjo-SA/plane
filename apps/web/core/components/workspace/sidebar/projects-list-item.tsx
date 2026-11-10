@@ -36,6 +36,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
@@ -91,6 +92,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const dragHandleRef = useRef<HTMLButtonElement | null>(null);
   // router
   const { workspaceSlug, projectId: URLProjectId } = useParams();
+  const { hasArea } = useWorkspaceAreas(workspaceSlug?.toString());
   const router = useRouter();
   // derived values
   const project = getPartialProjectById(projectId);
@@ -410,7 +412,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                       <span>{t("copy_link")}</span>
                     </span>
                   </CustomMenu.MenuItem>
-                  {isAuthorized && (
+                  {isAuthorized && hasArea("archives") && (
                     <CustomMenu.MenuItem
                       onClick={() => {
                         router.push(`/${workspaceSlug}/projects/${project?.id}/archives/issues`);

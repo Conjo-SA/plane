@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhooky",
         "description": "Automatizujte oznámení externím službám při výskytu událostí projektu.",

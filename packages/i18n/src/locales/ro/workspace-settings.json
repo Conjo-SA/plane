@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhook-uri",
         "description": "Automatizează notificările către servicii externe când se produc evenimente ale proiectului.",

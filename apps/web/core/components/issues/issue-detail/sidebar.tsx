@@ -36,6 +36,7 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
@@ -57,6 +58,7 @@ type Props = {
 export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: Props) {
   const { t } = useTranslation();
   const { workspaceSlug, projectId, issueId, issueOperations, isEditable } = props;
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   // store hooks
   const { getProjectById } = useProject();
   const { areEstimateEnabledByProjectId } = useProjectEstimates();
@@ -252,17 +254,19 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
               />
             </SidebarPropertyListItem>
 
-            {/* Conjo: client the work item counts for */}
-            <SidebarPropertyListItem icon={Building2} label="Cliente">
-              <IssueClientSelect
-                className="w-full grow"
-                workspaceSlug={workspaceSlug}
-                projectId={projectId}
-                issueId={issueId}
-                issueOperations={issueOperations}
-                disabled={!isEditable}
-              />
-            </SidebarPropertyListItem>
+            {/* Conjo: client the work item counts for (Clients area, MAN-467) */}
+            {hasArea("clients") && (
+              <SidebarPropertyListItem icon={Building2} label="Cliente">
+                <IssueClientSelect
+                  className="w-full grow"
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  issueOperations={issueOperations}
+                  disabled={!isEditable}
+                />
+              </SidebarPropertyListItem>
+            )}
           </div>
 
           {/* Conjo: time spent in each column, until done */}

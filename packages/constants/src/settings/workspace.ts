@@ -55,6 +55,14 @@ export const WORKSPACE_SETTINGS: Record<TWorkspaceSettingsTabs, TWorkspaceSettin
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/exports/`,
   },
+  // Conjo (MAN-467): who enters each area of the workspace
+  "area-access": {
+    key: "area-access",
+    i18n_label: "workspace_settings.settings.area_access.title",
+    href: `/settings/area-access`,
+    access: [EUserWorkspaceRoles.ADMIN],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/area-access/`,
+  },
   webhooks: {
     key: "webhooks",
     i18n_label: "workspace_settings.settings.webhooks.title",
@@ -72,6 +80,7 @@ export const GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TWo
   [WORKSPACE_SETTINGS_CATEGORY.ADMINISTRATION]: [
     WORKSPACE_SETTINGS["general"],
     WORKSPACE_SETTINGS["members"],
+    WORKSPACE_SETTINGS["area-access"],
     WORKSPACE_SETTINGS["export"],
   ],
   [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [],

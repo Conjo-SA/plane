@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Вебхуки",
         "description": "Автоматизируйте уведомления внешним сервисам при возникновении событий проекта.",

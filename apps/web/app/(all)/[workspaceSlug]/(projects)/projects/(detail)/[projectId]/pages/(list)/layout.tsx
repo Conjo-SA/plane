@@ -5,18 +5,23 @@
  */
 
 // components
-import { Outlet } from "react-router";
+import { Outlet, useParams } from "react-router";
+import { WorkspaceAreaGuard } from "@/components/conjo-areas";
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 // local components
 import { PagesListHeader } from "./header";
 
 export default function ProjectPagesListLayout() {
+  const { workspaceSlug } = useParams();
   return (
     <>
       <AppHeader header={<PagesListHeader />} />
       <ContentWrapper>
-        <Outlet />
+        {/* Conjo (MAN-467): only for who enters the area */}
+        <WorkspaceAreaGuard area="docs" workspaceSlug={workspaceSlug}>
+          <Outlet />
+        </WorkspaceAreaGuard>
       </ContentWrapper>
     </>
   );

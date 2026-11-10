@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import { WorkspaceAreaGuard } from "@/components/conjo-areas";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
@@ -42,7 +43,10 @@ function GitHubSettingsPage({ params }: Route.ComponentProps) {
           description="Vincule branches, commits e pull requests às tarefas pela chave (ex.: MAN-12), como no Jira."
         />
         <div className="mt-7">
-          <GitHubSettings projectId={projectId} workspaceSlug={workspaceSlug} />
+          {/* Conjo (MAN-467): Integrations area */}
+          <WorkspaceAreaGuard area="integrations" workspaceSlug={workspaceSlug}>
+            <GitHubSettings projectId={projectId} workspaceSlug={workspaceSlug} />
+          </WorkspaceAreaGuard>
         </div>
       </section>
     </SettingsContentWrapper>

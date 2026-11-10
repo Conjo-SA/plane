@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhook",
         "description": "Tự động hóa thông báo đến các dịch vụ bên ngoài khi các sự kiện dự án xảy ra.",

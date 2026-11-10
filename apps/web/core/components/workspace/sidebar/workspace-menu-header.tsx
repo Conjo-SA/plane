@@ -19,6 +19,7 @@ import { CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";
 // store hooks
 import { useUserPermissions } from "@/hooks/store/user";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 
 export type SidebarWorkspaceMenuHeaderProps = {
   isWorkspaceMenuOpen: boolean;
@@ -44,6 +45,7 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
   // TODO: fix types
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isAdmin = allowPermissions([EUserWorkspaceRoles.ADMIN] as any, EUserPermissionsLevel.WORKSPACE);
+  const { hasArea } = useWorkspaceAreas(workspaceSlug?.toString());
 
   return (
     <div className="group/workspace-button mt-2.5 flex rounded-sm bg-surface-1 px-2 hover:bg-surface-2">
@@ -75,12 +77,15 @@ export const SidebarWorkspaceMenuHeader = observer(function SidebarWorkspaceMenu
         customButtonClassName="grid place-items-center"
         placement="bottom-start"
       >
-        <CustomMenu.MenuItem onClick={() => router.push(`/${workspaceSlug}/projects/archives`)}>
-          <div className="flex items-center justify-start gap-2">
-            <ArchiveIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-            <span>{t("archives")}</span>
-          </div>
-        </CustomMenu.MenuItem>
+        {/* Conjo (MAN-467): Archives area */}
+        {hasArea("archives") && (
+          <CustomMenu.MenuItem onClick={() => router.push(`/${workspaceSlug}/projects/archives`)}>
+            <div className="flex items-center justify-start gap-2">
+              <ArchiveIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+              <span>{t("archives")}</span>
+            </div>
+          </CustomMenu.MenuItem>
+        )}
 
         {isAdmin && (
           <CustomMenu.MenuItem onClick={() => router.push(`/${workspaceSlug}/settings`)}>

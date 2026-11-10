@@ -20,6 +20,7 @@ import { cn, getFileURL } from "@plane/utils";
 // hooks
 import { IntakePortalBudgetRoot } from "@/components/inbox/content/portal-budget";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // local imports
 import { formatDayMonth, formatHours, formatMinutes, hoursToMinutes, todayISO } from "./format";
 
@@ -57,13 +58,15 @@ type Props = {
 export function IssueTimeCollapsible(props: Props) {
   const { workspaceSlug, projectId, issueId, disabled } = props;
   const [isOpen, setIsOpen] = useState(true);
+  // Conjo (MAN-467): only for who enters the Time area
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   const { data, mutate } = useSWR(
-    workspaceSlug && projectId && issueId ? getIssueTimeSWRKey(issueId) : null,
+    workspaceSlug && projectId && issueId && hasArea("time") ? getIssueTimeSWRKey(issueId) : null,
     () => billingService.getIssueTime(workspaceSlug, projectId, issueId),
     { revalidateOnFocus: true }
   );
 
-  if (!data) return null;
+  if (!data || !hasArea("time")) return null;
   const budgetMinutes = data.budget ? hoursToMinutes(data.budget.hours) : 0;
 
   return (

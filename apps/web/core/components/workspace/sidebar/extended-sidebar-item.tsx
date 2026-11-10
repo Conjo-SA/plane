@@ -26,6 +26,7 @@ import { UpgradeBadge } from "@/components/workspace/upgrade-badge";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-preferences";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // local imports
 import { getSidebarNavigationItemIcon } from "./helper";
 
@@ -59,6 +60,7 @@ export const ExtendedSidebarItem = observer(function ExtendedSidebarItem(props: 
   const { data } = useUser();
   const { allowPermissions } = useUserPermissions();
   const { preferences: workspacePreferences, toggleWorkspaceItem } = useWorkspaceNavigationPreferences();
+  const { hasArea } = useWorkspaceAreas(workspaceSlug?.toString());
 
   // derived values
   const isPinned = workspacePreferences.items[item.key]?.is_pinned ?? false;
@@ -155,6 +157,8 @@ export const ExtendedSidebarItem = observer(function ExtendedSidebarItem(props: 
   if (!allowPermissions(item.access as any, EUserPermissionsLevel.WORKSPACE, workspaceSlug.toString())) {
     return null;
   }
+  // Conjo (MAN-467): items of an area only for who enters it
+  if (item.area && !hasArea(item.area)) return null;
 
   return (
     <div

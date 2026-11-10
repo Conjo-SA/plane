@@ -10,16 +10,19 @@ import useSWR from "swr";
 import { Tooltip } from "@plane/propel/tooltip";
 // components
 import { conjoBillingService } from "@/components/conjo-clients/helpers";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 
 export const getProjectClientSummarySWRKey = (projectId: string) => `PROJECT_CLIENT_SUMMARY_${projectId}`;
 
-/** One request per project, shared by every card through SWR's cache. */
-export const useProjectClientSummary = (workspaceSlug: string | undefined, projectId: string | undefined) =>
-  useSWR(
-    workspaceSlug && projectId ? getProjectClientSummarySWRKey(projectId) : null,
+/** One request per project, shared by every card through SWR's cache (only with the Clients area, MAN-467). */
+export const useProjectClientSummary = (workspaceSlug: string | undefined, projectId: string | undefined) => {
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
+  return useSWR(
+    workspaceSlug && projectId && hasArea("clients") ? getProjectClientSummarySWRKey(projectId) : null,
     () => conjoBillingService.getProjectClientSummary(workspaceSlug!, projectId!),
     { revalidateOnFocus: true, dedupingInterval: 30_000 }
   );
+};
 
 type Props = {
   workspaceSlug: string | undefined;

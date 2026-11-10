@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhooks",
         "description": "在项目事件发生时自动向外部服务发送通知。",
