@@ -204,3 +204,66 @@ class TestS3StorageSignedURLExpiration:
         mock_s3_client.generate_presigned_url.assert_called_once()
         call_kwargs = mock_s3_client.generate_presigned_url.call_args[1]
         assert call_kwargs["ExpiresIn"] == 120
+
+
+MINIO_ENV = {
+    "AWS_ACCESS_KEY_ID": "test-key",
+    "AWS_SECRET_ACCESS_KEY": "test-secret",
+    "AWS_S3_BUCKET_NAME": "uploads",
+    "AWS_S3_ENDPOINT_URL": "http://plane-minio:9000",
+    "USE_MINIO": "1",
+    "MINIO_ENDPOINT_SSL": "1",
+}
+
+
+@pytest.mark.unit
+class TestS3StorageMinioEndpoints:
+    """With MinIO, only browser URLs are signed for the public host; server calls go straight to MinIO"""
+
+    def _storage(self, mock_boto3):
+        clients = {}
+
+        def make_client(*args, **kwargs):
+            client = Mock()
+            client.generate_presigned_post.return_value = {"url": "u", "fields": {}}
+            clients[kwargs["endpoint_url"]] = client
+            return client
+
+        mock_boto3.client.side_effect = make_client
+        request = Mock()
+        request.get_host.return_value = "tasks.example.com"
+        return S3Storage(request=request), clients
+
+    @patch.dict(os.environ, MINIO_ENV, clear=True)
+    @patch("plane.settings.storage.boto3")
+    def test_presigned_urls_use_public_host(self, mock_boto3):
+        storage, clients = self._storage(mock_boto3)
+
+        storage.generate_presigned_post("ws/key", "image/png", 1024)
+        storage.generate_presigned_url("ws/key")
+
+        public = clients["https://tasks.example.com"]
+        public.generate_presigned_post.assert_called_once()
+        public.generate_presigned_url.assert_called_once()
+        internal = clients["http://plane-minio:9000"]
+        internal.generate_presigned_post.assert_not_called()
+        internal.generate_presigned_url.assert_not_called()
+
+    @patch.dict(os.environ, MINIO_ENV, clear=True)
+    @patch("plane.settings.storage.boto3")
+    def test_server_calls_use_internal_endpoint(self, mock_boto3):
+        storage, clients = self._storage(mock_boto3)
+
+        storage.copy_object("ws/a", "ws/b")
+        storage.upload_file(Mock(), "avatar.png", "image/png")
+        storage.get_object_metadata("avatar.png")
+        storage.delete_files(["avatar.png"])
+
+        internal = clients["http://plane-minio:9000"]
+        internal.copy_object.assert_called_once()
+        internal.upload_fileobj.assert_called_once()
+        internal.head_object.assert_called_once()
+        internal.delete_objects.assert_called_once()
+        public = clients["https://tasks.example.com"]
+        for method in ("copy_object", "upload_fileobj", "head_object", "delete_objects"):
+            getattr(public, method).assert_not_called()
