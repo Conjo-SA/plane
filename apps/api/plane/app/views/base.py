@@ -25,6 +25,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 # Module imports
+from plane.app.permissions.area import check_area_access
 from plane.authentication.session import BaseSessionAuthentication
 from plane.utils.exception_logger import log_exception
 from plane.utils.paginator import BasePaginator
@@ -59,6 +60,13 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
     search_fields = []
 
     use_read_replica = False
+
+    # Conjo (MAN-467): views of an area (``conjo_area``) also pass the area gate.
+    conjo_area = None
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        check_area_access(self, request)
 
     def get_queryset(self):
         try:
@@ -158,6 +166,13 @@ class BaseAPIView(TimezoneMixin, ReadReplicaControlMixin, APIView, BasePaginator
     search_fields = []
 
     use_read_replica = False
+
+    # Conjo (MAN-467): views of an area (``conjo_area``) also pass the area gate.
+    conjo_area = None
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        check_area_access(self, request)
 
     def filter_queryset(self, queryset):
         for backend in list(self.filter_backends):

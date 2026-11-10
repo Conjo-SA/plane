@@ -662,6 +662,8 @@ class CycleDetailAPIEndpoint(BaseAPIView):
 class CycleArchiveUnarchiveAPIEndpoint(BaseAPIView):
     """Cycle Archive and Unarchive Endpoint"""
 
+    conjo_area = "archives"
+
     permission_classes = [ProjectEntityPermission]
     use_read_replica = True
 

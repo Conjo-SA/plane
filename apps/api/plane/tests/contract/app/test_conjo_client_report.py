@@ -30,6 +30,7 @@ from plane.db.models import (
     State,
     User,
     Workspace,
+    WorkspaceAreaAccess,
     WorkspaceMember,
 )
 from plane.utils import conjo_billing as billing
@@ -65,6 +66,11 @@ def log(issue, minutes, day, text="Ajuste"):
 def kind(issue, value):
     IssueWorkKind.objects.create(issue=issue, project_id=issue.project_id, kind=value)
     return issue
+
+
+def let_members_in(workspace):
+    # Since MAN-467 Clients is admin-only by default; the admin lets members in to test the project filter.
+    WorkspaceAreaAccess.objects.get_or_create(workspace=workspace, area="clients", defaults={"allowed_roles": [15]})
 
 
 def api_for(workspace, email, role, project=None, project_role=None):
@@ -121,7 +127,12 @@ class TestReportAccess:
         WorkspaceMember.objects.create(workspace=other, member=create_user, role=20)
         assert session_client.get(url(workspace, foreign), SEPT).status_code == 404
 
+    def test_member_is_refused_by_default(self, workspace, project, client_, report_data):
+        api = api_for(workspace, "membro0@x.com", 15, project, 15)
+        assert api.get(url(workspace, client_), SEPT).status_code == 403
+
     def test_member_without_the_project_sees_nothing_of_it(self, workspace, project, client_, report_data):
+        let_members_in(workspace)
         api = api_for(workspace, "membro@x.com", 15)
         response = api.get(url(workspace, client_), SEPT)
         assert response.status_code == 200
@@ -132,6 +143,7 @@ class TestReportAccess:
         assert "Lembrete" not in str(data)
 
     def test_member_of_the_project_sees_it(self, workspace, project, client_, report_data):
+        let_members_in(workspace)
         api = api_for(workspace, "membro2@x.com", 15, project, 15)
         data = api.get(url(workspace, client_), SEPT).json()
         assert data["totals"]["minutes"] == 270
@@ -383,6 +395,7 @@ class TestReportApprovedEstimate:
 
     def test_member_without_the_project_does_not_see_the_estimate(self, workspace, project, client_, report_data):
         approve(report_data["evo"], "10", SEPT_10)
+        let_members_in(workspace)
         api = api_for(workspace, "membro3@x.com", 15)
         data = api.get(url(workspace, client_), SEPT).json()
         assert data["totals"]["minutes"] == 0 and data["rows"] == []

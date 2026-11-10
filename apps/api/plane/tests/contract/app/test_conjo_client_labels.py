@@ -32,6 +32,7 @@ from plane.db.models import (
     ProjectMember,
     State,
     User,
+    WorkspaceAreaAccess,
     WorkspaceMember,
 )
 from plane.db.models.intake import SourceType
@@ -246,6 +247,10 @@ class TestEndpointsAndMCP:
         api = APIClient()
         api.force_authenticate(user=member)
         url = f"/api/workspaces/{workspace.slug}/projects/{board['man'].id}/issues/{issue.id}/client/"
+        # Since MAN-467 the item's client is in the Clients area (admin-only by default).
+        assert api.get(url).status_code == 403
+        assert api.put(url, {"client_id": str(board["clients"]["LTQ"].id)}, format="json").status_code == 403
+        WorkspaceAreaAccess.objects.create(workspace=workspace, area="clients", allowed_roles=[15])
         assert api.get(url).json()["can_change"] is False
         response = api.put(url, {"client_id": str(board["clients"]["LTQ"].id)}, format="json")
         assert response.status_code == 403

@@ -140,6 +140,8 @@ def get_portal_ticket(slug, project_id, issue_id):
 class IntakePortalBudgetEndpoint(BaseAPIView):
     """Hourly estimate the team sends to a portal requester for approval."""
 
+    conjo_area = "time"
+
     def get_portal_ticket(self, slug, project_id, issue_id):
         return get_portal_ticket(slug, project_id, issue_id)
 
@@ -189,6 +191,8 @@ class IntakePortalBudgetCancelEndpoint(BaseAPIView):
     Same permission as sending an estimate. Body: ``budget_id`` (optional, defaults to the pending
     estimate) and ``reason`` (optional, shown to the client).
     """
+
+    conjo_area = "time"
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id, issue_id):

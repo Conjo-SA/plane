@@ -23,6 +23,7 @@ from rest_framework.generics import GenericAPIView
 
 # Module imports
 from plane.api.middleware.api_authentication import APIKeyAuthentication
+from plane.app.permissions.area import check_area_access
 from plane.api.rate_limit import ApiKeyRateThrottle
 from plane.utils.exception_logger import log_exception
 from plane.utils.paginator import BasePaginator
@@ -52,6 +53,13 @@ class BaseAPIView(TimezoneMixin, GenericAPIView, ReadReplicaControlMixin, BasePa
     permission_classes = [IsAuthenticated]
 
     use_read_replica = False
+
+    # Conjo (MAN-467): views of an area (``conjo_area``) also pass the area gate.
+    conjo_area = None
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        check_area_access(self, request)
 
     def filter_queryset(self, queryset):
         for backend in list(self.filter_backends):
@@ -159,6 +167,13 @@ class BaseViewSet(TimezoneMixin, ReadReplicaControlMixin, ModelViewSet, BasePagi
         IsAuthenticated,
     ]
     use_read_replica = False
+
+    # Conjo (MAN-467): views of an area (``conjo_area``) also pass the area gate.
+    conjo_area = None
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        check_area_access(self, request)
 
     def get_queryset(self):
         try:

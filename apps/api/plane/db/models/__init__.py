@@ -114,3 +114,4 @@ from .conjo_billing import (
     IssueWorkKind,
     IssueWorkLog,
 )
+from .conjo_areas import WorkspaceAreaAccess, WorkspaceAreaMemberOverride

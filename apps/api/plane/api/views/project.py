@@ -649,6 +649,8 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
 class ProjectArchiveUnarchiveAPIEndpoint(BaseAPIView):
     """Project Archive and Unarchive Endpoint"""
 
+    conjo_area = "archives"
+
     permission_classes = [ProjectBasePermission]
 
     @project_docs(

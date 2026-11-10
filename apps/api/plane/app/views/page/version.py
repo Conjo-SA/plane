@@ -14,6 +14,7 @@ from plane.app.permissions import ProjectPagePermission
 
 
 class PageVersionEndpoint(BaseAPIView):
+    conjo_area = "docs"
     permission_classes = [ProjectPagePermission]
 
     def get(self, request, slug, project_id, page_id, pk=None):

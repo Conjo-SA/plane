@@ -425,6 +425,8 @@ class ProjectViewSet(BaseViewSet):
 
 
 class ProjectArchiveUnarchiveEndpoint(BaseAPIView):
+    conjo_area = "archives"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
         project = Project.objects.get(pk=project_id, workspace__slug=slug)

@@ -51,6 +51,8 @@ def get_or_create_integration(slug, project_id):
 class ProjectChatIntegrationEndpoint(BaseAPIView):
     """Configure the Conjo Chat room that receives the project's work item notices."""
 
+    conjo_area = "integrations"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def get(self, request, slug, project_id):
         integration = get_or_create_integration(slug, project_id)
@@ -73,6 +75,8 @@ class ProjectChatIntegrationEndpoint(BaseAPIView):
 
 class ProjectChatIntegrationRoomEndpoint(BaseAPIView):
     """Create the project room in the chat, or refresh it when it already exists."""
+
+    conjo_area = "integrations"
 
     @allow_permission([ROLE.ADMIN])
     def post(self, request, slug, project_id):
@@ -102,13 +106,17 @@ class ProjectChatIntegrationRoomEndpoint(BaseAPIView):
 class ProjectChatIntegrationTestEndpoint(BaseAPIView):
     """Send a test message to the project room."""
 
+    conjo_area = "integrations"
+
     @allow_permission([ROLE.ADMIN])
     def post(self, request, slug, project_id):
         if not is_configured():
             return Response({"error": NOT_CONFIGURED_ERROR}, status=status.HTTP_400_BAD_REQUEST)
-        integration = ProjectChatIntegration.objects.filter(
-            workspace__slug=slug, project_id=project_id
-        ).select_related("project").first()
+        integration = (
+            ProjectChatIntegration.objects.filter(workspace__slug=slug, project_id=project_id)
+            .select_related("project")
+            .first()
+        )
         if integration is None or not integration.room_id:
             return Response(
                 {"error": "Crie a sala do projeto no chat antes de enviar um teste."},

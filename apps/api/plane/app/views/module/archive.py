@@ -40,6 +40,7 @@ from .. import BaseAPIView
 
 
 class ModuleArchiveUnarchiveEndpoint(BaseAPIView):
+    conjo_area = "archives"
     permission_classes = [ProjectEntityPermission]
 
     def get_queryset(self):

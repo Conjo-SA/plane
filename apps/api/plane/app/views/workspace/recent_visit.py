@@ -11,6 +11,7 @@ from plane.app.serializers import WorkspaceRecentVisitSerializer
 
 # Modules imports
 from ..base import BaseViewSet
+from plane.utils.conjo_areas import has_area_access
 from plane.app.permissions import allow_permission, ROLE
 
 
@@ -31,6 +32,9 @@ class UserRecentVisitViewSet(BaseViewSet):
             user_recent_visits = user_recent_visits.filter(entity_name=entity_name)
 
         user_recent_visits = user_recent_visits.filter(entity_name__in=["issue", "page", "project"])
+        # Conjo (MAN-467): pages belong to the Docs area.
+        if not has_area_access(request.user, slug, "docs"):
+            user_recent_visits = user_recent_visits.exclude(entity_name="page")
 
         serializer = WorkspaceRecentVisitSerializer(user_recent_visits[:20], many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

@@ -107,6 +107,8 @@ def settings_payload(obj):
 class ProjectGitHubSettingsEndpoint(BaseAPIView):
     """Smart commits and pull request automations of a project."""
 
+    conjo_area = "integrations"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def get(self, request, slug, project_id):
         obj = get_or_create_settings(slug, project_id)
@@ -135,6 +137,8 @@ SYNC_LOCK_SECONDS = 10 * 60
 
 class ProjectGitHubSyncEndpoint(BaseAPIView):
     """Import the last 90 days of the organization's branches, commits and pull requests."""
+
+    conjo_area = "integrations"
 
     @allow_permission([ROLE.ADMIN])
     def post(self, request, slug, project_id):

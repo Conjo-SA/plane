@@ -52,6 +52,7 @@ from plane.utils.filters import IssueFilterSet
 
 
 class IssueArchiveViewSet(BaseViewSet):
+    conjo_area = "archives"
     serializer_class = IssueFlatSerializer
     model = Issue
 
@@ -310,6 +311,7 @@ class IssueArchiveViewSet(BaseViewSet):
 
 
 class BulkArchiveIssuesEndpoint(BaseAPIView):
+    conjo_area = "archives"
     permission_classes = [ProjectEntityPermission]
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])

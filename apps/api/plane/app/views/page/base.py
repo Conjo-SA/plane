@@ -75,6 +75,7 @@ def unarchive_archive_page_and_descendants(page_id, archived_at):
 
 
 class PageViewSet(BaseViewSet):
+    conjo_area = "docs"
     serializer_class = PageSerializer
     model = Page
     permission_classes = [ProjectPagePermission]
@@ -480,6 +481,7 @@ class PageViewSet(BaseViewSet):
 
 
 class PageFavoriteViewSet(BaseViewSet):
+    conjo_area = "docs"
     model = UserFavorite
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -506,6 +508,7 @@ class PageFavoriteViewSet(BaseViewSet):
 
 
 class PagesDescriptionViewSet(BaseViewSet):
+    conjo_area = "docs"
     permission_classes = [ProjectPagePermission]
 
     def retrieve(self, request, slug, project_id, page_id):
@@ -586,6 +589,7 @@ class PagesDescriptionViewSet(BaseViewSet):
 
 
 class PageDuplicateEndpoint(BaseAPIView):
+    conjo_area = "docs"
     permission_classes = [ProjectPagePermission]
 
     def post(self, request, slug, project_id, page_id):
@@ -655,6 +659,8 @@ class WorkspacePagesEndpoint(BaseAPIView):
     Same visibility as each project's page list: active membership in a non-archived project, public pages
     or the user's own, and guests only see their own pages unless the project lets guests see everything.
     """
+
+    conjo_area = "docs"
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):

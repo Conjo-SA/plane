@@ -15,6 +15,7 @@ from plane.app.views.base import BaseAPIView
 from plane.db.models import UserFavorite, Workspace
 from plane.app.serializers import UserFavoriteSerializer
 from plane.app.permissions import allow_permission, ROLE
+from plane.utils.conjo_areas import has_area_access
 
 
 class WorkspaceFavoriteEndpoint(BaseAPIView):
@@ -31,6 +32,9 @@ class WorkspaceFavoriteEndpoint(BaseAPIView):
                 & Q(project__project_projectmember__is_active=True)
             )
         )
+        # Conjo (MAN-467): pages belong to the Docs area.
+        if not has_area_access(request.user, slug, "docs"):
+            favorites = favorites.exclude(entity_type="page")
         serializer = UserFavoriteSerializer(favorites, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
