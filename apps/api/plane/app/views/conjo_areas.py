@@ -105,6 +105,15 @@ class WorkspaceAreaAccessEndpoint(BaseAPIView):
             if any(areas.clean_roles([role]) == [] for role in roles):
                 return _error("Só os papéis Membro (15) e Convidado (5) podem ser configurados.")
             changes[area] = areas.clean_roles(roles)
+        try:
+            self._save_roles(workspace, changes)
+        except IntegrityError:
+            # Two admins saving a new area at once: the other one won, show what is saved.
+            pass
+        return Response(_configuration(workspace))
+
+    @staticmethod
+    def _save_roles(workspace, changes):
         with transaction.atomic():
             for area, roles in changes.items():
                 row = (
@@ -115,7 +124,6 @@ class WorkspaceAreaAccessEndpoint(BaseAPIView):
                 elif row.allowed_roles != roles:
                     row.allowed_roles = roles
                     row.save(update_fields=["allowed_roles", "updated_at", "updated_by"])
-        return Response(_configuration(workspace))
 
 
 class WorkspaceAreaOverridesEndpoint(BaseAPIView):

@@ -16,7 +16,6 @@ does not allow, and the per-project visibility filters keep applying.
 """
 
 from plane.db.models import WorkspaceAreaAccess, WorkspaceAreaMemberOverride, WorkspaceMember
-from plane.utils.uuid import is_valid_uuid
 
 ADMIN = 20
 MEMBER = 15
@@ -65,14 +64,12 @@ def clean_roles(roles):
 
 
 def _workspace_lookup(workspace):
-    """Accepts a Workspace, its id or its slug."""
+    """Accepts a Workspace or its slug."""
     workspace_id = getattr(workspace, "id", None)
     if workspace_id is not None:
         return {"workspace_id": workspace_id}
-    value = str(workspace or "")
-    if is_valid_uuid(value):
-        return {"workspace_id": value}
-    return {"workspace__slug": value}
+    # A string is always the slug from the URL: a slug may look like another workspace's UUID.
+    return {"workspace__slug": str(workspace or "")}
 
 
 def _membership(user, workspace):
@@ -103,7 +100,7 @@ def _decide(role, override, allowed_roles):
 
 
 def has_area_access(user, workspace, area):
-    """Whether ``user`` enters ``area`` of ``workspace`` (a Workspace, its id or its slug)."""
+    """Whether ``user`` enters ``area`` of ``workspace`` (a Workspace or its slug)."""
     if area not in AREAS:
         return False
     membership = _membership(user, workspace)

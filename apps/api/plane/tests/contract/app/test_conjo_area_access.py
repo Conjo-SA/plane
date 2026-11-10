@@ -507,3 +507,55 @@ class TestExternalApi:
         )
         assert api.get(url).status_code == 403
         assert self.api_key_for(world["admin"]).get(url).status_code == 200
+
+
+@pytest.mark.contract
+class TestArchiveSidePaths:
+    """Archived data reached through the generic endpoints also needs the Archives area (security review)."""
+
+    @pytest.fixture
+    def blocked(self, workspace, world):
+        WorkspaceAreaMemberOverride.objects.create(
+            workspace=workspace, area="archives", member=world["member"], allow=False
+        )
+        return api_for(world["member"])
+
+    def test_archiving_by_patch_is_refused(self, workspace, project, world, blocked):
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{world['issue'].id}/"
+        assert blocked.patch(url, {"archived_at": "2026-11-10"}, format="json").status_code == 403
+        world["issue"].refresh_from_db()
+        assert world["issue"].archived_at is None
+        # Other updates keep working.
+        assert blocked.patch(url, {"name": "Novo nome"}, format="json").status_code == 204
+
+    def test_archived_item_detail_is_refused(self, workspace, project, world, blocked):
+        archived = world["archived"]
+        url = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{archived.id}/"
+        assert blocked.get(url).status_code == 403
+        by_key = f"/api/workspaces/{workspace.slug}/work-items/{project.identifier}-{archived.sequence_id}/"
+        assert blocked.get(by_key).status_code == 403
+        assert api_for(world["admin"]).get(url).status_code == 200
+        # A live item still opens.
+        live = f"/api/workspaces/{workspace.slug}/projects/{project.id}/issues/{world['issue'].id}/"
+        assert blocked.get(live).status_code == 200
+
+    def test_archived_projects_leave_the_project_list(self, workspace, project, world, blocked, create_user):
+        from plane.db.models import Project
+
+        old = Project.objects.create(
+            name="Antigo", identifier="OLD", workspace=workspace, created_by=create_user, archived_at=timezone.now()
+        )
+        ProjectMember.objects.create(project=old, member=world["member"], role=15, is_active=True)
+        for suffix in ("", "details/"):
+            url = f"/api/workspaces/{workspace.slug}/projects/{suffix}"
+            response = blocked.get(url)
+            assert response.status_code == 200, url
+            assert str(old.id) not in {p["id"] for p in response.json()}, url
+            assert str(old.id) in {p["id"] for p in api_for(world["admin"]).get(url).json()}, url
+
+    def test_slug_that_looks_like_another_workspace_id_is_still_a_slug(self, workspace, world):
+        trap = Workspace.objects.create(name="Armadilha", owner=world["guest"], slug=str(workspace.id))
+        WorkspaceMember.objects.create(workspace=trap, member=world["admin"], role=5)
+        # Admin in ``workspace``, guest in the workspace whose slug is that id.
+        assert not conjo_areas.has_area_access(world["admin"], str(workspace.id), "clients")
+        assert conjo_areas.has_area_access(world["admin"], workspace.slug, "clients")

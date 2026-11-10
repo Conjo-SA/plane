@@ -21,6 +21,7 @@ from drf_spectacular.types import OpenApiTypes
 
 
 # Module imports
+from plane.app.permissions.area import area_denied, touches_archive
 from plane.db.models import (
     Cycle,
     Intake,
@@ -549,6 +550,9 @@ class ProjectDetailAPIEndpoint(BaseAPIView):
         Partially update an existing project's properties like name, description, or settings.
         Tracks changes in model activity logs for audit purposes.
         """
+        # Conjo (MAN-467): archiving goes through the Archives area.
+        if touches_archive(request, slug):
+            return area_denied("archives")
         try:
             workspace = Workspace.objects.get(slug=slug)
             project = Project.objects.get(pk=pk)
