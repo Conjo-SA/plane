@@ -4,18 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet } from "react-router";
+import { Outlet, useParams } from "react-router";
+import { WorkspaceAreaGuard } from "@/components/conjo-areas";
 // components
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { ProjectArchivesHeader } from "../header";
 
 export default function ProjectArchiveCyclesLayout() {
+  const { workspaceSlug } = useParams();
   return (
     <>
       <AppHeader header={<ProjectArchivesHeader activeTab="cycles" />} />
       <ContentWrapper>
-        <Outlet />
+        {/* Conjo (MAN-467): only for who enters the area */}
+        <WorkspaceAreaGuard area="archives" workspaceSlug={workspaceSlug}>
+          <Outlet />
+        </WorkspaceAreaGuard>
       </ContentWrapper>
     </>
   );

@@ -33,6 +33,8 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
+from plane.app.permissions.area import area_denied, touches_archive
+from plane.utils.conjo_areas import has_area_access
 from plane.app.serializers import (
     IssueCreateSerializer,
     IssueDetailSerializer,
@@ -503,6 +505,12 @@ class IssueViewSet(BaseViewSet):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], creator=True, model=Issue)
     def retrieve(self, request, slug, project_id, pk=None):
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
+        # Conjo (MAN-467): an archived item belongs to the Archives area.
+        if (
+            Issue.objects.filter(project_id=project_id, workspace__slug=slug, pk=pk, archived_at__isnull=False).exists()
+            and not has_area_access(request.user, slug, "archives")
+        ):
+            return area_denied("archives")
 
         issue = (
             Issue.objects.filter(
@@ -637,6 +645,9 @@ class IssueViewSet(BaseViewSet):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], creator=True, model=Issue)
     def partial_update(self, request, slug, project_id, pk=None):
+        # Conjo (MAN-467): archiving goes through the Archives area.
+        if touches_archive(request, slug):
+            return area_denied("archives")
         queryset = self.get_queryset()
         queryset = self.apply_annotations(queryset)
 
@@ -1265,6 +1276,15 @@ class IssueDetailIdentifierEndpoint(BaseAPIView):
                 {"error": "Você não tem permissão para ver esta tarefa"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # Conjo (MAN-467): an archived item belongs to the Archives area.
+        if (
+            Issue.objects.filter(
+                project_id=project.id, sequence_id=issue_identifier, archived_at__isnull=False
+            ).exists()
+            and not has_area_access(request.user, slug, "archives")
+        ):
+            return area_denied("archives")
 
         # Fetch the issue
         issue = (

@@ -12,6 +12,7 @@ from .intake import urlpatterns as intake_urls
 from .conjo_chat import urlpatterns as conjo_chat_urls
 from .conjo_github import urlpatterns as conjo_github_urls
 from .conjo_billing import urlpatterns as conjo_billing_urls
+from .conjo_areas import urlpatterns as conjo_areas_urls
 from .issue import urlpatterns as issue_urls
 from .module import urlpatterns as module_urls
 from .notification import urlpatterns as notification_urls
@@ -36,6 +37,7 @@ urlpatterns = [
     *conjo_chat_urls,
     *conjo_github_urls,
     *conjo_billing_urls,
+    *conjo_areas_urls,
     *issue_urls,
     *module_urls,
     *notification_urls,

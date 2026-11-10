@@ -14,14 +14,17 @@ import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { clientKey, conjoBillingService } from "@/components/conjo-clients/helpers";
+// hooks
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 
 export const WorkspaceClientsHeader = observer(function WorkspaceClientsHeader() {
   const { workspaceSlug, clientId } = useParams();
   const { t } = useTranslation();
   const slug = workspaceSlug?.toString() ?? "";
   const id = clientId?.toString();
+  const { hasArea } = useWorkspaceAreas(slug);
   // same key as the page, so SWR shares the request
-  const { data: client } = useSWR(slug && id ? clientKey(slug, id) : null, () =>
+  const { data: client } = useSWR(slug && id && hasArea("clients") ? clientKey(slug, id) : null, () =>
     conjoBillingService.getClient(slug, id ?? "")
   );
 

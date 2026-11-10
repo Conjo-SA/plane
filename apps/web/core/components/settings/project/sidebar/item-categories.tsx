@@ -19,12 +19,15 @@ import { useTranslation } from "@plane/i18n";
 import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // local imports
 import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
 type Props = {
   projectId: string;
 };
+
+const INTEGRATION_ITEMS = new Set<string>(["conjo_chat", "conjo_github"]);
 
 export const ProjectSettingsSidebarItemCategories = observer(function ProjectSettingsSidebarItemCategories(
   props: Props
@@ -35,6 +38,7 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
   const pathname = usePathname();
   // store hooks
   const { allowPermissions } = useUserPermissions();
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   // translation
   const { t } = useTranslation();
 
@@ -42,8 +46,11 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
     <div className="mt-3 flex flex-col divide-y divide-subtle px-3">
       {PROJECT_SETTINGS_CATEGORIES.map((category) => {
         const categoryItems = GROUPED_PROJECT_SETTINGS[category];
-        const accessibleItems = categoryItems.filter((item) =>
-          allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, projectId)
+        const accessibleItems = categoryItems.filter(
+          (item) =>
+            allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, projectId) &&
+            // Conjo (MAN-467): GitHub and Conjo Chat belong to the Integrations area
+            (!INTEGRATION_ITEMS.has(item.key) || hasArea("integrations"))
         );
 
         if (accessibleItems.length === 0) return null;

@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Permissões por área"
+      },
       "webhooks": {
         "heading": "Webhooks",
         "description": "Automatize notificações para serviços externos quando ocorrerem eventos do projeto.",

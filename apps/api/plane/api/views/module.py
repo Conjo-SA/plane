@@ -939,6 +939,7 @@ class ModuleIssueDetailAPIEndpoint(BaseAPIView):
 
 
 class ModuleArchiveUnarchiveAPIEndpoint(BaseAPIView):
+    conjo_area = "archives"
     permission_classes = [ProjectEntityPermission]
     use_read_replica = True
 

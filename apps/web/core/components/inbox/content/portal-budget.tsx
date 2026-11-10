@@ -16,6 +16,7 @@ import { Input, TextArea } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
 import { getIssueTimeSWRKey } from "@/components/issues/issue-detail-widgets/time";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // local imports
 import { BudgetNote } from "./budget-note";
 import { BudgetTimeline } from "./budget-timeline";
@@ -229,8 +230,10 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
   const [isPreview, setIsPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  // budget
-  const { data, mutate } = useSWR(getPortalBudgetSWRKey(issueId), () =>
+  // budget (Conjo, MAN-467: part of the Time area)
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
+  const canSeeBudget = hasArea("time");
+  const { data, mutate } = useSWR(canSeeBudget ? getPortalBudgetSWRKey(issueId) : null, () =>
     intakePortalService.retrieveBudget(workspaceSlug, projectId, issueId)
   );
 
@@ -283,7 +286,7 @@ export const IntakePortalBudgetRoot = observer(function IntakePortalBudgetRoot(p
 
   // Only tickets that came from the portal have a requester who can approve one.
   // Kept hidden while loading so the form never flashes on a regular work item.
-  if (!data?.is_portal_ticket) return null;
+  if (!canSeeBudget || !data?.is_portal_ticket) return null;
 
   const formTitle = pending
     ? "Editar orçamento pendente"

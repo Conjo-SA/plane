@@ -17,6 +17,8 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, ProjectMemberPermission, allow_permission
+from plane.app.permissions.area import area_denied, touches_archive
+from plane.utils.conjo_areas import has_area_access
 from plane.app.serializers import (
     DeployBoardSerializer,
     ProjectListSerializer,
@@ -102,6 +104,9 @@ class ProjectViewSet(BaseViewSet):
     def list_detail(self, request, slug):
         fields = [field for field in request.GET.get("fields", "").split(",") if field]
         projects = self.get_queryset().order_by("sort_order", "name")
+        # Conjo (MAN-467): archived projects belong to the Archives area.
+        if not has_area_access(request.user, slug, "archives"):
+            projects = projects.filter(archived_at__isnull=True)
         if WorkspaceMember.objects.filter(
             member=request.user,
             workspace__slug=slug,
@@ -150,8 +155,10 @@ class ProjectViewSet(BaseViewSet):
             workspace__slug=self.kwargs.get("slug"),
         ).values("sort_order")
 
+        # Conjo (MAN-467): archived projects belong to the Archives area.
+        hide_archived = {} if has_area_access(request.user, slug, "archives") else {"archived_at__isnull": True}
         projects = (
-            Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
+            Project.objects.filter(workspace__slug=self.kwargs.get("slug"), **hide_archived)
             .select_related("workspace", "workspace__owner", "default_assignee", "project_lead")
             .annotate(
                 member_role=ProjectMember.objects.filter(
@@ -312,6 +319,9 @@ class ProjectViewSet(BaseViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, slug, pk=None):
+        # Conjo (MAN-467): archiving goes through the Archives area.
+        if touches_archive(request, slug):
+            return area_denied("archives")
         # try:
         is_workspace_admin = WorkspaceMember.objects.filter(
             member=request.user,
@@ -425,6 +435,8 @@ class ProjectViewSet(BaseViewSet):
 
 
 class ProjectArchiveUnarchiveEndpoint(BaseAPIView):
+    conjo_area = "archives"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id):
         project = Project.objects.get(pk=project_id, workspace__slug=slug)

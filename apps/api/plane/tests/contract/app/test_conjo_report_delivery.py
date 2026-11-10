@@ -22,6 +22,7 @@ from plane.db.models import (
     ClientReportDelivery,
     HourLedgerEntry,
     IssueWorkKind,
+    WorkspaceAreaAccess,
     WorkspaceMember,
 )
 from plane.utils import conjo_billing as billing
@@ -300,6 +301,9 @@ class TestDeliveriesEndpoint:
 
     def test_member_sees_but_cannot_send(self, workspace, ready):
         api = api_for(workspace, "membro@conjosa.com.br", 15)
+        # Since MAN-467 Clients is admin-only by default; with the area, a member reads but still cannot send.
+        assert api.get(self.url(workspace, ready)).status_code == 403
+        WorkspaceAreaAccess.objects.create(workspace=workspace, area="clients", allowed_roles=[15])
         assert api.get(self.url(workspace, ready)).status_code == 200
         response = api.post(self.url(workspace, ready), {"from": "2026-09-01", "to": "2026-09-30"}, format="json")
         assert response.status_code == 403

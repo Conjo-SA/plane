@@ -30,6 +30,7 @@ from plane.db.models import (
     Project,
     ProjectMember,
     User,
+    WorkspaceAreaAccess,
     WorkspaceMember,
 )
 from plane.db.models.intake import SourceType
@@ -178,6 +179,10 @@ class TestPermissions:
         issue = approved_issue(secret)
         billing.debit_for_estimate(issue, D("2"), "maria@x.com")
         base = f"/api/workspaces/{workspace.slug}/clients/{client_.id}"
+        # Since MAN-467 Clients is admin-only by default; members only read it once the admin lets them in.
+        assert member_client.get(f"{base}/timeline/").status_code == 403
+        assert member_client.get(f"{base}/ledger/").status_code == 403
+        WorkspaceAreaAccess.objects.create(workspace=workspace, area="clients", allowed_roles=[15])
         events = member_client.get(f"{base}/timeline/").json()["events"]
         assert all((event.get("issue") or {}).get("key", "").split("-")[0] != "SEC" for event in events)
         entries = member_client.get(f"{base}/ledger/").json()["entries"]

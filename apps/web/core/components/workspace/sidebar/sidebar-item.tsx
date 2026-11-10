@@ -19,6 +19,7 @@ import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-preferences";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // plane web imports
 import { getSidebarNavigationItemIcon } from "@/components/workspace/sidebar/helper";
 
@@ -59,8 +60,11 @@ export const SidebarItemBase = observer(function SidebarItemBase({
     ...(additionalStaticItems || []),
   ];
   const slug = workspaceSlug?.toString() || "";
+  const { hasArea } = useWorkspaceAreas(slug || undefined);
 
   if (!allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug)) return null;
+  // Conjo (MAN-467): items of an area only for who enters it
+  if (item.area && !hasArea(item.area)) return null;
 
   const isPinned = isWorkspaceItemPinned(item.key);
   if (!isPinned && !staticItems.includes(item.key)) return null;

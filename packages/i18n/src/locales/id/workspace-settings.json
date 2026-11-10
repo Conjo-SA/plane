@@ -97,6 +97,9 @@
           }
         }
       },
+      "area_access": {
+        "title": "Area permissions"
+      },
       "webhooks": {
         "heading": "Webhook",
         "description": "Otomatiskan notifikasi ke layanan eksternal saat peristiwa proyek terjadi.",

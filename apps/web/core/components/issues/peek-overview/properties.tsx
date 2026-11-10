@@ -36,6 +36,7 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // plane web components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import type { TIssueOperations } from "../issue-detail";
@@ -55,6 +56,7 @@ interface IPeekOverviewProperties {
 
 export const PeekOverviewProperties = observer(function PeekOverviewProperties(props: IPeekOverviewProperties) {
   const { workspaceSlug, projectId, issueId, issueOperations, disabled } = props;
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   const { t } = useTranslation();
   // store hooks
   const { getProjectById } = useProject();
@@ -247,17 +249,19 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
           <IssueLabel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={disabled} />
         </SidebarPropertyListItem>
 
-        {/* Conjo: client the work item counts for */}
-        <SidebarPropertyListItem icon={Building2} label="Cliente">
-          <IssueClientSelect
-            className="w-full grow"
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            issueId={issueId}
-            issueOperations={issueOperations}
-            disabled={disabled}
-          />
-        </SidebarPropertyListItem>
+        {/* Conjo: client the work item counts for (Clients area, MAN-467) */}
+        {hasArea("clients") && (
+          <SidebarPropertyListItem icon={Building2} label="Cliente">
+            <IssueClientSelect
+              className="w-full grow"
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              issueId={issueId}
+              issueOperations={issueOperations}
+              disabled={disabled}
+            />
+          </SidebarPropertyListItem>
+        )}
       </div>
 
       {/* Conjo: time spent in each column, until done */}

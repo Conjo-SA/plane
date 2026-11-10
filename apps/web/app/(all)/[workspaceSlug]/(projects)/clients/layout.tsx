@@ -4,18 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { Outlet } from "react-router";
+import { Outlet, useParams } from "react-router";
+import { WorkspaceAreaGuard } from "@/components/conjo-areas";
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 // local imports
 import { WorkspaceClientsHeader } from "./header";
 
 export default function WorkspaceClientsLayout() {
+  const { workspaceSlug } = useParams();
   return (
     <>
       <AppHeader header={<WorkspaceClientsHeader />} />
       <ContentWrapper>
-        <Outlet />
+        {/* Conjo (MAN-467): only for who enters the area */}
+        <WorkspaceAreaGuard area="clients" workspaceSlug={workspaceSlug}>
+          <Outlet />
+        </WorkspaceAreaGuard>
       </ContentWrapper>
     </>
   );

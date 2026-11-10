@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
+import { WorkspaceAreaGuard } from "@/components/conjo-areas";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
@@ -42,7 +43,10 @@ function ConjoChatSettingsPage({ params }: Route.ComponentProps) {
           description="Envie os avisos deste projeto para uma sala no Conjo Chat e acompanhe o board sem sair da conversa."
         />
         <div className="mt-7">
-          <ConjoChatSettings projectId={projectId} workspaceSlug={workspaceSlug} />
+          {/* Conjo (MAN-467): Integrations area */}
+          <WorkspaceAreaGuard area="integrations" workspaceSlug={workspaceSlug}>
+            <ConjoChatSettings projectId={projectId} workspaceSlug={workspaceSlug} />
+          </WorkspaceAreaGuard>
         </div>
       </section>
     </SettingsContentWrapper>

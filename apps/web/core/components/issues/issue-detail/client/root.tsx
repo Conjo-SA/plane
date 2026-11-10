@@ -14,6 +14,7 @@ import { cn } from "@plane/utils";
 // components
 import { conjoBillingService, getErrorMessage } from "@/components/conjo-clients/helpers";
 import { getIssueTimeSWRKey } from "@/components/issues/issue-detail-widgets/time";
+import { useWorkspaceAreas } from "@/hooks/use-workspace-areas";
 // local imports
 import type { TIssueOperations } from "../root";
 import { getProjectClientSummarySWRKey } from "./card-chip";
@@ -38,8 +39,10 @@ type Props = {
 export function IssueClientSelect(props: Props) {
   const { className = "", workspaceSlug, projectId, issueId, issueOperations, disabled = false } = props;
   const [isUpdating, setIsUpdating] = useState(false);
+  // Conjo (MAN-467): only for who enters the Clients area
+  const { hasArea } = useWorkspaceAreas(workspaceSlug);
   const { data, mutate } = useSWR(
-    workspaceSlug && projectId && issueId ? getIssueClientSWRKey(issueId) : null,
+    workspaceSlug && projectId && issueId && hasArea("clients") ? getIssueClientSWRKey(issueId) : null,
     () => conjoBillingService.getIssueClient(workspaceSlug, projectId, issueId),
     { revalidateOnFocus: true }
   );

@@ -41,6 +41,7 @@ from drf_spectacular.utils import (
 )
 
 # Module imports
+from plane.app.permissions.area import area_denied, touches_archive
 from plane.api.serializers import (
     IssueAttachmentSerializer,
     IssueActivitySerializer,
@@ -774,6 +775,9 @@ class IssueDetailAPIEndpoint(BaseAPIView):
         Partially update an existing work item with the provided fields.
         Supports external ID validation to prevent conflicts.
         """
+        # Conjo (MAN-467): archiving goes through the Archives area.
+        if touches_archive(request, slug):
+            return area_denied("archives")
         issue = Issue.objects.get(workspace__slug=slug, project_id=project_id, pk=pk)
         project = Project.objects.get(pk=project_id)
         current_instance = json.dumps(IssueSerializer(issue).data, cls=DjangoJSONEncoder)

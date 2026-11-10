@@ -29,6 +29,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import WorkspaceUserPermission
+from plane.utils.conjo_areas import has_area_access
 from plane.db.models import (
     Workspace,
     Project,
@@ -297,6 +298,10 @@ class GlobalSearchEndpoint(BaseAPIView):
         for entity in requested_entities:
             func = MODELS_MAPPER.get(entity)
             if func:
+                # Conjo (MAN-467): pages belong to the Docs area.
+                if entity == "page" and not has_area_access(request.user, slug, "docs"):
+                    results[entity] = []
+                    continue
                 results[entity] = func(query or None, slug, project_id, workspace_search)
 
         return Response({"results": results}, status=status.HTTP_200_OK)
@@ -313,6 +318,11 @@ class SearchEndpoint(BaseAPIView):
         project_id = request.query_params.get("project_id", None)
 
         response_data = {}
+
+        # Conjo (MAN-467): pages belong to the Docs area; without it the page search comes back empty.
+        if "page" in query_types and not has_area_access(request.user, slug, "docs"):
+            query_types = [qt for qt in query_types if qt != "page"]
+            response_data["page"] = []
 
         if project_id:
             for query_type in query_types:

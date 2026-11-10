@@ -53,6 +53,7 @@ from plane.utils.conjo_client_report import build_client_report, parse_period
 from plane.utils import conjo_report_delivery as report_delivery
 from plane.utils.exception_logger import log_exception
 from plane.utils.conjo_state_timeline import build_state_timeline
+from plane.utils.conjo_areas import has_area_access
 
 NOT_FOUND = {"error": "Não encontrado."}
 
@@ -114,7 +115,7 @@ def _work_log(entry):
     }
 
 
-def _issue_time_payload(issue):
+def _issue_time_payload(issue, user=None, slug=None):
     entries = IssueWorkLog.objects.filter(issue=issue).select_related("member")
     # A cancelled estimate (MAN-156) no longer counts: neither as budgeted hours nor for the progress bar.
     budgets = list(
@@ -145,7 +146,12 @@ def _issue_time_payload(issue):
             else None
         ),
         "debited_hours": str(sum((-d.hours for d in debits), Decimal("0"))) if debits else None,
-        "client": {"id": str(client.id), "name": client.name, "via": via} if client else None,
+        # The client's name belongs to the Clients area (MAN-467): without it, the time widget shows no client.
+        "client": (
+            {"id": str(client.id), "name": client.name, "via": via}
+            if client and (user is None or has_area_access(user, slug, "clients"))
+            else None
+        ),
     }
 
 
@@ -161,6 +167,8 @@ def _get_issue(slug, project_id, issue_id):
 
 
 class IssueTimeEndpoint(BaseAPIView):
+    conjo_area = "time"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id, issue_id):
         issue = _get_issue(slug, project_id, issue_id)
@@ -173,10 +181,10 @@ class IssueTimeEndpoint(BaseAPIView):
             # Same rule as the work item itself; estimates and the client stay with the team.
             if not issue.project.guest_view_all_features and issue.created_by_id != request.user.id:
                 return _error("Você não tem acesso a esta tarefa.", status.HTTP_403_FORBIDDEN)
-            payload = _issue_time_payload(issue)
+            payload = _issue_time_payload(issue, request.user, slug)
             payload.update(budget=None, debited_hours=None, client=None)
             return Response(payload)
-        return Response(_issue_time_payload(issue))
+        return Response(_issue_time_payload(issue, request.user, slug))
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def post(self, request, slug, project_id, issue_id):
@@ -201,10 +209,12 @@ class IssueTimeEndpoint(BaseAPIView):
             description=description,
         )
         publish_project_event("issue.time", project_id, [issue.id], request.user.id, ["time"], workspace_slug=slug)
-        return Response(_issue_time_payload(issue), status=status.HTTP_201_CREATED)
+        return Response(_issue_time_payload(issue, request.user, slug), status=status.HTTP_201_CREATED)
 
 
 class IssueTimeDetailEndpoint(BaseAPIView):
+    conjo_area = "time"
+
     def _entry(self, request, slug, project_id, issue_id, pk):
         entry = IssueWorkLog.objects.filter(
             workspace__slug=slug, project_id=project_id, issue_id=issue_id, pk=pk
@@ -240,7 +250,7 @@ class IssueTimeDetailEndpoint(BaseAPIView):
             return _error(WORK_LOG_DESCRIPTION_REQUIRED)
         entry.save()
         publish_project_event("issue.time", project_id, [issue_id], request.user.id, ["time"], workspace_slug=slug)
-        return Response(_issue_time_payload(entry.issue))
+        return Response(_issue_time_payload(entry.issue, request.user, slug))
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def delete(self, request, slug, project_id, issue_id, pk):
@@ -250,11 +260,13 @@ class IssueTimeDetailEndpoint(BaseAPIView):
         issue = entry.issue
         entry.delete()
         publish_project_event("issue.time", project_id, [issue_id], request.user.id, ["time"], workspace_slug=slug)
-        return Response(_issue_time_payload(issue))
+        return Response(_issue_time_payload(issue, request.user, slug))
 
 
 class IssueWorkKindEndpoint(BaseAPIView):
     """Evolution, maintenance or internal. Changing it keeps the package statement consistent."""
+
+    conjo_area = "time"
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def put(self, request, slug, project_id, issue_id):
@@ -266,7 +278,7 @@ class IssueWorkKindEndpoint(BaseAPIView):
             return _error("Tipo inválido.")
         current = billing.work_kind(issue)
         if kind == current:
-            return Response(_issue_time_payload(issue))
+            return Response(_issue_time_payload(issue, request.user, slug))
         # Changing the kind of an item with an approved estimate debits or gives back client hours,
         # which is a statement operation: only administrators can do it (same as a manual reversal).
         if billing.kind_change_touches_statement(issue) and not _is_workspace_admin(request.user, slug):
@@ -279,7 +291,7 @@ class IssueWorkKindEndpoint(BaseAPIView):
         publish_project_event(
             "issue.work_kind", project_id, [issue.id], request.user.id, ["work_kind"], workspace_slug=slug
         )
-        return Response(_issue_time_payload(issue))
+        return Response(_issue_time_payload(issue, request.user, slug))
 
 
 def _issue_client_payload(issue, user, slug):
@@ -319,6 +331,8 @@ class IssueStateTimelineEndpoint(BaseAPIView):
 class IssueClientEndpoint(BaseAPIView):
     """The client a work item is for (chosen on the item, or inherited from its project)."""
 
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id, issue_id):
         issue = _get_issue(slug, project_id, issue_id)
@@ -351,6 +365,8 @@ class IssueClientEndpoint(BaseAPIView):
 class ClientOptionsEndpoint(BaseAPIView):
     """Active clients for the work item's client picker."""
 
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug):
         clients = Client.objects.filter(workspace__slug=slug, is_active=True).order_by("name")
@@ -359,6 +375,8 @@ class ClientOptionsEndpoint(BaseAPIView):
 
 class ProjectClientSummaryEndpoint(BaseAPIView):
     """Clients chosen on the project's work items, for the chip on board and list cards."""
+
+    conjo_area = "clients"
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def get(self, request, slug, project_id):
@@ -467,6 +485,8 @@ CLIENT_FLAGS = ("is_active", "monthly_report_enabled")
 
 
 class ClientListEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug):
         clients = Client.objects.filter(workspace__slug=slug)
@@ -488,6 +508,8 @@ class ClientListEndpoint(BaseAPIView):
 
 
 class ClientDetailEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -544,6 +566,8 @@ def _contact_error(contact):
 
 
 class ClientContactsEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -557,6 +581,8 @@ class ClientContactsEndpoint(BaseAPIView):
 
 
 class ClientContactDetailEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def patch(self, request, slug, client_id, contact_id):
         contact = ClientContact.objects.filter(workspace__slug=slug, client_id=client_id, pk=contact_id).first()
@@ -576,6 +602,8 @@ class ClientContactDetailEndpoint(BaseAPIView):
 
 class ClientLabelOptionsEndpoint(BaseAPIView):
     """Every label of the workspace's projects with the client it identifies (for the label picker)."""
+
+    conjo_area = "clients"
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug):
@@ -614,6 +642,8 @@ class ClientLabelOptionsEndpoint(BaseAPIView):
 class ClientLabelsEndpoint(BaseAPIView):
     """Replace the labels that identify the client on boards shared by several clients."""
 
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def put(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -627,6 +657,8 @@ class ClientLabelsEndpoint(BaseAPIView):
 
 class ClientProjectsEndpoint(BaseAPIView):
     """Replace the projects covered by the client (a project belongs to one client)."""
+
+    conjo_area = "clients"
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def put(self, request, slug, client_id):
@@ -775,6 +807,8 @@ def _apply_contract(contract, data):
 
 
 class ClientContractsEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -787,6 +821,8 @@ class ClientContractsEndpoint(BaseAPIView):
 
 
 class ClientContractDetailEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def patch(self, request, slug, client_id, contract_id):
         contract = ClientContract.objects.filter(workspace__slug=slug, client_id=client_id, pk=contract_id).first()
@@ -842,6 +878,8 @@ def _contract_for_client(slug, client_id, contract_id=None):
 
 
 class ClientLedgerEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
         if _get_client(slug, client_id) is None:
@@ -870,6 +908,8 @@ class ClientLedgerEndpoint(BaseAPIView):
 
 
 class ClientLedgerAdjustEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, client_id):
         contract = _contract_for_client(slug, client_id, request.data.get("contract"))
@@ -890,6 +930,8 @@ class ClientLedgerAdjustEndpoint(BaseAPIView):
 
 
 class ClientLedgerReverseEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, client_id, entry_id):
         debit = HourLedgerEntry.objects.filter(
@@ -936,6 +978,8 @@ class ClientLedgerExportEndpoint(BaseAPIView):
     GET downloads; POST marks the period's excess hours as sent to finance (a state change never
     rides on a GET, which a link or an image could trigger).
     """
+
+    conjo_area = "clients"
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, client_id):
@@ -1012,6 +1056,8 @@ class ClientReportEndpoint(BaseAPIView):
     client's projects the person can see, like the statement and the timeline.
     """
 
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -1044,6 +1090,8 @@ def _delivery(delivery):
 
 class ClientReportDeliveriesEndpoint(BaseAPIView):
     """The report e-mails of the client (monthly and by hand) and a send by hand for a period (CONJO-52)."""
+
+    conjo_area = "clients"
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
@@ -1092,6 +1140,8 @@ class ClientReportDeliveriesEndpoint(BaseAPIView):
 
 
 class ClientTimelineEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -1115,6 +1165,8 @@ class ClientTimelineEndpoint(BaseAPIView):
 
 
 class ClientTimelineNotesEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug, client_id):
         client = _get_client(slug, client_id)
@@ -1147,6 +1199,8 @@ class ClientTimelineNotesEndpoint(BaseAPIView):
 
 
 class ClientTimelineNoteDetailEndpoint(BaseAPIView):
+    conjo_area = "clients"
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def delete(self, request, slug, client_id, note_id):
         note = ClientTimelineNote.objects.filter(workspace__slug=slug, client_id=client_id, pk=note_id).first()

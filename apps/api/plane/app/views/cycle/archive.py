@@ -38,6 +38,8 @@ from .. import BaseAPIView
 
 
 class CycleArchiveUnarchiveEndpoint(BaseAPIView):
+    conjo_area = "archives"
+
     def get_queryset(self):
         favorite_subquery = UserFavorite.objects.filter(
             user=self.request.user,
